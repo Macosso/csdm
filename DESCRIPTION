@@ -1,0 +1,15 @@
+Package: csdm
+Title: Cross Section Dependence Models
+Version: 0.0.0.9000
+Depends: R (>= 3.2.0), knitr, magrittr, rlang, plm
+Imports: dplyr, kableExtra, plm, xtsum
+Author: Joao Claudio Macosso 
+Maintainer: Joao Claudio Macosso <joaoclaudiomacosso@gmail.com>
+Description: Cross Section Dependence Models
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
