@@ -1,60 +1,63 @@
-#' Compute Variance-Covariance Matrix
-#'
-#' @description
-#' Computes the variance-covariance matrix for a given matrix of estimated coefficients.
-#'
-#' @param coef_matrix A numeric matrix where each row corresponds to individual estimates of parameters.
-#' @param method A character string indicating the method to compute the covariance matrix. Options are "standard" (default) or "robust".
-#' @return A variance-covariance matrix.
-#' @export
-compute_vcov <- function(coef_matrix, method = "standard") {
 
-  if (!is.matrix(coef_matrix)) {
-    stop("coef_matrix must be a numeric matrix.")
+predict.cce_mean_group <- function(object, data = NULL, unit = NULL, time = NULL){
+
+  if(is.null(data)){
+    data <- object$data
   }
 
-  n <- nrow(coef_matrix)
-  mean_coefs <- colMeans(coef_matrix, na.rm = TRUE)
+  if (!requireNamespace("plm", quietly = TRUE)) stop("Package 'plm' is required.")
+  if (!requireNamespace("stats", quietly = TRUE)) stop("Package 'stats' is required.")
 
-  if (method == "standard") {
-    vcov_matrix <- cov(coef_matrix, use = "complete.obs") / n
-  } else if (method == "robust") {
-    deviations <- sweep(coef_matrix, 2, mean_coefs, "-")
-    vcov_matrix <- t(deviations) %*% deviations / (n - 1)
-  } else {
-    stop("Invalid method. Choose either 'standard' or 'robust'.")
+  if (!inherits(data, "pdata.frame")) {
+    if (is.null(unit) || is.null(time)) {
+      stop("If data is not a pdata.frame, both 'unit' and 'time' must be provided.")
+    }
+    data <- plm::pdata.frame(data, index = c(unit, time))
   }
 
-  return(vcov_matrix)
+#  data <- na.action(data)
+
+  data$unit <- index(data)[[1]]
+  data$time <- index(data)[[2]]
+
+  model_cols <- all.vars(formula)
+
+
+  coefs <- object$coefficients
+  model_matrix <- data |>
+    group_by(time) |>
+    mutate(across(all_of(model_cols),
+                  list(avg = function(x) mean(x, na.rm = TRUE)),
+                  .names = "avg_X{.col}"),
+           `(Intercept)` = 1) |>
+    rename(avg_y = paste0("avg_X",as.character(formula)[2])) |>
+    ungroup() |>
+    select(names(coefs)) |>
+    as.matrix()
+
+  predictions <- as.vector(model_matrix %*% coefs)
+
+  return(predictions)
+
 }
-
-#' Predict Y using estimated coefficients
-#'
-#' @description
-#' Predicts the dependent variable using estimated coefficients and input features.
-#'
-#' @param coef_vector A numeric vector of estimated coefficients.
-#' @param X_matrix A numeric matrix of independent variables (including intercept if applicable).
-#' @return A numeric vector of predicted values.
-#' @export
-#'
-predict_y <- function(coef_vector, X_matrix) {
-
-  coef_vector <- coef_vector[!is.na(coef_vector)]
-  X_matrix <- X_matrix[, names(coef_vector)]
-
-  if (!is.vector(coef_vector) || !is.numeric(coef_vector)) {
-    stop("coef_vector must be a numeric vector.")
-  }
-
-  if (!is.matrix(X_matrix) || !is.numeric(X_matrix)) {
-    stop("X_matrix must be a numeric matrix.")
-  }
-
-  if (ncol(X_matrix) != length(coef_vector)) {
-    stop("Number of columns in X_matrix must match the length of coef_vector.")
-  }
-
-  return(X_matrix %*% coef_vector)
-}
+#
+#
+# data$pred <- predict(object = object)
+#
+# data$residual <- data$log_rgdpo - data$pred
+#
+#
+# tss <- sum((data$log_rgdpo - mean(data$log_rgdpo, na.rm = TRUE))^2)
+# rss <- sum((data$residual)^2, na.rm = TRUE)
+#
+#
+# 1 - rss/tss
+#
+#
+#
+# sp2 = sum(i=1,N) e(i)'e(i) / [N ( T - k - 2) - k]
+#
+#
+#
+#
 

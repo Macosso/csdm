@@ -51,50 +51,51 @@ cce_mean_group <- function(formula, data, unit = NULL, time = NULL,
     data <- plm::pdata.frame(data, index = c(unit, time))
   }
 
-  data <- na.action(data)
+  clean_data <- na.action(data)
 
-  model_frame <- model.frame(formula, data, na.action = na.action)
+  model_frame <- model.frame(formula, clean_data, na.action = na.action)
   y <- model.response(model_frame)
-  X <- model.matrix(formula, data)
+  X <- model.matrix(formula, clean_data)
 
-  units <- unique(index(data)[[1]])
-  time_periods <- unique(index(data)[[2]])
+  units <- unique(index(clean_data)[[1]])
+  time_periods <- unique(index(clean_data)[[2]])
 
-  avg_y <- tapply(y, index(data)[[2]], mean)
-  avg_X <- apply(X, 2, function(col) tapply(col, index(data)[[2]], mean))
+  avg_y <- tapply(y, index(clean_data)[[2]], mean)
+  avg_X <- apply(X[, setdiff(colnames(X), "(Intercept)")], 2,
+                 function(col) tapply(col, index(clean_data)[[2]], mean))
 
   coef_list <- list()
-  predictions <- list()
-
+  rsquared <- c()
   for (i in units) {
-    sub_data <- data[index(data)[[1]] == i, ]
+    sub_data <- clean_data[index(clean_data)[[1]] == i, ]
     sub_data$avg_y <- avg_y[match(index(sub_data)[[2]], names(avg_y))]
     sub_data$avg_X <- avg_X[match(index(sub_data)[[2]], rownames(avg_X)), ]
     reg_formula <- update(formula, . ~ . + avg_y + avg_X)
     model <- lm(reg_formula, data = sub_data)
     coef_list[[as.character(i)]] <- coef(model)
 
-    # Prepare matrices for prediction
-    X_full <- model.matrix(reg_formula, sub_data)
-    # Compute predictions using predict_y()
-    predictions[[as.character(i)]] <- predict_y(coef(model), X_full)
+    model_summary <- summary(model)
+    rsquared[i] <- model_summary$r.squared
   }
 
   coef_matrix <- do.call(rbind, coef_list)
-  pred_matrix <- do.call(rbind, predictions)
 
   mean_coefs <- colMeans(coef_matrix, na.rm = TRUE)
-  std_errors <- apply(coef_matrix, 2, function(x) sd(x, na.rm = TRUE) / sqrt(length(x)))
+  vcvm <- var(coef_matrix) # Variance covariance matrix
+
+  std_errors <- sqrt(diag(vcvm))/sqrt(nrow(coef_matrix)) # standard errors
 
   result <- list(
     call = match.call(),
     coefficients = mean_coefs,
-    predictions = pred_matrix,
-    residuals = y - pred_matrix,  # Store predictions
+    vcvm = vcvm,
     std_errors = std_errors,
     individual_coefs = coef_matrix,
     z_stat = mean_coefs/std_errors,
-    p_value = (1-pnorm(abs(mean_coefs/std_errors)))*2
+    p_value = (1-pnorm(abs(mean_coefs/std_errors)))*2,
+    data = data,
+    formula = formula,
+    rsquared = mean(rsquared)
   )
 
   class(result) <- "cce_mean_group"
@@ -110,16 +111,32 @@ print.cce_mean_group <- function(x) {
   print(data.frame(Estimate = x$coefficients, Std.Error = x$std_errors))
 }
 
+
+
 #' Summary method for CCE-MG estimator
 #' @param object An object of class 'cce_mean_group'.
 #' @export
 summary.cce_mean_group <- function(object) {
+  res <- data.frame(Estimate = object$coefficients,
+             Std.Error = object$std_errors,
+             z.value = object$z_stat,
+             p.value = object$p_value)
+
+  res <- res |>
+    mutate(signi = case_when(p.value < 0.001 ~ "***",
+                          p.value < 0.01 ~ "**",
+                          p.value < 0.05 ~ "*",
+                          p.value < 0.1 ~ ".",
+                          .default = ""))
+
   cat("\nSummary of CCE-MG Estimator\n")
-  print(data.frame(Estimate = object$coefficients,
-                   Std.Error = object$std_errors,
-                   z.value = object$z_stat,
-                   p.value = object$p_value))
+  cat("Panel Model Formula: ", deparse(object$formula), "\n")
+  print(res)
+  cat("------------------\n")
+  cat("Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1")
 }
+
+
 
 #' Coefficients method for CCE-MG estimator
 #' @param object An object of class 'cce_mean_group'.
