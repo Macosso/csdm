@@ -12,11 +12,11 @@
 #'
 #' The estimation follows three key steps:
 #' 1. Compute cross-sectional averages of the dependent and independent variables.
-#' 2. Estimate individual unit-level regressions with cross-sectional averages included.
+#' 2. Estimate individual id-level regressions with cross-sectional averages included.
 #' 3. Compute mean group estimates by averaging individual coefficients.
 #'
 #' This estimator is robust to the presence of unobserved common factors, even if their
-#' factor loadings vary across cross-sectional units.
+#' factor loadings vary across cross-sectional ids.
 #'
 #' Reference:
 #' Pesaran, M. H. (2006). "Estimation and Inference in Large Heterogeneous Panels with a
@@ -29,26 +29,26 @@
 #' @importFrom utils head tail
 #' @param formula Model formula (e.g., `y ~ x1 + x2`).
 #' @param data A `data.frame` or `pdata.frame` containing the panel data. If `pdata.frame` is provided,
-#' unit and time variables are inferred from `index`.
-#' @param unit Name of the cross-sectional identifier variable (required if `data` is a `data.frame`).
+#' id and time variables are inferred from `index`.
+#' @param id Name of the cross-sectional identifier variable (required if `data` is a `data.frame`).
 #' @param time Name of the time variable (required if `data` is a `data.frame`).
 #' @param ... Additional options (e.g., robust standard errors).
 #' @return An object of class `"cce_mean_group"` containing:
 #' \item{mean_coefs}{Mean group estimated coefficients.}
 #' \item{std_errors}{Standard errors of the mean group estimates.}
-#' \item{individual_coefs}{Matrix of individual unit-specific estimates.}
+#' \item{individual_coefs}{Matrix of individual id-specific estimates.}
 #' @export
-cce_mean_group <- function(formula, data, unit = NULL, time = NULL,
+cce_mean_group <- function(formula, data, id = NULL, time = NULL,
                            na.action = na.omit, ...) {
 
   if (!requireNamespace("plm", quietly = TRUE)) stop("Package 'plm' is required.")
   if (!requireNamespace("stats", quietly = TRUE)) stop("Package 'stats' is required.")
 
   if (!inherits(data, "pdata.frame")) {
-    if (is.null(unit) || is.null(time)) {
-      stop("If data is not a pdata.frame, both 'unit' and 'time' must be provided.")
+    if (is.null(id) || is.null(time)) {
+      stop("If data is not a pdata.frame, both 'id' and 'time' must be provided.")
     }
-    data <- plm::pdata.frame(data, index = c(unit, time))
+    data <- plm::pdata.frame(data, index = c(id, time))
   }
 
   clean_data <- na.action(data)
@@ -57,7 +57,7 @@ cce_mean_group <- function(formula, data, unit = NULL, time = NULL,
   y <- model.response(model_frame)
   X <- model.matrix(formula, clean_data)
 
-  units <- unique(index(clean_data)[[1]])
+  ids <- unique(index(clean_data)[[1]])
   time_periods <- unique(index(clean_data)[[2]])
 
   avg_y <- tapply(y, index(clean_data)[[2]], mean)
@@ -66,7 +66,12 @@ cce_mean_group <- function(formula, data, unit = NULL, time = NULL,
 
   coef_list <- list()
   rsquared <- c()
-  for (i in units) {
+  s2mg <- c()
+  s2 <- c()
+  N <- length(ids)
+  K <-  ncol(X)
+
+  for (i in ids) {
     sub_data <- clean_data[index(clean_data)[[1]] == i, ]
     sub_data$avg_y <- avg_y[match(index(sub_data)[[2]], names(avg_y))]
     sub_data$avg_X <- avg_X[match(index(sub_data)[[2]], rownames(avg_X)), ]
@@ -76,7 +81,15 @@ cce_mean_group <- function(formula, data, unit = NULL, time = NULL,
 
     model_summary <- summary(model)
     rsquared[i] <- model_summary$r.squared
+
+    r <- model$residuals
+    TT <- nrow(sub_data)
+    s2mg[i] <- (1/(N*(TT -1))*(t(r) %*% r))/((TT - 2*K -2)/N)
+    s2[i] <- sum((sub_data$log_rgdpo - mean(sub_data$log_rgdpo))^2)
   }
+
+
+  1 - sum(s2mg)/sum(s2)
 
   coef_matrix <- do.call(rbind, coef_list)
 
@@ -115,6 +128,7 @@ print.cce_mean_group <- function(x) {
 
 #' Summary method for CCE-MG estimator
 #' @param object An object of class 'cce_mean_group'.
+#' @importFrom dplyr mutate case_when
 #' @export
 summary.cce_mean_group <- function(object) {
   res <- data.frame(Estimate = object$coefficients,

@@ -4,7 +4,14 @@
 \alias{cce_mean_group}
 \title{Common Correlated Effects Mean Group (CCE-MG) Estimator}
 \usage{
-cce_mean_group(formula, data, unit = NULL, time = NULL, ...)
+cce_mean_group(
+  formula,
+  data,
+  unit = NULL,
+  time = NULL,
+  na.action = na.omit,
+  ...
+)
 }
 \arguments{
 \item{formula}{Model formula (e.g., `y ~ x1 + x2`).}

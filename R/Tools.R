@@ -1,5 +1,15 @@
-
-predict.cce_mean_group <- function(object, data = NULL, unit = NULL, time = NULL){
+#' Predict cce_mg
+#'
+#' @param object an cee-mg model
+#' @param data optional dataset
+#' @param id id panel data id indicator
+#' @param time time panel data time indicator
+#'
+#' @returns predictions
+#' @export
+#'
+#' @importFrom dplyr select ungroup rename across group_by
+predict.cce_mean_group <- function(object, data = NULL, id = NULL, time = NULL){
 
   if(is.null(data)){
     data <- object$data
@@ -9,15 +19,15 @@ predict.cce_mean_group <- function(object, data = NULL, unit = NULL, time = NULL
   if (!requireNamespace("stats", quietly = TRUE)) stop("Package 'stats' is required.")
 
   if (!inherits(data, "pdata.frame")) {
-    if (is.null(unit) || is.null(time)) {
-      stop("If data is not a pdata.frame, both 'unit' and 'time' must be provided.")
+    if (is.null(id) || is.null(time)) {
+      stop("If data is not a pdata.frame, both 'id' and 'time' must be provided.")
     }
-    data <- plm::pdata.frame(data, index = c(unit, time))
+    data <- plm::pdata.frame(data, index = c(id, time))
   }
 
 #  data <- na.action(data)
 
-  data$unit <- index(data)[[1]]
+  data$id <- index(data)[[1]]
   data$time <- index(data)[[2]]
 
   model_cols <- all.vars(formula)
@@ -40,24 +50,5 @@ predict.cce_mean_group <- function(object, data = NULL, unit = NULL, time = NULL
   return(predictions)
 
 }
-#
-#
-# data$pred <- predict(object = object)
-#
-# data$residual <- data$log_rgdpo - data$pred
-#
-#
-# tss <- sum((data$log_rgdpo - mean(data$log_rgdpo, na.rm = TRUE))^2)
-# rss <- sum((data$residual)^2, na.rm = TRUE)
-#
-#
-# 1 - rss/tss
-#
-#
-#
-# sp2 = sum(i=1,N) e(i)'e(i) / [N ( T - k - 2) - k]
-#
-#
-#
-#
+
 
