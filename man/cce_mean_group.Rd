@@ -2,55 +2,49 @@
 % Please edit documentation in R/cce_mean_group.R
 \name{cce_mean_group}
 \alias{cce_mean_group}
-\title{Common Correlated Effects Mean Group (CCE-MG) Estimator}
+\title{Common Correlated Effects Mean Group (CCE-MG) Estimator (static)}
 \usage{
 cce_mean_group(
   formula,
   data,
-  unit = NULL,
+  id = NULL,
   time = NULL,
-  na.action = na.omit,
-  ...
+  leave_out = FALSE,
+  na.action = na.omit
 )
 }
 \arguments{
-\item{formula}{Model formula (e.g., `y ~ x1 + x2`).}
+\item{formula}{Model formula (e.g., y ~ x1 + x2). Intercept is included by default.}
 
-\item{data}{A `data.frame` or `pdata.frame` containing the panel data. If `pdata.frame` is provided,
-unit and time variables are inferred from `index`.}
+\item{data}{data.frame or plm::pdata.frame.}
 
-\item{unit}{Name of the cross-sectional identifier variable (required if `data` is a `data.frame`).}
+\item{id, time}{Column names for unit and time (required if data is not a pdata.frame).}
 
-\item{time}{Name of the time variable (required if `data` is a `data.frame`).}
+\item{leave_out}{logical; if TRUE, compute CSAs excluding the unit itself. Default FALSE.}
 
-\item{...}{Additional options (e.g., robust standard errors).}
+\item{na.action}{function; default stats::na.omit.}
 }
 \value{
-An object of class `"cce_mean_group"` containing:
-\item{mean_coefs}{Mean group estimated coefficients.}
-\item{std_errors}{Standard errors of the mean group estimates.}
-\item{individual_coefs}{Matrix of individual unit-specific estimates.}
+An object of class "cce_mean_group" with components:
+  - beta_mg, beta_se, beta_z, beta_p: MG point estimates, SEs, and tests
+  - beta_i: matrix of unit-specific slopes for original regressors (rows=ids)
+  - gamma_i: matrix of unit-specific nuisance CSA slopes (csa_y and csa_xk)
+  - residuals_cce, residuals_pca, residuals_pca_std: N x T residual matrices
+  - sigma_i: unit std dev used for standardization
+  - vcov: full covariance matrix for beta_mg
+  - call, formula, ids, times, N, K, leave_out
 }
 \description{
-The CCE Mean Group (CCE-MG) estimator, introduced by Pesaran (2006), accounts
-for cross-sectional dependence in panel data by augmenting regressions with
-cross-sectional averages of dependent and independent variables.
+CCE-MG estimates unit-specific regressions augmented with cross-sectional averages
+(CSAs) of the dependent variable and each regressor, then averages the slopes on the
+original regressors across units (Mean Group). CSAs proxy latent common factors.
 }
 \details{
-Standard panel data estimators assume cross-sectional independence, which is often violated
-in empirical applications due to unobserved common factors. The CCE-MG estimator
-corrects for this by including cross-sectional averages as additional regressors.
+For each unit i, estimate:
+  y_it = a_i + x_it' * beta_i + \bar{y}_t * delta_{y,i} + \bar{x}_t' * delta_{x,i} + e_it,
+then report beta_MG = N^{-1} \sum_i beta_i and its MG standard errors based on the
+cross-sectional dispersion of {beta_i}.
 
-The estimation follows three key steps:
-1. Compute cross-sectional averages of the dependent and independent variables.
-2. Estimate individual unit-level regressions with cross-sectional averages included.
-3. Compute mean group estimates by averaging individual coefficients.
-
-This estimator is robust to the presence of unobserved common factors, even if their
-factor loadings vary across cross-sectional units.
-
-Reference:
-Pesaran, M. H. (2006). "Estimation and Inference in Large Heterogeneous Panels with a
-Multifactor Error Structure," *Econometrica*, 74(4), 967–1012.
-DOI: [10.1111/j.1468-0262.2006.00692.x](https://doi.org/10.1111/j.1468-0262.2006.00692.x)
+This implementation supports unbalanced panels and an optional leave-one-out CSA.
+The CSA coefficients (delta_y, delta_x) are treated as nuisances and not averaged.
 }

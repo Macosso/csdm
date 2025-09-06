@@ -4,23 +4,23 @@
 \alias{cd}
 \title{Title}
 \usage{
-cd(data, id, time, var, na.action = na.omit, ...)
+cd(data, var, id = NULL, time = NULL, na.action = na.omit, ...)
 }
 \arguments{
 \item{data}{dataset}
 
+\item{var}{variable to be tested}
+
 \item{id}{panel data id indicator}
 
 \item{time}{panel data time indicator}
-
-\item{var}{variable to be tested}
 
 \item{na.action}{na actions}
 
 \item{...}{other argunents}
 }
 \value{
-CD test
+CD test statistic and p-value
 }
 \description{
 Title
