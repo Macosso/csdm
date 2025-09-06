@@ -30,6 +30,7 @@ predict.cce_mean_group <- function(object, data = NULL, id = NULL, time = NULL){
   data$id <- index(data)[[1]]
   data$time <- index(data)[[2]]
 
+  formula <- object$formula
   model_cols <- all.vars(formula)
 
 
