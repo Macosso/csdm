@@ -6,43 +6,6 @@
 #' then averages the coefficients across units (Mean Group). The CSA terms proxy
 #' latent common factors and mitigate cross-sectional dependence.
 #'
-#' @details
-#' **Model.** For unit \eqn{i=1,\dots,N} and time \eqn{t}, let \eqn{y_{it}} be the dependent
-#' variable and \eqn{x_{it}} a K-vector of regressors. A CS-ARDL(p, q, P) for unit \eqn{i} is
-#' \deqn{
-#' y_{it} = \alpha_i + \sum_{j=1}^{p} \phi_{ij} y_{i,t-j}
-#'          + \sum_{k=1}^{K} \sum_{s=0}^{q_k} \beta_{ik,s} x_{k,i,t-s}
-#'          + \sum_{\ell=0}^{P} \delta_{i\ell}^{(y)} \bar{y}_{t-\ell}
-#'          + \sum_{k=1}^{K} \sum_{\ell=0}^{P} \delta_{ik,\ell}^{(x)} \bar{x}_{k,t-\ell}
-#'          + u_{it},
-#' }
-#' where \eqn{\bar{y}_t} and \eqn{\bar{x}_{k,t}} are cross-sectional averages (CSAs) that can be
-#' computed either **including** or **excluding** unit \eqn{i} (leave-one-out, `loo=TRUE`).
-#'
-#' **Long-run effects.** For each unit \eqn{i}, the long-run coefficient on regressor \eqn{k} is
-#' \eqn{\theta_{ik} = \big(\sum_{s=0}^{q_k} \beta_{ik,s}\big) / \big(1 - \sum_{j=1}^{p} \phi_{ij}\big)},
-#' provided the AR polynomial is stable. The function reports MG means of \eqn{\theta_{ik}} and
-#' their MG standard errors (cross-sectional dispersion / \eqn{\sqrt{N})}.
-#'
-#' **Unbalanced panels.** Estimation drops rows with insufficient lags; CSAs at time \eqn{t}
-#' are computed using all units with non-missing values at \eqn{t} (and excluding \eqn{i} if `loo=TRUE`).
-#'
-#' **Returns.**
-#' - `coef_mg_short`: MG averages of the unit-level **short-run** coefficients (on the lagged \eqn{y} and lagged \eqn{x}'s).
-#' - `coef_mg_long`: MG averages of **long-run** coefficients \eqn{\theta_k} with MG SEs.
-#' - `phi_mg`: MG average of the sum of lagged-\eqn{y} coefficients \eqn{\sum_j \phi_{ij}} and its SE.
-#' - `r2_mg`: average of unit-level R² from each OLS.
-#' - `cd_stat`, `cd_pval`: Pesaran-style CD test on pooled residuals.
-#' - `units`: tibble with unit-level results (coefficients, long-run, R², residuals index).
-#'
-#' **Related literature in your PDFs.**
-#' - MG/PMG background and ARDL motivation: Pesaran & Smith (1995); Pesaran, Shin & Smith (1999).
-#' - CS augmentation to address unobserved common factors: see the dynamic CCE/CS-ARDL approach
-#'   developed by Chudik & Pesaran (2015).
-#' - Error-correction and panel cointegration testing context: Westerlund (2007).
-#'
-#' This implementation is aligned with those ideas but written from scratch for the package.
-#'
 #' @param formula An object like `y ~ x1 + x2 + ...`. All regressors on RHS are treated as levels
 #'   for ARDL construction; lags are generated internally.
 #' @param data A data.frame (or tibble) with columns for `id`, `time`, `y`, `x`'s.
@@ -56,6 +19,42 @@
 #' @param robust_se One of `c("none","HC1","HC3")` for unit OLS variance; MG SEs are based on cross-sectional dispersion of unit estimates.
 #' @param min_T Integer. Minimum time observations required per unit after lagging; units with fewer are dropped.
 #' @return A list with MG estimates, their SEs, CD test, and unit-level results (see Details).
+#' @details
+#' \strong{Model}. For unit \eqn{i=1,\dots,N} and time \eqn{t}, let \eqn{y_{it}} be the dependent
+#' variable and \eqn{x_{it}} a K-vector of regressors. A CS-ARDL(p, q, P) for unit \eqn{i} is
+#' \deqn{
+#' y_{it} = \alpha_i + \sum_{j=1}^{p} \phi_{ij} y_{i,t-j}
+#'          + \sum_{k=1}^{K} \sum_{s=0}^{q_k} \beta_{ik,s} x_{k,i,t-s}
+#'          + \sum_{\ell=0}^{P} \delta_{i\ell}^{(y)} \bar{y}_{t-\ell}
+#'          + \sum_{k=1}^{K} \sum_{\ell=0}^{P} \delta_{ik,\ell}^{(x)} \bar{x}_{k,t-\ell}
+#'          + u_{it},
+#' }
+#' where \eqn{\bar{y}_t} and \eqn{\bar{x}_{k,t}} are cross-sectional averages (CSAs) that can be
+#' computed either **including** or **excluding** unit \eqn{i} (leave-one-out, `loo=TRUE`).
+#'
+#' \strong{Long-run effects}. For each unit \eqn{i}, the long-run coefficient on regressor \eqn{k} is
+#' \eqn{\theta_{ik} = \big(\sum_{s=0}^{q_k} \beta_{ik,s}\big) / \big(1 - \sum_{j=1}^{p} \phi_{ij}\big)},
+#' provided the AR polynomial is stable. The function reports MG means of \eqn{\theta_{ik}} and
+#' their MG standard errors (cross-sectional dispersion / \eqn{\sqrt{N})}.
+#'
+#' \strong{Unbalanced panels.} Estimation drops rows with insufficient lags; CSAs at time \eqn{t}
+#' are computed using all units with non-missing values at \eqn{t} (and excluding \eqn{i} if `loo=TRUE`).
+#'
+
+#' \strong{Related literature in your PDFs}.
+#' - MG/PMG background and ARDL motivation: Pesaran & Smith (1995); Pesaran, Shin & Smith (1999).
+#' - CS augmentation to address unobserved common factors: see the dynamic CCE/CS-ARDL approach
+#'   developed by Chudik & Pesaran (2015).
+#' - Error-correction and panel cointegration testing context: Westerlund (2007).
+#' @return A an object of class `cs_ardl_mg` with components:
+#' - `coef_mg_short`: MG averages of the unit-level **short-run** coefficients (on the lagged \eqn{y} and lagged \eqn{x}'s).
+#' - `coef_mg_long`: MG averages of **long-run** coefficients \eqn{\theta_k} with MG SEs.
+#' - `phi_mg`: MG average of the sum of lagged-\eqn{y} coefficients \eqn{\sum_j \phi_{ij}} and its SE.
+#' - `r2_mg`: average of unit-level R² from each OLS.
+#' - `cd_stat`, `cd_pval`: Pesaran-style CD test on pooled residuals.
+#' - `units`: tibble with unit-level results (coefficients, long-run, R², residuals index).
+#'
+
 #' @export
 cs_ardl_mg <- function(formula, data, id, time,
                        p = 1, q = 1, P = 1, loo = TRUE,

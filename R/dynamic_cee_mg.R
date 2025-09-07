@@ -17,44 +17,44 @@
 #' \strong{Model and purpose.}
 #' This function implements a heterogeneous dynamic panel regression with latent common factors
 #' using the \emph{Common Correlated Effects} (CCE) approach and \emph{Mean Group} (MG) averaging.
-#' For each cross-section \(i=1,\dots,N\) and time \(t=1,\dots,T\), we estimate an ARDL(1) in levels:
+#' For each cross-section \eqn{i=1,\dots,N} and time \eqn{t=1,\dots,T}, we estimate an ARDL(1) in levels:
 #' \deqn{ y_{it} = \alpha_i + \phi_i y_{i,t-1} + x_{it}'\beta_i \;+\; z_t'\gamma_i \;+\; u_{it}, }
-#' where \(x_{it}\) are unit-specific regressors and \(z_t\) collects \emph{cross-sectional averages} (CSAs)
-#' of \(y\) and \(x\) and their lags (lag-augmented CCE).
-#' The CSAs proxy the unobserved common factors and their dynamics; coefficients \((\phi_i,\beta_i,\gamma_i)\)
+#' where \eqn{x_{it}} are unit-specific regressors and \eqn{z_t} collects \emph{cross-sectional averages} (CSAs)
+#' of \eqn{y} and \eqn{x} and their lags (lag-augmented CCE).
+#' The CSAs proxy the unobserved common factors and their dynamics; coefficients \eqn{(\phi_i,\beta_i,\gamma_i)}
 #' are allowed to be heterogeneous across units. The reported MG coefficients are averages of the
-#' unit-level estimates for the subset of “economic” parameters (intercept, \(\phi_i\), and the
-#' \(\beta_i\) on user-supplied regressors), excluding the CSA controls.
+#' unit-level estimates for the subset of “economic” parameters (intercept, \eqn{\phi_i}, and the
+#' \eqn{\beta_i} on user-supplied regressors), excluding the CSA controls.
 #'
 #' \strong{CCE augmentation and lagging.}
-#' The CCE idea is to include at each \(t\) the contemporaneous CSAs \( \bar y_t, \bar x_t \) to span the
+#' The CCE idea is to include at each \eqn{t} the contemporaneous CSAs \eqn{ \bar y_t, \bar x_t } to span the
 #' factor space induced by pervasive shocks. With weakly exogenous regressors and dynamic factors, it is
-#' recommended to \emph{augment} the controls with \(p \ge 1\) lags of those CSAs to better track factor
+#' recommended to \emph{augment} the controls with \eqn{p \ge 1} lags of those CSAs to better track factor
 #' persistence. Practically, the function:
 #' \enumerate{
-#'   \item Computes time-wise means \( \bar y_t = N_t^{-1}\sum_{i\in \mathcal{I}_t} y_{it}\) and
-#'         \( \bar x_t = N_t^{-1}\sum_{i\in \mathcal{I}_t} x_{it}\), where \( \mathcal{I}_t\) is the set of
-#'         units observed at \(t\) (works with unbalanced panels).
-#'   \item Forms \( \{\bar y_t, \bar x_t\}\) on a \emph{time-level} table, then adds lags
-#'         \( \{\bar y_{t-\ell}, \bar x_{t-\ell}\}_{\ell=1}^p \) by time only.
+#'   \item Computes time-wise means \eqn{ \bar y_t = N_t^{-1}\sum_{i\in \mathcal{I}_t} y_{it}} and
+#'         \eqn{ \bar x_t = N_t^{-1}\sum_{i\in \mathcal{I}_t} x_{it}}, where \eqn{ \mathcal{I}_t} is the set of
+#'         units observed at \eqn{t} (works with unbalanced panels).
+#'   \item Forms \eqn{ \{\bar y_t, \bar x_t\}} on a \emph{time-level} table, then adds lags
+#'         \eqn{ \{\bar y_{t-\ell}, \bar x_{t-\ell}\}_{\ell=1}^p } by time only.
 #'   \item Merges those CSA controls back to the panel and estimates each unit equation by OLS.
 #' }
 #' This ordering is essential: lagging must be done \emph{by time}, not within the id–time rows, to avoid
 #' mixing information across units.
 #'
 #' \strong{Dynamic specification (ARDL(1)).}
-#' The default specification includes one lag of \(y_{it}\) per unit (an ARDL(1) in levels). Higher-order
+#' The default specification includes one lag of \eqn{y_{it}} per unit (an ARDL(1) in levels). Higher-order
 #' own lags could be added in extensions, but ARDL(1) is a common baseline in DC-CCE applications. Deterministic
 #' components (unit intercepts) are included by default; unit-specific trends can be added in future versions.
 #'
 #' \strong{Mean Group (MG) estimation and inference.}
-#' Let \(\hat\theta_i\) be the vector of unit-level coefficients of interest (intercept, lag of \(y\), and
+#' Let \eqn{\hat\theta_i} be the vector of unit-level coefficients of interest (intercept, lag of \eqn{y}, and
 #' user regressors; CSA controls are \emph{nuisance} and are not averaged). The MG estimator is
-#' \(\bar\theta = N^{-1}\sum_{i=1}^N \hat\theta_i\). Its variance is computed from the cross-sectional dispersion:
+#' \eqn{\bar\theta = N^{-1}\sum_{i=1}^N \hat\theta_i}. Its variance is computed from the cross-sectional dispersion:
 #' \deqn{ \widehat{\mathrm{Var}}(\bar\theta) = \frac{1}{N(N-1)} \sum_{i=1}^N
 #'        \left(\hat\theta_i - \bar\theta\right)\left(\hat\theta_i - \bar\theta\right)'. }
 #' Reported standard errors are the square-roots of the diagonal entries of this matrix. This is the usual MG
-#' large-\(N\) inference, robust to slope heterogeneity across units. Per-unit OLS (or HC) SEs can be provided
+#' large-\eqn{N} inference, robust to slope heterogeneity across units. Per-unit OLS (or HC) SEs can be provided
 #' for diagnostics, but MG uncertainty is driven by cross-section dispersion of the unit estimates.
 #'
 #' \strong{Residual cross-sectional dependence.}
@@ -64,19 +64,19 @@
 #' in factor-driven panels.
 #'
 #' \strong{Unbalanced panels and missing data.}
-#' CSAs at time \(t\) are computed using only units observed at \(t\); lags of CSAs are constructed on the
+#' CSAs at time \eqn{t} are computed using only units observed at \eqn{t}; lags of CSAs are constructed on the
 #' time index and then merged. Per-unit regressions are estimated on the rows that are complete for that unit
-#' (with respect to \(y\), regressors, and all selected CSA controls), so some units may be dropped if
-#' \(T_i\) becomes too small after lagging. MG averaging automatically adapts to the set of units actually
-#' estimated (effective \(N\)).
+#' (with respect to \eqn{y}, regressors, and all selected CSA controls), so some units may be dropped if
+#' \eqn{T_i} becomes too small after lagging. MG averaging automatically adapts to the set of units actually
+#' estimated (effective \eqn{N}).
 #'
 #' \strong{Choosing the number of CSA lags \code{p}.}
 #' The parameter \code{p} controls how aggressively we capture factor dynamics. Rules of thumb include small
-#' fixed values (e.g., 1–3) for moderate \(T\), or data-driven selection via information criteria in larger samples.
-#' Excessively large \code{p} with small \(T\) can over-fit and reduce usable observations.
+#' fixed values (e.g., 1–3) for moderate \eqn{T}, or data-driven selection via information criteria in larger samples.
+#' Excessively large \code{p} with small \eqn{T} can over-fit and reduce usable observations.
 #'
 #' \strong{What is averaged (and what is not).}
-#' The \code{coef} and \code{se} returned by the function pertain to the intercept, the lag of \(y\), and the
+#' The \code{coef} and \code{se} returned by the function pertain to the intercept, the lag of \eqn{y}, and the
 #' user-specified regressors. The CSA controls (contemporaneous and lagged averages) are treated as high-dimensional
 #' nuisance covariates used to span the factor space; their coefficients are \emph{not} summarized in the MG output.
 #'
@@ -91,14 +91,14 @@
 #' }
 #'
 #' \strong{Numerical notes and diagnostics.}
-#' Collinearity can arise when \code{p} is large relative to \(T\) or when regressors are highly persistent and
+#' Collinearity can arise when \code{p} is large relative to \eqn{T} or when regressors are highly persistent and
 #' strongly correlated with CSAs. Inspect per-unit condition numbers, and consider reducing \code{p} or the set
 #' of regressors. After estimation, inspect: (i) dispersion of unit-level coefficients, (ii) residual cross-section
 #' tests (CD/CD\*), and (iii) sensitivity of MG estimates to \code{p}.
 #'
 #' \strong{Limitations.}
 #' The current version uses ARDL(1) and time-invariant \code{p} for all units. It does not (yet) include unit-specific
-#' trends, higher-order dynamics, endogenous regressors with external instruments, or small-\(T\) finite-sample
+#' trends, higher-order dynamics, endogenous regressors with external instruments, or small-\eqn{T} finite-sample
 #' corrections. These can be added in future releases.
 #'
 #' @references
