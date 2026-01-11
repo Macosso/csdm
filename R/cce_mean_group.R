@@ -32,7 +32,7 @@
 #' @importFrom stats model.frame model.response model.matrix lm coef pnorm var
 #' @export
 cce_mean_group <- function(formula, data, id = NULL, time = NULL,
-                           leave_out = FALSE, na.action = na.omit) {
+                           leave_out = FALSE, na.action = stats::na.omit) {
 
   .Deprecated("csdm", package = "csdm")
 
@@ -114,7 +114,7 @@ cce_mean_group <- function(formula, data, id = NULL, time = NULL,
 
     rhs_terms <- c(colnames(Xn), "csa_y", paste0("csa_", colnames(Xn)))
     rhs_terms <- rhs_terms[rhs_terms %in% colnames(sub)]
-    fml <- as.formula(paste(".y ~", paste(rhs_terms, collapse = " + ")))
+    fml <- stats::as.formula(paste(".y ~", paste(rhs_terms, collapse = " + ")))
 
     fit <- stats::lm(fml, data = sub)
     cf  <- stats::coef(fit)

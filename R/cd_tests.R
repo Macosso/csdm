@@ -13,7 +13,7 @@
 #' @importFrom dplyr select arrange
 #' @importFrom tidyr pivot_wider
 #' @importFrom rlang enquo eval_tidy
-cd <- function(data, var, id = NULL, time = NULL, na.action = na.omit, ...){
+cd <- function(data, var, id = NULL, time = NULL, na.action = stats::na.omit, ...){
 
   data <- na.action(data)
   if (inherits(data, "pdata.frame")) {
@@ -21,7 +21,7 @@ cd <- function(data, var, id = NULL, time = NULL, na.action = na.omit, ...){
     id <- idx[1]
     time <- idx[[2]]
     data <- data |>
-      mutate(id = id,
+      dplyr::mutate(id = id,
              time = time)
 
     id <- "id"

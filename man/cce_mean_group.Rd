@@ -10,7 +10,7 @@ cce_mean_group(
   id = NULL,
   time = NULL,
   leave_out = FALSE,
-  na.action = na.omit
+  na.action = stats::na.omit
 )
 }
 \arguments{

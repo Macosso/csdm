@@ -1,4 +1,4 @@
-mg_estimator <- function(formula, data, id = NULL, time = NULL, na.action = na.omit) {
+mg_estimator <- function(formula, data, id = NULL, time = NULL, na.action = stats::na.omit) {
   .Deprecated("csdm", package = "csdm")
   # If the data is not already a pdata.frame, require that id and time variable names are provided.
   if (!("pdata.frame" %in% class(data))) {

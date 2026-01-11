@@ -27,8 +27,8 @@ predict.cce_mean_group <- function(object, data = NULL, id = NULL, time = NULL){
 
 #  data <- na.action(data)
 
-  data$id <- index(data)[[1]]
-  data$time <- index(data)[[2]]
+  data$id <- plm::index(data)[[1]]
+  data$time <- plm::index(data)[[2]]
 
   formula <- object$formula
   model_cols <- all.vars(formula)
@@ -36,14 +36,14 @@ predict.cce_mean_group <- function(object, data = NULL, id = NULL, time = NULL){
 
   coefs <- object$coefficients
   model_matrix <- data |>
-    group_by(time) |>
-    mutate(across(all_of(model_cols),
+    dplyr::group_by(time) |>
+    dplyr::mutate(dplyr::across(dplyr::all_of(model_cols),
                   list(avg = function(x) mean(x, na.rm = TRUE)),
                   .names = "avg_X{.col}"),
            `(Intercept)` = 1) |>
-    rename(avg_y = paste0("avg_X",as.character(formula)[2])) |>
-    ungroup() |>
-    select(names(coefs)) |>
+    dplyr::rename(avg_y = paste0("avg_X",as.character(formula)[2])) |>
+    dplyr::ungroup() |>
+    dplyr::select(names(coefs)) |>
     as.matrix()
 
   predictions <- as.vector(model_matrix %*% coefs)

@@ -2,4 +2,3 @@
 ^renv\.lock$
 ^csdm\.Rproj$
 ^\.Rproj\.user$
-^vignettes$

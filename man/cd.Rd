@@ -4,7 +4,7 @@
 \alias{cd}
 \title{Title}
 \usage{
-cd(data, var, id = NULL, time = NULL, na.action = na.omit, ...)
+cd(data, var, id = NULL, time = NULL, na.action = stats::na.omit, ...)
 }
 \arguments{
 \item{data}{dataset}
