@@ -52,6 +52,7 @@ mg_estimator <- function(formula, data, id = NULL, time = NULL, na.action = na.o
 }
 
 # Print method for objects returned by mg_estimator
+#' @export
 print.mg_estimator <- function(x, ...) {
   cat("Mean Group Estimator (MG) results (Pesaran & Smith, 1995):\n")
   cat("Panel Model Formula: ", deparse(x$formula), "\n")

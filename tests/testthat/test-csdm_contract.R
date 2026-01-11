@@ -18,6 +18,11 @@ test_that("csdm() returns a stable csdm_fit contract", {
   expect_true(is.matrix(fit_mg$residuals_e))
   expect_true(all(c("N", "T") %in% names(fit_mg$meta)))
 
+  # Stable dimensions and names
+  expect_identical(rownames(fit_mg$coef_i), as.character(sort(unique(df$id))))
+  expect_equal(ncol(fit_mg$residuals_e), length(sort(unique(df$time))))
+  expect_identical(colnames(fit_mg$residuals_e), as.character(sort(unique(df$time))))
+
   fit_cce <- csdm(
     y ~ x1 + x2,
     data = df,
@@ -40,8 +45,33 @@ test_that("csdm() returns a stable csdm_fit contract", {
   expect_s3_class(fit_dcce, "csdm_fit")
   expect_identical(fit_dcce$model, "dcce")
 
+  expect_equal(ncol(fit_dcce$residuals_e), length(sort(unique(df$time))))
+  expect_identical(colnames(fit_dcce$residuals_e), as.character(sort(unique(df$time))))
+
   expect_error(
     csdm(y ~ x1 + x2, data = df, id = "id", time = "time", model = "cs_ardl"),
     "Not implemented yet"
   )
+})
+
+
+test_that("csdm() residual mapping remains aligned with mid-panel NA", {
+  df <- data.frame(
+    id = rep(1:4, each = 10),
+    time = rep(1:10, times = 4)
+  )
+  set.seed(2)
+  df$x1 <- rnorm(nrow(df))
+  df$x2 <- rnorm(nrow(df))
+  df$y  <- 1 + 0.5 * df$x1 - 0.2 * df$x2 + rnorm(nrow(df), sd = 0.5)
+
+  # One missing regressor in the middle for unit 2 at time 5
+  df$x1[df$id == 2 & df$time == 5] <- NA_real_
+
+  fit <- csdm(y ~ x1 + x2, data = df, id = "id", time = "time", model = "mg")
+  E <- fit$residuals_e
+
+  expect_true(is.na(E["2", "5"]))
+  expect_true(is.finite(E["2", "6"]))
+  expect_equal(sum(is.finite(E["2", ])), 9)
 })

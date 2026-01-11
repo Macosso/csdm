@@ -78,13 +78,23 @@ csdm <- function(
   if (is.null(id) || is.null(time)) stop("Both 'id' and 'time' must be provided.")
   if (!all(c(id, time) %in% names(df))) stop("'data' must contain 'id' and 'time' columns.")
 
+  # time is required and must be numeric
+  if (!is.numeric(df[[time]])) {
+    stop("'time' must be a numeric (integer/double) column.")
+  }
+
   df[[id]] <- as.character(df[[id]])
 
   o <- order(df[[id]], df[[time]])
   df <- df[o, , drop = FALSE]
 
-  df$.csdm_rowname__ <- seq_len(nrow(df))
-  rownames(df) <- as.character(df$.csdm_rowname__)
+  # robust row mapping (do not rely on rownames)
+  df$.csdm_rowid__ <- seq_len(nrow(df))
+  rownames(df) <- as.character(df$.csdm_rowid__)
+
+  # stable levels for downstream matrix shaping
+  attr(df, "csdm_time_levels") <- sort(unique(df[[time]]))
+  attr(df, "csdm_id_levels") <- sort(unique(df[[id]]))
 
   df
 }
@@ -114,9 +124,18 @@ csdm <- function(
 }
 
 
+.csdm_econ_names <- function(formula, panel_df, na.action = stats::na.omit) {
+  mf <- stats::model.frame(formula, panel_df, na.action = na.action)
+  X <- stats::model.matrix(formula, mf)
+  colnames(X)
+}
+
+
 .csdm_residual_matrix <- function(panel_df, id, time, res_long) {
-  ids <- sort(unique(panel_df[[id]]))
-  times <- sort(unique(panel_df[[time]]))
+  .or <- function(x, y) if (is.null(x)) y else x
+
+  ids <- .or(attr(panel_df, "csdm_id_levels"), sort(unique(panel_df[[id]])))
+  times <- .or(attr(panel_df, "csdm_time_levels"), sort(unique(panel_df[[time]])))
 
   E <- matrix(NA_real_, nrow = length(ids), ncol = length(times))
   rownames(E) <- as.character(ids)
@@ -124,8 +143,8 @@ csdm <- function(
 
   if (nrow(res_long) == 0L) return(E)
 
-  ii <- match(as.character(res_long[[id]]), rownames(E))
-  tt <- match(as.character(res_long[[time]]), colnames(E))
+  ii <- match(res_long[[id]], ids)
+  tt <- match(res_long[[time]], times)
   keep <- is.finite(ii) & is.finite(tt)
   if (any(keep)) E[cbind(ii[keep], tt[keep])] <- res_long$residual[keep]
   E
@@ -135,26 +154,25 @@ csdm <- function(
 .csdm_fit_mg <- function(panel_df, formula, id, time, vcov, ...) {
   ids <- unique(panel_df[[id]])
 
-  # determine economic coefficient names from pooled model matrix (on complete rows)
-  econ_names <- colnames(stats::model.matrix(formula, stats::model.frame(formula, panel_df, na.action = stats::na.omit)))
+  econ_names <- .csdm_econ_names(formula, panel_df)
 
   coef_i <- matrix(NA_real_, nrow = length(ids), ncol = length(econ_names),
                    dimnames = list(as.character(ids), econ_names))
 
-  res_long <- data.frame(
-    id = character(0),
-    time = character(0),
-    residual = numeric(0),
-    stringsAsFactors = FALSE
-  )
-  names(res_long)[1:2] <- c(id, time)
+  res_long <- data.frame(stringsAsFactors = FALSE, check.names = FALSE)
+  res_long[[id]] <- character(0)
+  res_long[[time]] <- numeric(0)
+  res_long$residual <- numeric(0)
 
   dropped <- character(0)
 
   for (uid in ids) {
     sub <- panel_df[panel_df[[id]] == uid, , drop = FALSE]
 
-    mf <- tryCatch(stats::model.frame(formula, sub, na.action = stats::na.omit), error = function(e) NULL)
+    mf <- tryCatch(
+      stats::model.frame(stats::update(formula, . ~ . + .csdm_rowid__), sub, na.action = stats::na.omit),
+      error = function(e) NULL
+    )
     if (is.null(mf) || nrow(mf) == 0L) {
       dropped <- c(dropped, as.character(uid))
       next
@@ -170,17 +188,24 @@ csdm <- function(
     keep <- intersect(econ_names, names(cf))
     if (length(keep)) coef_i[as.character(uid), keep] <- cf[keep]
 
-    used_rows <- rownames(mf)
-    sub_used <- sub[used_rows, , drop = FALSE]
+    used_rowid <- mf[[".csdm_rowid__"]]
+    if (is.null(used_rowid)) next
+    idx_used <- match(used_rowid, sub$.csdm_rowid__)
+    if (anyNA(idx_used)) next
+    sub_used <- sub[idx_used, , drop = FALSE]
     if (nrow(sub_used) != length(fit$residuals)) {
       # conservative fallback: skip residuals if mapping fails
       next
     }
 
-    chunk <- data.frame(stringsAsFactors = FALSE, check.names = FALSE)
-    chunk[[id]] <- sub_used[[id]]
-    chunk[[time]] <- sub_used[[time]]
-    chunk$residual <- as.numeric(fit$residuals)
+    chunk <- data.frame(
+      sub_used[[id]],
+      sub_used[[time]],
+      residual = as.numeric(fit$residuals),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+    names(chunk)[1:2] <- c(id, time)
     res_long <- rbind(res_long, chunk)
   }
 
@@ -246,7 +271,11 @@ csdm <- function(
     csa_attached <- panel_df
   }
 
-  econ_names <- colnames(stats::model.matrix(formula, stats::model.frame(formula, panel_df, na.action = stats::na.omit)))
+  # cross_sectional_avg() returns a new data.frame; preserve stable levels
+  attr(csa_attached, "csdm_time_levels") <- attr(panel_df, "csdm_time_levels")
+  attr(csa_attached, "csdm_id_levels") <- attr(panel_df, "csdm_id_levels")
+
+  econ_names <- .csdm_econ_names(formula, panel_df)
 
   csa_terms <- if (length(csa_vars)) paste0("csa_", csa_vars) else character(0)
   fml <- if (length(csa_terms)) stats::update(formula, paste0(". ~ . + ", paste(csa_terms, collapse = " + "))) else formula
@@ -255,20 +284,20 @@ csdm <- function(
   coef_i <- matrix(NA_real_, nrow = length(ids), ncol = length(econ_names),
                    dimnames = list(as.character(ids), econ_names))
 
-  res_long <- data.frame(
-    id = character(0),
-    time = character(0),
-    residual = numeric(0),
-    stringsAsFactors = FALSE
-  )
-  names(res_long)[1:2] <- c(id, time)
+  res_long <- data.frame(stringsAsFactors = FALSE, check.names = FALSE)
+  res_long[[id]] <- character(0)
+  res_long[[time]] <- numeric(0)
+  res_long$residual <- numeric(0)
 
   dropped <- character(0)
 
   for (uid in ids) {
     sub <- csa_attached[csa_attached[[id]] == uid, , drop = FALSE]
 
-    mf <- tryCatch(stats::model.frame(fml, sub, na.action = stats::na.omit), error = function(e) NULL)
+    mf <- tryCatch(
+      stats::model.frame(stats::update(fml, . ~ . + .csdm_rowid__), sub, na.action = stats::na.omit),
+      error = function(e) NULL
+    )
     if (is.null(mf) || nrow(mf) == 0L) {
       dropped <- c(dropped, as.character(uid))
       next
@@ -284,14 +313,21 @@ csdm <- function(
     keep <- intersect(econ_names, names(cf))
     if (length(keep)) coef_i[as.character(uid), keep] <- cf[keep]
 
-    used_rows <- rownames(mf)
-    sub_used <- sub[used_rows, , drop = FALSE]
+    used_rowid <- mf[[".csdm_rowid__"]]
+    if (is.null(used_rowid)) next
+    idx_used <- match(used_rowid, sub$.csdm_rowid__)
+    if (anyNA(idx_used)) next
+    sub_used <- sub[idx_used, , drop = FALSE]
     if (nrow(sub_used) != length(fit$residuals)) next
 
-    chunk <- data.frame(stringsAsFactors = FALSE, check.names = FALSE)
-    chunk[[id]] <- sub_used[[id]]
-    chunk[[time]] <- sub_used[[time]]
-    chunk$residual <- as.numeric(fit$residuals)
+    chunk <- data.frame(
+      sub_used[[id]],
+      sub_used[[time]],
+      residual = as.numeric(fit$residuals),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+    names(chunk)[1:2] <- c(id, time)
     res_long <- rbind(res_long, chunk)
   }
 
@@ -394,7 +430,7 @@ csdm <- function(
   }
 
   # merge back to panel by time
-  key <- match(as.character(panel_df[[time]]), as.character(csa_time[[time]]))
+  key <- match(panel_df[[time]], csa_time[[time]])
   csa_attached <- panel_df
   if (nrow(csa_time) && length(setdiff(names(csa_time), time))) {
     for (nm in setdiff(names(csa_time), time)) {
@@ -402,7 +438,7 @@ csdm <- function(
     }
   }
 
-  econ_names <- colnames(stats::model.matrix(formula, stats::model.frame(formula, panel_df, na.action = stats::na.omit)))
+  econ_names <- .csdm_econ_names(formula, panel_df)
 
   fml <- if (length(csa_term_names)) stats::update(formula, paste0(". ~ . + ", paste(unique(csa_term_names), collapse = " + "))) else formula
 
@@ -410,20 +446,20 @@ csdm <- function(
   coef_i <- matrix(NA_real_, nrow = length(ids), ncol = length(econ_names),
                    dimnames = list(as.character(ids), econ_names))
 
-  res_long <- data.frame(
-    id = character(0),
-    time = character(0),
-    residual = numeric(0),
-    stringsAsFactors = FALSE
-  )
-  names(res_long)[1:2] <- c(id, time)
+  res_long <- data.frame(stringsAsFactors = FALSE, check.names = FALSE)
+  res_long[[id]] <- character(0)
+  res_long[[time]] <- numeric(0)
+  res_long$residual <- numeric(0)
 
   dropped <- character(0)
 
   for (uid in ids) {
     sub <- csa_attached[csa_attached[[id]] == uid, , drop = FALSE]
 
-    mf <- tryCatch(stats::model.frame(fml, sub, na.action = stats::na.omit), error = function(e) NULL)
+    mf <- tryCatch(
+      stats::model.frame(stats::update(fml, . ~ . + .csdm_rowid__), sub, na.action = stats::na.omit),
+      error = function(e) NULL
+    )
     if (is.null(mf) || nrow(mf) == 0L) {
       dropped <- c(dropped, as.character(uid))
       next
@@ -439,14 +475,21 @@ csdm <- function(
     keep <- intersect(econ_names, names(cf))
     if (length(keep)) coef_i[as.character(uid), keep] <- cf[keep]
 
-    used_rows <- rownames(mf)
-    sub_used <- sub[used_rows, , drop = FALSE]
+    used_rowid <- mf[[".csdm_rowid__"]]
+    if (is.null(used_rowid)) next
+    idx_used <- match(used_rowid, sub$.csdm_rowid__)
+    if (anyNA(idx_used)) next
+    sub_used <- sub[idx_used, , drop = FALSE]
     if (nrow(sub_used) != length(fit$residuals)) next
 
-    chunk <- data.frame(stringsAsFactors = FALSE, check.names = FALSE)
-    chunk[[id]] <- sub_used[[id]]
-    chunk[[time]] <- sub_used[[time]]
-    chunk$residual <- as.numeric(fit$residuals)
+    chunk <- data.frame(
+      sub_used[[id]],
+      sub_used[[time]],
+      residual = as.numeric(fit$residuals),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+    names(chunk)[1:2] <- c(id, time)
     res_long <- rbind(res_long, chunk)
   }
 
