@@ -34,6 +34,8 @@
 cce_mean_group <- function(formula, data, id = NULL, time = NULL,
                            leave_out = FALSE, na.action = na.omit) {
 
+  .Deprecated("csdm", package = "csdm")
+
   # indices
   if (!inherits(data, "pdata.frame")) {
     if (is.null(id) || is.null(time)) {

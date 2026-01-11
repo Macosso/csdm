@@ -1,0 +1,109 @@
+# csdm_specs.R
+
+#' Specification: Cross-sectional averages (CSA)
+#'
+#' @param vars Character. One of "_all", "_none", or a character vector of variable names.
+#' @param lags Integer. Either a scalar integer >= 0 applied to all CSA variables,
+#'   or a named integer vector giving per-variable maximum lags.
+#' @param scope Character vector. One or more of c("estimation","global","cluster").
+#' @param cluster Reserved for future use.
+#'
+#' @return A spec object (list) used by csdm().
+#' @export
+csdm_csa <- function(
+  vars = "_all",
+  lags = 0,
+  scope = c("estimation", "global", "cluster"),
+  cluster = NULL
+) {
+  # vars
+  if (is.null(vars) || length(vars) == 0L) {
+    stop("'vars' must be '_all', '_none', or a character vector.")
+  }
+  if (length(vars) == 1L && vars %in% c("_all", "_none")) {
+    vars <- as.character(vars)
+  } else {
+    if (!is.character(vars)) stop("'vars' must be a character vector.")
+    if (any(!nzchar(vars))) stop("'vars' contains empty strings.")
+    vars <- unique(as.character(vars))
+  }
+
+  # lags
+  if (length(lags) == 1L) {
+    if (!is.numeric(lags) || !is.finite(lags)) stop("'lags' must be a finite integer >= 0.")
+    lags <- as.integer(lags)
+    if (lags < 0L) stop("'lags' must be >= 0.")
+  } else {
+    if (is.null(names(lags)) || any(!nzchar(names(lags)))) {
+      stop("If 'lags' is not scalar, it must be a *named* integer vector.")
+    }
+    if (!is.numeric(lags) || any(!is.finite(lags))) stop("'lags' must be finite integers.")
+    lags <- as.integer(lags)
+    if (any(lags < 0L)) stop("All entries of 'lags' must be >= 0.")
+    lags <- lags[unique(names(lags))]
+  }
+
+  # scope
+  allowed <- c("estimation", "global", "cluster")
+  if (!is.character(scope) || length(scope) == 0L) stop("'scope' must be a character vector.")
+  if (any(!scope %in% allowed)) {
+    bad <- setdiff(unique(scope), allowed)
+    stop("Invalid 'scope': ", paste(bad, collapse = ", "), ". Allowed: ", paste(allowed, collapse = ", "))
+  }
+  scope <- unique(scope)
+
+  spec <- list(
+    vars = vars,
+    lags = lags,
+    scope = scope,
+    cluster = cluster
+  )
+  class(spec) <- "csdm_csa_spec"
+  spec
+}
+
+
+#' Specification: Long-run configuration
+#'
+#' @param vars Reserved for future use.
+#' @param type One of c("none","ecm","ardl","csdl").
+#' @param options Reserved for future use.
+#'
+#' @return A spec object (list) used by csdm().
+#' @export
+csdm_lr <- function(vars = NULL, type = c("none", "ecm", "ardl", "csdl"), options = list()) {
+  type <- match.arg(type)
+  spec <- list(vars = vars, type = type, options = options)
+  class(spec) <- "csdm_lr_spec"
+  spec
+}
+
+
+#' Specification: Pooled constraints (stub)
+#'
+#' @param vars Reserved for future use.
+#' @param constant Logical; pooled constant.
+#' @param trend Logical; pooled trend.
+#'
+#' @return A spec object (list) used by csdm().
+#' @export
+csdm_pooled <- function(vars = NULL, constant = FALSE, trend = FALSE) {
+  spec <- list(vars = vars, constant = isTRUE(constant), trend = isTRUE(trend))
+  class(spec) <- "csdm_pooled_spec"
+  spec
+}
+
+
+#' Specification: Variance-covariance for MG output (stub)
+#'
+#' @param type One of c("mg","np","nw","wpn","ols").
+#' @param ... Reserved for future use.
+#'
+#' @return A spec object (list) used by csdm().
+#' @export
+csdm_vcov <- function(type = c("mg", "np", "nw", "wpn", "ols"), ...) {
+  type <- match.arg(type)
+  spec <- list(type = type, options = list(...))
+  class(spec) <- "csdm_vcov_spec"
+  spec
+}

@@ -125,6 +125,7 @@ dynamic_cce_mg <- function(formula, data, id = NULL, time = NULL,
                            p = 3, na.action = na.omit,
                            vcov_unit = c("OLS","HC"),
                            cd_method = c("CDstar","CD","none")) {
+  .Deprecated("csdm", package = "csdm")
   vcov_unit <- match.arg(vcov_unit)
   cd_method <- match.arg(cd_method)
 
