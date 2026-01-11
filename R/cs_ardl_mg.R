@@ -182,7 +182,7 @@ cs_ardl_mg <- function(formula, data, id, time,
     # divided by (1 - phi_sum_i). If the denominator is nearly zero, set NA.
     theta_i <- vapply(xnames, function(XK) {
       num <- sum(coef_i[paste0(XK, "L", 0:qvec[XK])], na.rm = TRUE)
-      den <- (1 - phi_sum_i)
+      den <- 1 - phi_sum_i
       if (is.finite(num) && is.finite(den) && abs(den) > 1e-8) num / den else NA_real_
     }, numeric(1))
 
