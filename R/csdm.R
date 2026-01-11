@@ -177,17 +177,11 @@ csdm <- function(
       next
     }
 
-    res_long <- rbind(
-      res_long,
-      data.frame(
-        sub_used[[id]],
-        sub_used[[time]],
-        as.numeric(fit$residuals),
-        stringsAsFactors = FALSE,
-        check.names = FALSE
-      )
-    )
-    names(res_long)[1:3] <- c(id, time, "residual")
+    chunk <- data.frame(stringsAsFactors = FALSE, check.names = FALSE)
+    chunk[[id]] <- sub_used[[id]]
+    chunk[[time]] <- sub_used[[time]]
+    chunk$residual <- as.numeric(fit$residuals)
+    res_long <- rbind(res_long, chunk)
   }
 
   coef_mg <- colMeans(coef_i, na.rm = TRUE)
@@ -294,17 +288,11 @@ csdm <- function(
     sub_used <- sub[used_rows, , drop = FALSE]
     if (nrow(sub_used) != length(fit$residuals)) next
 
-    res_long <- rbind(
-      res_long,
-      data.frame(
-        sub_used[[id]],
-        sub_used[[time]],
-        as.numeric(fit$residuals),
-        stringsAsFactors = FALSE,
-        check.names = FALSE
-      )
-    )
-    names(res_long)[1:3] <- c(id, time, "residual")
+    chunk <- data.frame(stringsAsFactors = FALSE, check.names = FALSE)
+    chunk[[id]] <- sub_used[[id]]
+    chunk[[time]] <- sub_used[[time]]
+    chunk$residual <- as.numeric(fit$residuals)
+    res_long <- rbind(res_long, chunk)
   }
 
   coef_mg <- colMeans(coef_i, na.rm = TRUE)
@@ -455,17 +443,11 @@ csdm <- function(
     sub_used <- sub[used_rows, , drop = FALSE]
     if (nrow(sub_used) != length(fit$residuals)) next
 
-    res_long <- rbind(
-      res_long,
-      data.frame(
-        sub_used[[id]],
-        sub_used[[time]],
-        as.numeric(fit$residuals),
-        stringsAsFactors = FALSE,
-        check.names = FALSE
-      )
-    )
-    names(res_long)[1:3] <- c(id, time, "residual")
+    chunk <- data.frame(stringsAsFactors = FALSE, check.names = FALSE)
+    chunk[[id]] <- sub_used[[id]]
+    chunk[[time]] <- sub_used[[time]]
+    chunk$residual <- as.numeric(fit$residuals)
+    res_long <- rbind(res_long, chunk)
   }
 
   coef_mg <- colMeans(coef_i, na.rm = TRUE)
