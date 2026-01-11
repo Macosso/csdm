@@ -2,7 +2,7 @@
 #'
 #' @description
 #' Estimates unit-specific ARDL(p, q) regressions augmented with cross-sectional
-#' averages (CSAs) of the dependent variable and regressors—plus their lags up to `P`—
+#' averages (CSAs) of the dependent variable and regressors - plus their lags up to `P` -
 #' then averages the coefficients across units (Mean Group). The CSA terms proxy
 #' latent common factors and mitigate cross-sectional dependence.
 #'
@@ -10,10 +10,10 @@
 #'   for ARDL construction; lags are generated internally.
 #' @param data A data.frame (or tibble) with columns for `id`, `time`, `y`, `x`'s.
 #' @param id,time Column names (strings) identifying unit and time indices.
-#' @param p Integer \ge 1. Number of lags of y.
+#' @param p Integer >= 1. Number of lags of y.
 #' @param q Integer (recycled) or named integer vector for lags of each regressor
 #'   (names must match RHS variable names). `q` counts max lag; lag 0 is included by default.
-#' @param P Integer \ge 0. Number of lags of cross-sectional averages added (lag 0..P).
+#' @param P Integer >= 0. Number of lags of cross-sectional averages added (lag 0..P).
 #' @param loo Logical. If `TRUE`, compute CSAs in leave-one-out fashion.
 #' @param trend Logical. If `TRUE`, adds a deterministic linear trend (common slope) to each unit regression.
 #' @param robust_se One of `c("none","HC1","HC3")` for unit OLS variance; MG SEs are based on cross-sectional dispersion of unit estimates.
@@ -35,7 +35,7 @@
 #' \strong{Long-run effects}. For each unit \eqn{i}, the long-run coefficient on regressor \eqn{k} is
 #' \eqn{\theta_{ik} = \big(\sum_{s=0}^{q_k} \beta_{ik,s}\big) / \big(1 - \sum_{j=1}^{p} \phi_{ij}\big)},
 #' provided the AR polynomial is stable. The function reports MG means of \eqn{\theta_{ik}} and
-#' their MG standard errors (cross-sectional dispersion / \eqn{\sqrt{N})}.
+#' their MG standard errors (cross-sectional dispersion / \eqn{\sqrt{N}}).
 #'
 #' \strong{Unbalanced panels.} Estimation drops rows with insufficient lags; CSAs at time \eqn{t}
 #' are computed using all units with non-missing values at \eqn{t} (and excluding \eqn{i} if `loo=TRUE`).
@@ -50,9 +50,9 @@
 #' - `coef_mg_short`: MG averages of the unit-level **short-run** coefficients (on the lagged \eqn{y} and lagged \eqn{x}'s).
 #' - `coef_mg_long`: MG averages of **long-run** coefficients \eqn{\theta_k} with MG SEs.
 #' - `phi_mg`: MG average of the sum of lagged-\eqn{y} coefficients \eqn{\sum_j \phi_{ij}} and its SE.
-#' - `r2_mg`: average of unit-level R² from each OLS.
+#' - `r2_mg`: average of unit-level R2 from each OLS.
 #' - `cd_stat`, `cd_pval`: Pesaran-style CD test on pooled residuals.
-#' - `units`: tibble with unit-level results (coefficients, long-run, R², residuals index).
+#' - `units`: tibble with unit-level results (coefficients, long-run, R2, residuals index).
 #'
 
 #' @export
@@ -65,7 +65,7 @@ cs_ardl_mg <- function(formula, data, id, time,
   robust_se <- match.arg(robust_se)
   stopifnot(p >= 1, P >= 0)
 
-  tf <- terms(formula)
+  tf <- stats::terms(formula)
   yname  <- as.character(attr(tf, "variables"))[2L]
   xnames <- attr(tf, "term.labels")
   if (length(xnames) == 0L) stop("Formula must have regressors on the RHS.")
@@ -86,7 +86,7 @@ cs_ardl_mg <- function(formula, data, id, time,
   o  <- order(df[[id]], df[[time]])
   df <- df[o, , drop = FALSE]
 
-  csa_frame <- aggregate(df[, c(yname, xnames)],
+  csa_frame <- stats::aggregate(df[, c(yname, xnames)],
                          list(tt = df[[time]]),
                          function(v) mean(v, na.rm = TRUE))
   names(csa_frame)[1L] <- time
@@ -112,8 +112,8 @@ cs_ardl_mg <- function(formula, data, id, time,
     if (loo) {
       tt <- dfi[[time]]
       idx_t <- match(tt, csa_frame[[time]])
-      agg_sum <- aggregate(df[, c(yname, xnames)], list(tt = df[[time]]), function(v) sum(v, na.rm = TRUE))
-      agg_cnt <- aggregate(df[, c(yname, xnames)], list(tt = df[[time]]), function(v) sum(!is.na(v)))
+      agg_sum <- stats::aggregate(df[, c(yname, xnames)], list(tt = df[[time]]), function(v) sum(v, na.rm = TRUE))
+      agg_cnt <- stats::aggregate(df[, c(yname, xnames)], list(tt = df[[time]]), function(v) sum(!is.na(v)))
       names(agg_sum)[1L] <- names(agg_cnt)[1L] <- time
       sums <- agg_sum[idx_t, c(yname, xnames), drop = FALSE]
       cnts <- agg_cnt[idx_t, c(yname, xnames), drop = FALSE]
@@ -187,8 +187,8 @@ cs_ardl_mg <- function(formula, data, id, time,
     }, numeric(1))
 
     kept_times <- dfi[[time]][keep]
-    cd_store$e  <- c(cd_store$e, residuals(fit))
-    cd_store$id <- c(cd_store$id, rep(list(uid), length(residuals(fit))))
+    cd_store$e  <- c(cd_store$e, stats::residuals(fit))
+    cd_store$id <- c(cd_store$id, rep(list(uid), length(stats::residuals(fit))))
     cd_store$tt <- c(cd_store$tt, kept_times)
 
     res_list[[ii]] <- list(
@@ -232,19 +232,19 @@ cs_ardl_mg <- function(formula, data, id, time,
     out
   }))
   bx_mg <- colMeans(BX, na.rm = TRUE)
-  bx_se <- apply(BX, 2, function(v) sd(v, na.rm = TRUE) / sqrt(sum(!is.na(v))))
+  bx_se <- apply(BX, 2, function(v) stats::sd(v, na.rm = TRUE) / sqrt(sum(!is.na(v))))
 
   ### FIX: phi MG with mean + SE (names expected by your print/summary)
   phi_vec <- vapply(res_list, function(z) z$phi_sum, numeric(1))
   phi_mg  <- c(
     mean = mean(phi_vec, na.rm = TRUE),
-    se   = sd(phi_vec,  na.rm = TRUE) / sqrt(sum(!is.na(phi_vec)))
+    se   = stats::sd(phi_vec,  na.rm = TRUE) / sqrt(sum(!is.na(phi_vec)))
   )
 
   TH <- do.call(rbind, lapply(res_list, function(z) z$theta))
   colnames(TH) <- xnames
   theta_mg <- colMeans(TH, na.rm = TRUE)
-  theta_se <- apply(TH, 2, function(v) sd(v, na.rm = TRUE) / sqrt(sum(!is.na(v))))
+  theta_se <- apply(TH, 2, function(v) stats::sd(v, na.rm = TRUE) / sqrt(sum(!is.na(v))))
 
   units_tbl <- do.call(rbind, lapply(res_list, function(z) {
     cbind(
@@ -366,7 +366,7 @@ summary.cs_ardl_mg <- function(object, z_dist = TRUE, ...) {
 print.summary.cs_ardl_mg <- function(x, digits = max(3L, getOption("digits") - 3L),
                                      signif.stars = TRUE, ...) {
   stopifnot(inherits(x, "summary.cs_ardl_mg"))
-  cat("CS-ARDL Mean Group — Summary\n")
+  cat("CS-ARDL Mean Group - Summary\n")
   cat("Call: "); print(x$call)
   cat(sprintf("Units (N): %s\n", x$N))
   if (!is.null(x$r2_mg)) cat(sprintf("Mean R-squared: %.*f\n", digits, x$r2_mg))
@@ -384,7 +384,7 @@ print.summary.cs_ardl_mg <- function(x, digits = max(3L, getOption("digits") - 3
     cat(title, "\n", sep = "")
     # basic stars
     if (signif.stars && "p.value" %in% names(tab)) {
-      stars <- symnum(tab$p.value, corr = FALSE,
+      stars <- stats::symnum(tab$p.value, corr = FALSE,
                       cutpoints = c(0, .001, .01, .05, .1, 1),
                       symbols = c("***","**","*","."," "))
       tab$` ` <- stars

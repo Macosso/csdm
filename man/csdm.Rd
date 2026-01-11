@@ -20,6 +20,36 @@ csdm(
   ...
 )
 }
+\arguments{
+\item{formula}{A model formula like `y ~ x1 + x2`.}
+
+\item{data}{A `data.frame` (or `plm::pdata.frame`) containing the variables in `formula`.}
+
+\item{id, time}{Column names (strings) for the unit and time indexes.
+If `data` is a `pdata.frame`, these are taken from its index and the provided values are ignored.}
+
+\item{model}{Which estimator to fit. Currently implemented: `"mg"`, `"cce"`, `"dcce"`.}
+
+\item{csa}{Cross-sectional-average specification, created by [csdm_csa()].}
+
+\item{lr}{Long-run specification (currently a stub), created by [csdm_lr()].}
+
+\item{pooled}{Pooled specification (currently a stub), created by [csdm_pooled()].}
+
+\item{trend}{One of `"none"` or `"unit"` (a linear trend per unit is added as a regressor).
+`"pooled"` is reserved and not implemented.}
+
+\item{fullsample}{Logical; reserved for future extensions.}
+
+\item{mgmissing}{Logical; reserved for future extensions.}
+
+\item{vcov}{Variance-covariance specification, created by [csdm_vcov()].}
+
+\item{...}{Reserved for future extensions.}
+}
+\value{
+An object of class `csdm_fit`.
+}
 \description{
 Unified front door for csdm estimators
 }

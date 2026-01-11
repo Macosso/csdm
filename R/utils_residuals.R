@@ -225,7 +225,7 @@ cd_test <- function(object,
   if (N < 2) stop("Need at least two units.")
   if (ncol(E) < 2) stop("Need at least two time periods.")
 
-  # 2) pairwise correlations across time with per-pair √T weighting (handles unbalanced)
+  # 2) pairwise correlations across time with per-pair sqrt(T) weighting (handles unbalanced)
   s_sum <- 0     # sum of sqrt(T_ij) * rho_ij
   pairs <- 0L
   for (i in 1:(N - 1)) {
@@ -248,7 +248,7 @@ cd_test <- function(object,
   # CD = sqrt(2 / (N(N-1))) * sum_{i<j} sqrt(T_ij) * rho_ij
   cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
 
-  # 3) N(0,1) null ⇒ two-sided p-value
+  # 3) N(0,1) null => two-sided p-value
   pval <- 2 * (1 - stats::pnorm(abs(cd_stat)))
 
   list(statistic = unname(cd_stat),

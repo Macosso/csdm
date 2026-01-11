@@ -23,7 +23,7 @@
 #' of \eqn{y} and \eqn{x} and their lags (lag-augmented CCE).
 #' The CSAs proxy the unobserved common factors and their dynamics; coefficients \eqn{(\phi_i,\beta_i,\gamma_i)}
 #' are allowed to be heterogeneous across units. The reported MG coefficients are averages of the
-#' unit-level estimates for the subset of “economic” parameters (intercept, \eqn{\phi_i}, and the
+#' unit-level estimates for the subset of "economic" parameters (intercept, \eqn{\phi_i}, and the
 #' \eqn{\beta_i} on user-supplied regressors), excluding the CSA controls.
 #'
 #' \strong{CCE augmentation and lagging.}
@@ -39,7 +39,7 @@
 #'         \eqn{ \{\bar y_{t-\ell}, \bar x_{t-\ell}\}_{\ell=1}^p } by time only.
 #'   \item Merges those CSA controls back to the panel and estimates each unit equation by OLS.
 #' }
-#' This ordering is essential: lagging must be done \emph{by time}, not within the id–time rows, to avoid
+#' This ordering is essential: lagging must be done \emph{by time}, not within the id-time rows, to avoid
 #' mixing information across units.
 #'
 #' \strong{Dynamic specification (ARDL(1)).}
@@ -72,7 +72,7 @@
 #'
 #' \strong{Choosing the number of CSA lags \code{p}.}
 #' The parameter \code{p} controls how aggressively we capture factor dynamics. Rules of thumb include small
-#' fixed values (e.g., 1–3) for moderate \eqn{T}, or data-driven selection via information criteria in larger samples.
+#' fixed values (e.g., 1-3) for moderate \eqn{T}, or data-driven selection via information criteria in larger samples.
 #' Excessively large \code{p} with small \eqn{T} can over-fit and reduce usable observations.
 #'
 #' \strong{What is averaged (and what is not).}
@@ -222,10 +222,10 @@ dynamic_cce_mg <- function(formula, data, id = NULL, time = NULL,
         if (nrow(di_fit) == 0L) {
           return(list(
             model = NULL,
-            coef  = setNames(numeric(0), character(0)),
+            coef  = stats::setNames(numeric(0), character(0)),
             vc    = NULL,
             r2    = NA_real_,
-            residuals = setNames(
+            residuals = stats::setNames(
               data.frame(numeric(0), numeric(0), numeric(0)),
               c(id, time, "residual")
             )
@@ -262,7 +262,7 @@ dynamic_cce_mg <- function(formula, data, id = NULL, time = NULL,
   # ---- align coefficients across units ----
   all_terms <- unique(unlist(purrr::map(nested$coef, names)))
   coef_mat <- do.call(rbind, lapply(nested$coef, function(b) {
-    out <- setNames(rep(NA_real_, length(all_terms)), all_terms)
+    out <- stats::setNames(rep(NA_real_, length(all_terms)), all_terms)
     out[names(b)] <- b
     out
   }))
@@ -273,7 +273,7 @@ dynamic_cce_mg <- function(formula, data, id = NULL, time = NULL,
   B <- coef_mat[, mg_terms, drop = FALSE]
   b_mg <- colMeans(B, na.rm = TRUE)
 
-  # Cross-section dispersion VCOV (Pesaran–Smith MG)
+  # Cross-section dispersion VCOV (Pesaran-Smith MG)
   # Use only units with all terms present for each column to compute dispersion robustly
   complete_rows <- stats::complete.cases(B)
   Bc <- B[complete_rows, , drop = FALSE]
@@ -285,14 +285,14 @@ dynamic_cce_mg <- function(formula, data, id = NULL, time = NULL,
 
   # residuals and R2
   res_df <- tidyr::unnest(nested, residuals)
-  r2 <- setNames(nested$r2, nested$.unit_id)
+  r2 <- stats::setNames(nested$r2, nested$.unit_id)
 
   out <- list(
     coef      = b_mg,
-    se        = setNames(se_mg, names(b_mg)),
+    se        = stats::setNames(se_mg, names(b_mg)),
     vcov_mg   = V_mg,
-    coef_i    = setNames(split(coef_mat, row(coef_mat)), NULL), # raw matrix is often sufficient
-    vcov_i    = setNames(nested$vc, nested$.unit_id),
+    coef_i    = stats::setNames(split(coef_mat, row(coef_mat)), NULL), # raw matrix is often sufficient
+    vcov_i    = stats::setNames(nested$vc, nested$.unit_id),
     coef_df   = data.frame(unit = nested$.unit_id, B, check.names = FALSE),
     r.squared = r2,
     residuals = plm::pdata.frame(res_df, index = c(id, time)),
@@ -316,7 +316,7 @@ dynamic_cce_mg <- function(formula, data, id = NULL, time = NULL,
 
 #' @export
 print.dynamic_cce_mg <- function(x, ...) {
-  cat("Dynamic CCE–MG (ARDL(1) + CCE controls)\n")
+  cat("Dynamic CCE-MG (ARDL(1) + CCE controls)\n")
   cat("Call:", deparse(x$call), "\n")
   cat("CSA lags (p):", x$p, "\n\n")
   cat("Mean-group coefficients:\n")
@@ -362,7 +362,7 @@ summary.dynamic_cce_mg <- function(object, ...) {
 
 #' @export
 print.summary.dynamic_cce_mg <- function(x, digits = 6, ...) {
-  cat("Dynamic CCE–MG (heterogeneous ARDL(1) with CCE)\n")
+  cat("Dynamic CCE-MG (heterogeneous ARDL(1) with CCE)\n")
   cat("Call:", deparse(x$call), "\n\n")
 
 #  print(within(round(x$coefficients, digits), { }), right = FALSE)

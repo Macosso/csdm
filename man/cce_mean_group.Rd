@@ -41,8 +41,8 @@ original regressors across units (Mean Group). CSAs proxy latent common factors.
 }
 \details{
 For each unit i, estimate:
-  y_it = a_i + x_it' * beta_i + \bar{y}_t * delta_{y,i} + \bar{x}_t' * delta_{x,i} + e_it,
-then report beta_MG = N^{-1} \sum_i beta_i and its MG standard errors based on the
+  y_it = a_i + x_it' * beta_i + \eqn{\bar{y}_t} * delta_{y,i} + \eqn{\bar{x}_t'} * delta_{x,i} + e_it,
+then report beta_MG = \eqn{N^{-1} \sum_i beta_i} and its MG standard errors based on the
 cross-sectional dispersion of {beta_i}.
 
 This implementation supports unbalanced panels and an optional leave-one-out CSA.

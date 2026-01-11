@@ -30,22 +30,23 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
   z   <- est / se[names(est)]
   p   <- 2 * (1 - stats::pnorm(abs(z)))
 
-  tab <- data.frame(
-    Estimate = as.numeric(est),
-    Std.Error = as.numeric(se[names(est)]),
-    z.value = as.numeric(z),
-    p.value = as.numeric(p),
-    check.names = FALSE
+  coef_table <- data.frame(
+    term = names(est),
+    estimate = as.numeric(est),
+    se = as.numeric(se[names(est)]),
+    z = as.numeric(z),
+    p_value = as.numeric(p),
+    stringsAsFactors = FALSE,
+    row.names = NULL
   )
-  rownames(tab) <- names(est)
 
   out <- list(
     call = object$call,
     formula = object$formula,
     model = object$model,
-    coefficients = tab,
-    vcov = object$vcov_mg,
-    meta = object$meta
+    N = object$meta$N,
+    T = object$meta$T,
+    coef_table = coef_table
   )
   class(out) <- "summary.csdm_fit"
   out
@@ -56,10 +57,13 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
 print.summary.csdm_fit <- function(x, digits = 4, ...) {
   cat("csdm summary (", x$model, ")\n", sep = "")
   if (!is.null(x$formula)) cat("Formula: ", deparse(x$formula), "\n", sep = "")
-  if (!is.null(x$meta$N) && !is.null(x$meta$T)) {
-    cat("N = ", x$meta$N, ", T = ", x$meta$T, "\n\n", sep = "")
+  if (!is.null(x$N) && !is.null(x$T)) {
+    cat("N = ", x$N, ", T = ", x$T, "\n\n", sep = "")
   }
-  print(round(x$coefficients, digits))
+  tab <- x$coef_table
+  num_cols <- intersect(c("estimate", "se", "z", "p_value"), names(tab))
+  tab[num_cols] <- lapply(tab[num_cols], function(col) round(col, digits))
+  print(tab, row.names = FALSE)
   invisible(x)
 }
 
@@ -85,8 +89,10 @@ residuals.csdm_fit <- function(object, type = c("e", "u"), ...) {
 
 
 #' @export
-predict.csdm_fit <- function(object, type = c("xb", "residuals"), ...) {
+predict.csdm_fit <- function(object, newdata = NULL, type = c("xb", "residuals"), ...) {
   type <- match.arg(type)
-  if (type == "residuals") return(object$residuals_e)
-  stop("predict(type='xb') not implemented yet (fit does not store model frame/newdata support).")
+  if (!is.null(newdata)) stop("predict(newdata=...) not implemented yet")
+  if (type == "residuals") return(stats::residuals(object, type = "e"))
+  if (!is.null(object$fitted_xb)) return(object$fitted_xb)
+  stop("predict(type='xb') not implemented yet")
 }

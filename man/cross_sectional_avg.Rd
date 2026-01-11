@@ -47,7 +47,7 @@ If \code{NULL}, uses equal weights (1 for observed values).}
 
 \item{na.rm}{Logical; if \code{TRUE}, excludes \code{NA}s from sums and
 denominators. If \code{FALSE}, any \code{NA} in a time slice yields \code{NA}
-for that time’s CSA for that variable.}
+for that time's CSA for that variable.}
 }
 \value{
 A \code{data.frame}:
@@ -66,7 +66,7 @@ unbalanced panels and observation weights.
 Efficiently computes, for each \code{v in vars} and time \code{t},
 \deqn{\bar v_t = \frac{\sum_i w_{it}\, 1_{\{v_{it}\text{ finite}\}}\, v_{it}}
                 {\sum_i w_{it}\, 1_{\{v_{it}\text{ finite}\}}}}
-For \code{leave_out=TRUE}, each row’s CSA excludes its own contribution; if the
+For \code{leave_out=TRUE}, each row's CSA excludes its own contribution; if the
 denominator becomes \eqn{\le 0} (e.g., only one finite observation at that time),
 the LOO mean is set to \code{NA} for that row/variable.
 }

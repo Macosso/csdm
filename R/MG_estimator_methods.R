@@ -1,4 +1,5 @@
-#' @export
+#' @keywords internal
+#' @noRd
 summary.mg_estimator <- function(object, digits = 4, ...) {
   # Extract from object:
   mg_coef <- object$mg_coef
@@ -53,7 +54,8 @@ summary.mg_estimator <- function(object, digits = 4, ...) {
 }
 
 # A corresponding print method for summary.mg_estimator:
-#' @export
+#' @keywords internal
+#' @noRd
 print.summary.mg_estimator <- function(x, digits = 4, ...) {
   cat("Mean Group Estimation (Pesaran & Smith, 1995)\n")
   cat("Formula: ", deparse(x$call), "\n")
@@ -75,7 +77,8 @@ print.summary.mg_estimator <- function(x, digits = 4, ...) {
 }
 
 
-#' @export
+#' @keywords internal
+#' @noRd
 predict.mg_estimator <- function(object, newdata = NULL, id = NULL, time = NULL, ...) {
   # If newdata is not provided, use the stored original data.
   if (is.null(newdata)) {

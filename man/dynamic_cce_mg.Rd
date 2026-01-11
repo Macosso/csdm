@@ -56,7 +56,7 @@ where \eqn{x_{it}} are unit-specific regressors and \eqn{z_t} collects \emph{cro
 of \eqn{y} and \eqn{x} and their lags (lag-augmented CCE).
 The CSAs proxy the unobserved common factors and their dynamics; coefficients \eqn{(\phi_i,\beta_i,\gamma_i)}
 are allowed to be heterogeneous across units. The reported MG coefficients are averages of the
-unit-level estimates for the subset of “economic” parameters (intercept, \eqn{\phi_i}, and the
+unit-level estimates for the subset of "economic" parameters (intercept, \eqn{\phi_i}, and the
 \eqn{\beta_i} on user-supplied regressors), excluding the CSA controls.
 
 \strong{CCE augmentation and lagging.}
@@ -72,7 +72,7 @@ persistence. Practically, the function:
         \eqn{ \{\bar y_{t-\ell}, \bar x_{t-\ell}\}_{\ell=1}^p } by time only.
   \item Merges those CSA controls back to the panel and estimates each unit equation by OLS.
 }
-This ordering is essential: lagging must be done \emph{by time}, not within the id–time rows, to avoid
+This ordering is essential: lagging must be done \emph{by time}, not within the id-time rows, to avoid
 mixing information across units.
 
 \strong{Dynamic specification (ARDL(1)).}
@@ -105,7 +105,7 @@ estimated (effective \eqn{N}).
 
 \strong{Choosing the number of CSA lags \code{p}.}
 The parameter \code{p} controls how aggressively we capture factor dynamics. Rules of thumb include small
-fixed values (e.g., 1–3) for moderate \eqn{T}, or data-driven selection via information criteria in larger samples.
+fixed values (e.g., 1-3) for moderate \eqn{T}, or data-driven selection via information criteria in larger samples.
 Excessively large \code{p} with small \eqn{T} can over-fit and reduce usable observations.
 
 \strong{What is averaged (and what is not).}

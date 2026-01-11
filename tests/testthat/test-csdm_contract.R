@@ -18,6 +18,18 @@ test_that("csdm() returns a stable csdm_fit contract", {
   expect_true(is.matrix(fit_mg$residuals_e))
   expect_true(all(c("N", "T") %in% names(fit_mg$meta)))
 
+  # S3 methods should not error
+  expect_error(print(fit_mg), NA)
+  sm <- summary(fit_mg)
+  expect_s3_class(sm, "summary.csdm_fit")
+  expect_true(all(c("call", "formula", "model", "N", "T", "coef_table") %in% names(sm)))
+  expect_error(print(sm), NA)
+  expect_true(is.numeric(coef(fit_mg)))
+  expect_true(is.matrix(vcov(fit_mg)))
+  expect_true(is.matrix(residuals(fit_mg, type = "e")))
+  expect_true(is.matrix(predict(fit_mg, type = "residuals")))
+  expect_true(is.matrix(predict(fit_mg, type = "xb")))
+
   # Stable dimensions and names
   expect_identical(rownames(fit_mg$coef_i), as.character(sort(unique(df$id))))
   expect_equal(ncol(fit_mg$residuals_e), length(sort(unique(df$time))))

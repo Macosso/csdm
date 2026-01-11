@@ -7,8 +7,8 @@
 #'
 #' @details
 #' For each unit i, estimate:
-#'   y_it = a_i + x_it' * beta_i + \bar{y}_t * delta_{y,i} + \bar{x}_t' * delta_{x,i} + e_it,
-#' then report beta_MG = N^{-1} \sum_i beta_i and its MG standard errors based on the
+#'   y_it = a_i + x_it' * beta_i + \eqn{\bar{y}_t} * delta_{y,i} + \eqn{\bar{x}_t'} * delta_{x,i} + e_it,
+#' then report beta_MG = \eqn{N^{-1} \sum_i beta_i} and its MG standard errors based on the
 #' cross-sectional dispersion of {beta_i}.
 #'
 #' This implementation supports unbalanced panels and an optional leave-one-out CSA.
@@ -68,14 +68,14 @@ cce_mean_group <- function(formula, data, id = NULL, time = NULL,
   # --- CSAs via utils_avg::cross_sectional_avg (always attached) ---
   vars <- c(".y", colnames(Xn))
   # avoid leading-dot name inside util
-  tab_tmp <- setNames(tab, sub("^\\.y$", "y__tmp__", names(tab)))
+  tab_tmp <- stats::setNames(tab, sub("^\\.y$", "y__tmp__", names(tab)))
   ca <- cross_sectional_avg(
     data = tab_tmp, id = ".id", time = ".time",
     vars = sub("^\\.y$", "y__tmp__", vars),
     leave_out = leave_out, suffix = "csa", return_mode = "attach", na.rm = TRUE
   )
   # map back to expected names
-  ca <- setNames(ca, sub("^csa_y__tmp__$", "csa_.y", names(ca)))
+  ca <- stats::setNames(ca, sub("^csa_y__tmp__$", "csa_.y", names(ca)))
   tab$csa_y <- ca[["csa_.y"]]
   xnames <- colnames(Xn)
   if (length(xnames)) {
@@ -170,14 +170,14 @@ cce_mean_group <- function(formula, data, id = NULL, time = NULL,
 
     # NEW: return R2 info
     r2 = list(
-      per_unit     = setNames(r2_i,  ids),
-      adj_per_unit = setNames(adj_r2_i, ids),
+      per_unit     = stats::setNames(r2_i,  ids),
+      adj_per_unit = stats::setNames(adj_r2_i, ids),
       mg           = mg_r2_mean,      # this is what we'll print by default
       mg_overall   = mg_r2_overall,
       mg_adj       = mg_adj_r2_mean,
-      ssr          = setNames(ssr_i, ids),
-      tss          = setNames(tss_i, ids),
-      dof          = setNames(dof_i, ids)
+      ssr          = stats::setNames(ssr_i, ids),
+      tss          = stats::setNames(tss_i, ids),
+      dof          = stats::setNames(dof_i, ids)
     )
   )
   class(out) <- "cce_mean_group"
@@ -186,7 +186,7 @@ cce_mean_group <- function(formula, data, id = NULL, time = NULL,
 
 #' @export
 print.cce_mean_group <- function(x, ...) {
-  cat("\nCommon Correlated Effects — Mean Group (CCE-MG)\n")
+  cat("\nCommon Correlated Effects - Mean Group (CCE-MG)\n")
   if (length(x$beta_mg)) {
     res <- data.frame(Estimate = x$beta_mg, Std.Error = x$beta_se,
                       z.value = x$beta_z, p.value = x$beta_p)

@@ -26,12 +26,12 @@ for ARDL construction; lags are generated internally.}
 
 \item{id, time}{Column names (strings) identifying unit and time indices.}
 
-\item{p}{Integer \ge 1. Number of lags of y.}
+\item{p}{Integer >= 1. Number of lags of y.}
 
 \item{q}{Integer (recycled) or named integer vector for lags of each regressor
 (names must match RHS variable names). `q` counts max lag; lag 0 is included by default.}
 
-\item{P}{Integer \ge 0. Number of lags of cross-sectional averages added (lag 0..P).}
+\item{P}{Integer >= 0. Number of lags of cross-sectional averages added (lag 0..P).}
 
 \item{loo}{Logical. If `TRUE`, compute CSAs in leave-one-out fashion.}
 
@@ -48,13 +48,13 @@ A an object of class `cs_ardl_mg` with components:
 - `coef_mg_short`: MG averages of the unit-level **short-run** coefficients (on the lagged \eqn{y} and lagged \eqn{x}'s).
 - `coef_mg_long`: MG averages of **long-run** coefficients \eqn{\theta_k} with MG SEs.
 - `phi_mg`: MG average of the sum of lagged-\eqn{y} coefficients \eqn{\sum_j \phi_{ij}} and its SE.
-- `r2_mg`: average of unit-level R² from each OLS.
+- `r2_mg`: average of unit-level R2 from each OLS.
 - `cd_stat`, `cd_pval`: Pesaran-style CD test on pooled residuals.
-- `units`: tibble with unit-level results (coefficients, long-run, R², residuals index).
+- `units`: tibble with unit-level results (coefficients, long-run, R2, residuals index).
 }
 \description{
 Estimates unit-specific ARDL(p, q) regressions augmented with cross-sectional
-averages (CSAs) of the dependent variable and regressors—plus their lags up to `P`—
+averages (CSAs) of the dependent variable and regressors - plus their lags up to `P` -
 then averages the coefficients across units (Mean Group). The CSA terms proxy
 latent common factors and mitigate cross-sectional dependence.
 }
@@ -74,7 +74,7 @@ computed either **including** or **excluding** unit \eqn{i} (leave-one-out, `loo
 \strong{Long-run effects}. For each unit \eqn{i}, the long-run coefficient on regressor \eqn{k} is
 \eqn{\theta_{ik} = \big(\sum_{s=0}^{q_k} \beta_{ik,s}\big) / \big(1 - \sum_{j=1}^{p} \phi_{ij}\big)},
 provided the AR polynomial is stable. The function reports MG means of \eqn{\theta_{ik}} and
-their MG standard errors (cross-sectional dispersion / \eqn{\sqrt{N})}.
+their MG standard errors (cross-sectional dispersion / \eqn{\sqrt{N}}).
 
 \strong{Unbalanced panels.} Estimation drops rows with insufficient lags; CSAs at time \eqn{t}
 are computed using all units with non-missing values at \eqn{t} (and excluding \eqn{i} if `loo=TRUE`).
