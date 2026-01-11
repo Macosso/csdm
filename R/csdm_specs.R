@@ -67,13 +67,25 @@ csdm_csa <- function(
 #'
 #' @param vars Reserved for future use.
 #' @param type One of c("none","ecm","ardl","csdl").
+#' @param ylags Integer >= 0. Within-unit lags of the dependent variable to include
+#'   when supported by the chosen model/type.
 #' @param options Reserved for future use.
 #'
 #' @return A spec object (list) used by csdm().
 #' @export
-csdm_lr <- function(vars = NULL, type = c("none", "ecm", "ardl", "csdl"), options = list()) {
+csdm_lr <- function(vars = NULL,
+                    type = c("none", "ecm", "ardl", "csdl"),
+                    ylags = 0,
+                    options = list()) {
   type <- match.arg(type)
-  spec <- list(vars = vars, type = type, options = options)
+
+  if (!is.numeric(ylags) || length(ylags) != 1L || !is.finite(ylags)) {
+    stop("'ylags' must be a finite integer >= 0.")
+  }
+  ylags <- as.integer(ylags)
+  if (ylags < 0L) stop("'ylags' must be >= 0.")
+
+  spec <- list(vars = vars, type = type, ylags = ylags, options = options)
   class(spec) <- "csdm_lr_spec"
   spec
 }

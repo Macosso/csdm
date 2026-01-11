@@ -1,6 +1,6 @@
 # csdm_fit_engines.R
 
-.csdm_fit_mg <- function(panel_df, formula, id, time, vcov, ...) {
+.csdm_fit_mg <- function(panel_df, formula, id, time, lr = NULL, vcov, ...) {
   ids <- unique(panel_df[[id]])
 
   econ_names <- .csdm_econ_names(formula, panel_df)
@@ -99,7 +99,7 @@
 }
 
 
-.csdm_fit_cce <- function(panel_df, formula, id, time, csa, vcov, ...) {
+.csdm_fit_cce <- function(panel_df, formula, id, time, csa, lr = NULL, vcov, ...) {
   if (length(csa$lags) == 1L && as.integer(csa$lags) != 0L) {
     stop("For model='cce', csa$lags must be 0")
   }
@@ -231,7 +231,51 @@
 }
 
 
-.csdm_fit_dcce <- function(panel_df, formula, id, time, csa, vcov, ...) {
+.csdm_fit_dcce <- function(panel_df, formula, id, time, csa, lr, vcov, ...) {
+  lr_type <- if (!is.null(lr) && !is.null(lr$type)) as.character(lr$type) else "none"
+  lr_ylags <- if (!is.null(lr) && !is.null(lr$ylags)) as.integer(lr$ylags) else 0L
+
+  if (!identical(lr_type, "none") && !identical(lr_type, "ardl")) {
+    stop("Not implemented yet")
+  }
+
+  panel_work <- panel_df
+  econ_formula <- formula
+
+  if (identical(lr_type, "ardl") && isTRUE(lr_ylags > 0L)) {
+    lhs <- formula[[2]]
+    if (!is.name(lhs)) {
+      stop("For lr(type='ardl', ylags>0), the dependent variable in 'formula' must be a simple column name.")
+    }
+    y_name <- as.character(lhs)
+    if (!y_name %in% names(panel_work)) stop("Dependent variable not found in data: ", y_name)
+
+    lag_terms <- character(lr_ylags)
+    for (k in seq_len(lr_ylags)) {
+      lag_terms[[k]] <- paste0("lag", k, "_", y_name)
+      if (!lag_terms[[k]] %in% names(panel_work)) panel_work[[lag_terms[[k]]]] <- NA_real_
+    }
+
+    ids <- unique(panel_work[[id]])
+    for (uid in ids) {
+      idx <- which(panel_work[[id]] == uid)
+      if (length(idx) == 0L) next
+      o <- order(panel_work[[time]][idx])
+      idxo <- idx[o]
+      yv <- panel_work[[y_name]][idxo]
+      for (k in seq_len(lr_ylags)) {
+        if (length(yv) <= k) {
+          lagv <- rep(NA_real_, length(yv))
+        } else {
+          lagv <- c(rep(NA_real_, k), yv[seq_len(length(yv) - k)])
+        }
+        panel_work[[paste0("lag", k, "_", y_name)]][idxo] <- lagv
+      }
+    }
+
+    econ_formula <- stats::update(formula, paste0(". ~ . + ", paste(lag_terms, collapse = " + ")))
+  }
+
   if (identical(csa$vars, "_none")) {
     csa_vars <- character(0)
   } else if (identical(csa$vars, "_all")) {
@@ -242,7 +286,7 @@
 
   if (length(csa_vars)) {
     csa_time <- cross_sectional_avg(
-      data = panel_df,
+      data = panel_work,
       id = id,
       time = time,
       vars = csa_vars,
@@ -252,7 +296,7 @@
       na.rm = TRUE
     )
   } else {
-    csa_time <- unique(panel_df[, time, drop = FALSE])
+    csa_time <- unique(panel_work[, time, drop = FALSE])
   }
 
   o <- order(csa_time[[time]])
@@ -268,7 +312,11 @@
     if (L <= 0L) return(NULL)
     out <- vector("list", L)
     for (l in seq_len(L)) {
-      out[[l]] <- c(rep(NA_real_, l), x[seq_len(length(x) - l)])
+      if (length(x) <= l) {
+        out[[l]] <- rep(NA_real_, length(x))
+      } else {
+        out[[l]] <- c(rep(NA_real_, l), x[seq_len(length(x) - l)])
+      }
     }
     out
   }
@@ -296,17 +344,21 @@
     }
   }
 
-  key <- match(panel_df[[time]], csa_time[[time]])
-  csa_attached <- panel_df
+  key <- match(panel_work[[time]], csa_time[[time]])
+  csa_attached <- panel_work
   if (nrow(csa_time) && length(setdiff(names(csa_time), time))) {
     for (nm in setdiff(names(csa_time), time)) {
       csa_attached[[nm]] <- csa_time[[nm]][key]
     }
   }
 
-  econ_names <- .csdm_econ_names(formula, panel_df)
+  econ_names <- .csdm_econ_names(econ_formula, panel_work)
 
-  fml <- if (length(csa_term_names)) stats::update(formula, paste0(". ~ . + ", paste(unique(csa_term_names), collapse = " + "))) else formula
+  fml <- if (length(csa_term_names)) {
+    stats::update(econ_formula, paste0(". ~ . + ", paste(unique(csa_term_names), collapse = " + ")))
+  } else {
+    econ_formula
+  }
 
   ids <- unique(csa_attached[[id]])
   coef_i <- matrix(NA_real_, nrow = length(ids), ncol = length(econ_names),

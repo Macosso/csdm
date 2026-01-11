@@ -87,3 +87,28 @@ test_that("csdm() residual mapping remains aligned with mid-panel NA", {
   expect_true(is.finite(E["2", "6"]))
   expect_equal(sum(is.finite(E["2", ])), 9)
 })
+
+
+test_that("dcce supports within-unit y-lags via lr(type='ardl')", {
+  df <- data.frame(
+    id = rep(1:4, each = 10),
+    time = rep(1:10, times = 4)
+  )
+  set.seed(3)
+  df$x1 <- rnorm(nrow(df))
+  df$x2 <- rnorm(nrow(df))
+  df$y  <- 1 + 0.5 * df$x1 - 0.2 * df$x2 + rnorm(nrow(df), sd = 0.5)
+
+  fit <- csdm(
+    y ~ x1 + x2,
+    data = df,
+    id = "id",
+    time = "time",
+    model = "dcce",
+    csa = csdm_csa(vars = "_all", lags = 1),
+    lr = csdm_lr(type = "ardl", ylags = 1)
+  )
+
+  expect_true("lag1_y" %in% names(coef(fit)))
+  expect_true(is.na(fit$residuals_e["1", "1"]))
+})

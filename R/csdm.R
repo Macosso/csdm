@@ -54,9 +54,9 @@ csdm <- function(
 
   fit <- switch(
     model,
-    mg = .csdm_fit_mg(panel_df = panel_df, formula = formula, id = id, time = time, vcov = vcov, ...),
-    cce = .csdm_fit_cce(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, vcov = vcov, ...),
-    dcce = .csdm_fit_dcce(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, vcov = vcov, ...),
+    mg = .csdm_fit_mg(panel_df = panel_df, formula = formula, id = id, time = time, lr = lr, vcov = vcov, ...),
+    cce = .csdm_fit_cce(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...),
+    dcce = .csdm_fit_dcce(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...),
     cs_ardl = stop("Not implemented yet"),
     cs_ecm  = stop("Not implemented yet"),
     cs_dl   = stop("Not implemented yet")
