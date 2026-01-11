@@ -7,8 +7,9 @@
 get_residuals(object, type = c("auto", "cce", "pca", "pca_std"), strict = TRUE)
 }
 \arguments{
-\item{object}{A fitted model object (e.g., of class \code{cce_mean_group}),
-or directly a numeric matrix of residuals shaped as \eqn{N \times T}.}
+\item{object}{A fitted model object supported by this package (e.g., class
+\code{csdm_fit}), or directly a numeric matrix of residuals shaped as
+\eqn{N \times T}.}
 
 \item{type}{Character string selecting which residuals to return when available:
 one of \code{"auto"}, \code{"cce"}, \code{"pca"}, or \code{"pca_std"}.
@@ -31,8 +32,6 @@ A numeric matrix of residuals with rows = units and columns = time,
 }
 \description{
 Unified accessor that returns an \eqn{N \times T} residual matrix suitable for
-cross-sectional dependence testing. For \code{cce_mean_group} objects, you can
-choose among raw CCE residuals, PCA-filtered residuals, or their standardized
-version.
+cross-sectional dependence testing.
 }
 \keyword{internal}

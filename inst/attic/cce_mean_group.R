@@ -1,3 +1,6 @@
+# Legacy file moved from R/ to inst/attic.
+# This code is preserved for reference and is not loaded by the package.
+
 #' Common Correlated Effects Mean Group (CCE-MG) Estimator (static)
 #'
 #' @description

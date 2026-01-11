@@ -2,7 +2,7 @@ Package: csdm
 Title: Cross Section Dependence Models
 Version: 0.0.0.9000
 Depends: R (>= 3.5.0)
-Imports: dplyr, tidyr, plm, rlang, MASS
+Imports: MASS
 Suggests:
     testthat (>= 3.0.0),
     knitr,

@@ -12,7 +12,7 @@ cd_test(
 }
 \arguments{
 \item{object}{A matrix (N x T) of residuals or a fitted object supported by
-`get_residuals()` (e.g., your `cce_mean_group`).}
+`get_residuals()` (e.g., a `csdm_fit`).}
 
 \item{res_type}{Residual type passed to `get_residuals()`: "auto", "pca_std",
 "pca", or "cce".}

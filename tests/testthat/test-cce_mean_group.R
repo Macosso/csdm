@@ -1,3 +1,3 @@
-test_that("multiplication works", {
-  expect_equal(2 * 2, 4)
+test_that("legacy test file retired", {
+  skip("Legacy cce_mean_group tests removed; see test-csdm_smoke.R")
 })

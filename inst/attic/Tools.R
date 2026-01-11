@@ -1,3 +1,6 @@
+# Legacy file moved from R/ to inst/attic.
+# This code is preserved for reference and is not loaded by the package.
+
 #' Predict cce_mg
 #'
 #' @param object an cee-mg model
@@ -25,8 +28,6 @@ predict.cce_mean_group <- function(object, data = NULL, id = NULL, time = NULL){
     data <- plm::pdata.frame(data, index = c(id, time))
   }
 
-#  data <- na.action(data)
-
   data$id <- plm::index(data)[[1]]
   data$time <- plm::index(data)[[2]]
 
@@ -51,5 +52,3 @@ predict.cce_mean_group <- function(object, data = NULL, id = NULL, time = NULL){
   return(predictions)
 
 }
-
-

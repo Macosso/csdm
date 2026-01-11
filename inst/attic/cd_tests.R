@@ -1,3 +1,6 @@
+# Legacy file moved from R/ to inst/attic.
+# This code is preserved for reference and is not loaded by the package.
+
 #' Title
 #'
 #' @param data dataset
@@ -42,8 +45,6 @@ cd <- function(data, var, id = NULL, time = NULL, na.action = stats::na.omit, ..
 
   N <- ncol(panel_matrix)
   TT <- nrow(panel_matrix)
-
-
 
   cd_stat <- sqrt((2*TT)/(N*(N - 1)))*sum(rho[upper.tri(rho)])
   cd_pval <- 2 * (1 - pnorm(abs(cd_stat)))
