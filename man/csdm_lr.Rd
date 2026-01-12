@@ -31,3 +31,24 @@ A spec object (list) used by csdm().
 \description{
 Specification: Long-run configuration
 }
+\examples{
+# Long-run / dynamic configuration (ARDL-style lags)
+lr <- csdm_lr(type = "ardl", ylags = 1)
+lr
+
+# Minimal end-to-end DCCE example (kept small for speed)
+data(PWT_60_07, package = "csdm")
+df <- PWT_60_07
+keep_ids <- unique(df$id)[1:10]
+df_small <- df[df$id \%in\% keep_ids & df$year >= 1970, ]
+fit <- csdm(
+  log_rgdpo ~ log_hc + log_ck + log_ngd,
+  data = df_small,
+  id = "id",
+  time = "year",
+  model = "dcce",
+  csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), lags = 3),
+  lr = csdm_lr(type = "ardl", ylags = 1)
+)
+summary(fit)
+}

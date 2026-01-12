@@ -27,3 +27,11 @@ A spec object (list) used by csdm().
 \description{
 Specification: Cross-sectional averages (CSA)
 }
+\examples{
+# Cross-sectional averages (CSA) configuration for DCCE
+csa <- csdm_csa(
+  vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"),
+  lags = 3
+)
+csa
+}

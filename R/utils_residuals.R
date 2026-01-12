@@ -198,6 +198,21 @@ prepare_cd_input <- function(E,
 #' @param min_overlap Minimum overlapping time points per pair (default 2).
 #'
 #' @returns A list with `statistic`, `p.value`, `N`, and `pairs_used`.
+#' @examples
+#' data(PWT_60_07, package = "csdm")
+#' df <- PWT_60_07
+#' keep_ids <- unique(df$id)[1:10]
+#' df_small <- df[df$id %in% keep_ids & df$year >= 1970, ]
+#' fit <- csdm(
+#'   log_rgdpo ~ log_hc + log_ck + log_ngd,
+#'   data = df_small,
+#'   id = "id",
+#'   time = "year",
+#'   model = "dcce",
+#'   csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), lags = 3),
+#'   lr = csdm_lr(type = "ardl", ylags = 1)
+#' )
+#' cd_test(fit)
 #' @export
 cd_test <- function(object,
                     res_type = c("auto", "pca_std", "pca", "cce"),
