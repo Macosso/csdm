@@ -517,6 +517,17 @@
 
 
 .csdm_fit_cs_ardl <- function(panel_df, formula, id, time, csa, lr, vcov, ...) {
+  lr_type <- if (!is.null(lr) && !is.null(lr$type)) as.character(lr$type) else "none"
+  lr_ylags <- if (!is.null(lr) && !is.null(lr$ylags)) as.integer(lr$ylags) else 0L
+  lr_xdlags <- if (!is.null(lr) && !is.null(lr$xdlags)) as.integer(lr$xdlags) else 0L
+
+  if (!identical(lr_type, "ardl")) {
+    stop("model='cs_ardl' currently requires lr = csdm_lr(type='ardl', ...) ")
+  }
+  if (!isTRUE(lr_ylags >= 1L)) {
+    stop("model='cs_ardl' requires lr(type='ardl', ylags >= 1) to compute adjustment and long-run effects")
+  }
+
   fit <- .csdm_fit_dcce(
     panel_df = panel_df,
     formula = formula,
@@ -528,5 +539,98 @@
     ...
   )
   fit$model <- "cs_ardl"
+
+  lhs <- formula[[2]]
+  if (!is.name(lhs)) {
+    stop("model='cs_ardl' requires a simple dependent variable name in 'formula'")
+  }
+  yname <- as.character(lhs)
+
+  tt <- stats::terms(formula)
+  rhs_terms <- attr(tt, "term.labels")
+  xnames <- character(0)
+  if (length(rhs_terms)) {
+    for (term in rhs_terms) {
+      is_simple <- grepl("^[.A-Za-z][.A-Za-z0-9._]*$", term) && (term %in% names(panel_df))
+      if (!is_simple) {
+        stop(
+          "xdlags currently supports only simple RHS variable names (no transformations/interactions); offending term: ",
+          term
+        )
+      }
+    }
+    xnames <- rhs_terms
+  }
+
+  coef_i <- as.matrix(fit$coef_i)
+  unit_ids <- rownames(coef_i)
+
+  alpha_terms <- paste0("lag", seq_len(lr_ylags), "_", yname)
+  alpha_mat <- coef_i[, intersect(alpha_terms, colnames(coef_i)), drop = FALSE]
+  alpha_sum <- if (ncol(alpha_mat)) rowSums(alpha_mat) else rep(0, nrow(coef_i))
+  denom_i <- 1 - alpha_sum
+  adj_i <- -denom_i
+
+  eps <- 1e-8
+  ok_denom <- is.finite(denom_i) & (abs(denom_i) > eps)
+
+  lr_i <- matrix(NA_real_, nrow = nrow(coef_i), ncol = length(xnames))
+  colnames(lr_i) <- paste0("lr_", xnames)
+  rownames(lr_i) <- unit_ids
+
+  if (length(xnames)) {
+    for (j in seq_along(xnames)) {
+      xn <- xnames[[j]]
+      beta_terms <- c(xn, paste0("lag", seq_len(lr_xdlags), "_", xn))
+      beta_mat <- coef_i[, intersect(beta_terms, colnames(coef_i)), drop = FALSE]
+      beta_sum <- if (ncol(beta_mat)) rowSums(beta_mat) else rep(NA_real_, nrow(coef_i))
+      lr_i[, j] <- beta_sum / denom_i
+    }
+  }
+
+  if (any(!ok_denom)) {
+    warning("cs_ardl: excluding ", sum(!ok_denom), " unit(s) from adjustment/long-run reporting due to near-zero or missing (1 - sum(alpha_y_lags))")
+  }
+
+  used_adj <- ok_denom & is.finite(adj_i)
+  n_used_adj <- sum(used_adj)
+  adj_est <- if (n_used_adj) mean(adj_i[used_adj]) else NA_real_
+  adj_se <- if (n_used_adj >= 2L) stats::sd(adj_i[used_adj]) / sqrt(n_used_adj) else NA_real_
+
+  lr_terms <- paste0("lr_", xnames)
+  lr_est <- rep(NA_real_, length(xnames))
+  lr_se <- rep(NA_real_, length(xnames))
+  lr_n  <- rep(0L, length(xnames))
+  if (length(xnames)) {
+    for (j in seq_along(xnames)) {
+      v <- lr_i[, j]
+      used <- ok_denom & is.finite(v)
+      lr_n[[j]] <- sum(used)
+      lr_est[[j]] <- if (lr_n[[j]]) mean(v[used]) else NA_real_
+      lr_se[[j]] <- if (lr_n[[j]] >= 2L) stats::sd(v[used]) / sqrt(lr_n[[j]]) else NA_real_
+    }
+  }
+
+  fit$cs_ardl <- list(
+    y = yname,
+    x = xnames,
+    ylags = lr_ylags,
+    xdlags = lr_xdlags,
+    unit_ids = unit_ids,
+    denom_i = stats::setNames(as.numeric(denom_i), unit_ids),
+    adj_i = stats::setNames(as.numeric(adj_i), unit_ids),
+    lr_i = lr_i,
+    mg = list(
+      adj = c(estimate = adj_est, se = adj_se),
+      lr = data.frame(
+        term = lr_terms,
+        estimate = lr_est,
+        se = lr_se,
+        n_used = lr_n,
+        stringsAsFactors = FALSE
+      )
+    )
+  )
+
   fit
 }
