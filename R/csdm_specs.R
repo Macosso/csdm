@@ -69,6 +69,8 @@ csdm_csa <- function(
 #' @param type One of c("none","ecm","ardl","csdl").
 #' @param ylags Integer >= 0. Within-unit lags of the dependent variable to include
 #'   when supported by the chosen model/type.
+#' @param xdlags Integer >= 0. Scalar distributed lags to apply to each RHS regressor
+#'   when supported by the chosen model/type.
 #' @param options Reserved for future use.
 #'
 #' @return A spec object (list) used by csdm().
@@ -76,6 +78,7 @@ csdm_csa <- function(
 csdm_lr <- function(vars = NULL,
                     type = c("none", "ecm", "ardl", "csdl"),
                     ylags = 0,
+                    xdlags = 0,
                     options = list()) {
   type <- match.arg(type)
 
@@ -85,7 +88,13 @@ csdm_lr <- function(vars = NULL,
   ylags <- as.integer(ylags)
   if (ylags < 0L) stop("'ylags' must be >= 0.")
 
-  spec <- list(vars = vars, type = type, ylags = ylags, options = options)
+  if (!is.numeric(xdlags) || length(xdlags) != 1L || !is.finite(xdlags)) {
+    stop("'xdlags' must be a finite integer >= 0.")
+  }
+  xdlags <- as.integer(xdlags)
+  if (xdlags < 0L) stop("'xdlags' must be >= 0.")
+
+  spec <- list(vars = vars, type = type, ylags = ylags, xdlags = xdlags, options = options)
   class(spec) <- "csdm_lr_spec"
   spec
 }

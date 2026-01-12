@@ -234,6 +234,7 @@
 .csdm_fit_dcce <- function(panel_df, formula, id, time, csa, lr, vcov, ...) {
   lr_type <- if (!is.null(lr) && !is.null(lr$type)) as.character(lr$type) else "none"
   lr_ylags <- if (!is.null(lr) && !is.null(lr$ylags)) as.integer(lr$ylags) else 0L
+  lr_xdlags <- if (!is.null(lr) && !is.null(lr$xdlags)) as.integer(lr$xdlags) else 0L
 
   if (!identical(lr_type, "none") && !identical(lr_type, "ardl")) {
     stop("Not implemented yet")
@@ -242,7 +243,7 @@
   panel_work <- panel_df
   econ_formula <- formula
 
-  if (identical(lr_type, "ardl") && isTRUE(lr_ylags > 0L)) {
+  if (identical(lr_type, "ardl") && (isTRUE(lr_ylags > 0L) || isTRUE(lr_xdlags > 0L))) {
     lhs <- formula[[2]]
     if (!is.name(lhs)) {
       stop("For lr(type='ardl', ylags>0), the dependent variable in 'formula' must be a simple column name.")
@@ -250,30 +251,92 @@
     y_name <- as.character(lhs)
     if (!y_name %in% names(panel_work)) stop("Dependent variable not found in data: ", y_name)
 
-    lag_terms <- character(lr_ylags)
-    for (k in seq_len(lr_ylags)) {
-      lag_terms[[k]] <- paste0("lag", k, "_", y_name)
-      if (!lag_terms[[k]] %in% names(panel_work)) panel_work[[lag_terms[[k]]]] <- NA_real_
+    # Collect all lag term names first, and stop on any collision
+    lag_terms_y <- character(0)
+    if (isTRUE(lr_ylags > 0L)) {
+      lag_terms_y <- paste0("lag", seq_len(lr_ylags), "_", y_name)
     }
 
-    ids <- unique(panel_work[[id]])
-    for (uid in ids) {
-      idx <- which(panel_work[[id]] == uid)
-      if (length(idx) == 0L) next
-      o <- order(panel_work[[time]][idx])
-      idxo <- idx[o]
-      yv <- panel_work[[y_name]][idxo]
-      for (k in seq_len(lr_ylags)) {
-        if (length(yv) <= k) {
-          lagv <- rep(NA_real_, length(yv))
-        } else {
-          lagv <- c(rep(NA_real_, k), yv[seq_len(length(yv) - k)])
+    lag_terms_x <- character(0)
+    xnames <- character(0)
+    if (isTRUE(lr_xdlags > 0L)) {
+      tt <- stats::terms(formula)
+      rhs_terms <- attr(tt, "term.labels")
+      if (length(rhs_terms)) {
+        disallowed_pat <- "\\(|\\)|:|\\*|\\^|/|\\+|-|log"
+        for (term in rhs_terms) {
+          is_simple <- isTRUE(term %in% names(panel_work)) && !grepl(disallowed_pat, term)
+          if (!is_simple) {
+            stop("xdlags currently supports only simple RHS names; offending term: ", term)
+          }
         }
-        panel_work[[paste0("lag", k, "_", y_name)]][idxo] <- lagv
+        xnames <- rhs_terms
+      }
+
+      if (length(xnames)) {
+        lag_terms_x <- unlist(
+          lapply(xnames, function(xn) paste0("lag", seq_len(lr_xdlags), "_", xn)),
+          use.names = FALSE
+        )
       }
     }
 
-    econ_formula <- stats::update(formula, paste0(". ~ . + ", paste(lag_terms, collapse = " + ")))
+    lag_terms_all <- c(lag_terms_y, lag_terms_x)
+    collisions <- intersect(lag_terms_all, names(panel_work))
+    if (length(collisions)) {
+      stop("Lag column(s) already exist in data: ", paste(collisions, collapse = ", "))
+    }
+
+    # Create columns
+    if (length(lag_terms_all)) {
+      for (nm in lag_terms_all) panel_work[[nm]] <- NA_real_
+    }
+
+    # Fill within-unit y lags
+    if (length(lag_terms_y)) {
+      ids <- unique(panel_work[[id]])
+      for (uid in ids) {
+        idx <- which(panel_work[[id]] == uid)
+        if (length(idx) == 0L) next
+        o <- order(panel_work[[time]][idx])
+        idxo <- idx[o]
+        yv <- panel_work[[y_name]][idxo]
+        for (k in seq_len(lr_ylags)) {
+          if (length(yv) <= k) {
+            lagv <- rep(NA_real_, length(yv))
+          } else {
+            lagv <- c(rep(NA_real_, k), yv[seq_len(length(yv) - k)])
+          }
+          panel_work[[paste0("lag", k, "_", y_name)]][idxo] <- lagv
+        }
+      }
+    }
+
+    # Fill within-unit x distributed lags
+    if (length(xnames) && isTRUE(lr_xdlags > 0L)) {
+      ids <- unique(panel_work[[id]])
+      for (uid in ids) {
+        idx <- which(panel_work[[id]] == uid)
+        if (length(idx) == 0L) next
+        o <- order(panel_work[[time]][idx])
+        idxo <- idx[o]
+        for (xn in xnames) {
+          xv <- panel_work[[xn]][idxo]
+          for (k in seq_len(lr_xdlags)) {
+            if (length(xv) <= k) {
+              lagv <- rep(NA_real_, length(xv))
+            } else {
+              lagv <- c(rep(NA_real_, k), xv[seq_len(length(xv) - k)])
+            }
+            panel_work[[paste0("lag", k, "_", xn)]][idxo] <- lagv
+          }
+        }
+      }
+    }
+
+    if (length(lag_terms_all)) {
+      econ_formula <- stats::update(formula, paste0(". ~ . + ", paste(lag_terms_all, collapse = " + ")))
+    }
   }
 
   if (identical(csa$vars, "_none")) {

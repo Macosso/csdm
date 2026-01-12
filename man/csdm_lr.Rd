@@ -8,6 +8,7 @@ csdm_lr(
   vars = NULL,
   type = c("none", "ecm", "ardl", "csdl"),
   ylags = 0,
+  xdlags = 0,
   options = list()
 )
 }
@@ -17,6 +18,9 @@ csdm_lr(
 \item{type}{One of c("none","ecm","ardl","csdl").}
 
 \item{ylags}{Integer >= 0. Within-unit lags of the dependent variable to include
+when supported by the chosen model/type.}
+
+\item{xdlags}{Integer >= 0. Scalar distributed lags to apply to each RHS regressor
 when supported by the chosen model/type.}
 
 \item{options}{Reserved for future use.}
