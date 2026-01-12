@@ -1,4 +1,8 @@
-mg_estimator <- function(formula, data, id = NULL, time = NULL, na.action = na.omit) {
+# Legacy file moved from R/ to inst/attic.
+# This code is preserved for reference and is not loaded by the package.
+
+mg_estimator <- function(formula, data, id = NULL, time = NULL, na.action = stats::na.omit) {
+  .Deprecated("csdm", package = "csdm")
   # If the data is not already a pdata.frame, require that id and time variable names are provided.
   if (!("pdata.frame" %in% class(data))) {
     if (is.null(id) || is.null(time)) {
@@ -52,6 +56,8 @@ mg_estimator <- function(formula, data, id = NULL, time = NULL, na.action = na.o
 }
 
 # Print method for objects returned by mg_estimator
+#' @keywords internal
+#' @noRd
 print.mg_estimator <- function(x, ...) {
   cat("Mean Group Estimator (MG) results (Pesaran & Smith, 1995):\n")
   cat("Panel Model Formula: ", deparse(x$formula), "\n")
@@ -63,6 +69,3 @@ print.mg_estimator <- function(x, ...) {
   print(x$mg_var)
   invisible(x)
 }
-
-
-

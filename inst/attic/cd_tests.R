@@ -1,3 +1,6 @@
+# Legacy file moved from R/ to inst/attic.
+# This code is preserved for reference and is not loaded by the package.
+
 #' Title
 #'
 #' @param data dataset
@@ -13,7 +16,7 @@
 #' @importFrom dplyr select arrange
 #' @importFrom tidyr pivot_wider
 #' @importFrom rlang enquo eval_tidy
-cd <- function(data, var, id = NULL, time = NULL, na.action = na.omit, ...){
+cd <- function(data, var, id = NULL, time = NULL, na.action = stats::na.omit, ...){
 
   data <- na.action(data)
   if (inherits(data, "pdata.frame")) {
@@ -21,7 +24,7 @@ cd <- function(data, var, id = NULL, time = NULL, na.action = na.omit, ...){
     id <- idx[1]
     time <- idx[[2]]
     data <- data |>
-      mutate(id = id,
+      dplyr::mutate(id = id,
              time = time)
 
     id <- "id"
@@ -42,8 +45,6 @@ cd <- function(data, var, id = NULL, time = NULL, na.action = na.omit, ...){
 
   N <- ncol(panel_matrix)
   TT <- nrow(panel_matrix)
-
-
 
   cd_stat <- sqrt((2*TT)/(N*(N - 1)))*sum(rho[upper.tri(rho)])
   cd_pval <- 2 * (1 - pnorm(abs(cd_stat)))

@@ -4,12 +4,11 @@
 #'
 #' @description
 #' Unified accessor that returns an \eqn{N \times T} residual matrix suitable for
-#' cross-sectional dependence testing. For \code{cce_mean_group} objects, you can
-#' choose among raw CCE residuals, PCA-filtered residuals, or their standardized
-#' version.
+#' cross-sectional dependence testing.
 #'
-#' @param object A fitted model object (e.g., of class \code{cce_mean_group}),
-#'   or directly a numeric matrix of residuals shaped as \eqn{N \times T}.
+#' @param object A fitted model object supported by this package (e.g., class
+#'   \code{csdm_fit}), or directly a numeric matrix of residuals shaped as
+#'   \eqn{N \times T}.
 #' @param type Character string selecting which residuals to return when available:
 #'   one of \code{"auto"}, \code{"cce"}, \code{"pca"}, or \code{"pca_std"}.
 #'   \itemize{
@@ -53,23 +52,10 @@ get_residuals <- function(object,
     return(object)
   }
 
-  # Handle known class: cce_mean_group
-  if (inherits(object, "cce_mean_group")) {
-    if (type == "auto") {
-      M <- take_first(object$residuals_pca_std,
-                      object$residuals_pca,
-                      object$residuals_cce)
-      if (!is.null(M)) return(M)
-    } else if (type == "pca_std") {
-      M <- as_mat(object$residuals_pca_std)
-      if (is.matrix(M)) return(M)
-    } else if (type == "pca") {
-      M <- as_mat(object$residuals_pca)
-      if (is.matrix(M)) return(M)
-    } else if (type == "cce") {
-      M <- as_mat(object$residuals_cce)
-      if (is.matrix(M)) return(M)
-    }
+  # Handle supported class: csdm_fit
+  if (inherits(object, "csdm_fit")) {
+    M <- as_mat(object$residuals_e)
+    if (is.matrix(M) && is.numeric(M)) return(M)
   }
 
   # Default: if it's a list, try common residual names
@@ -78,6 +64,7 @@ get_residuals <- function(object,
       M <- take_first(object$residuals_pca_std,
                       object$residuals_pca,
                       object$residuals_cce,
+                      object$residuals_e,
                       object$residuals,
                       object$E)
       if (!is.null(M)) return(M)
@@ -205,12 +192,27 @@ prepare_cd_input <- function(E,
 #' standardized residuals via `get_residuals(object, type="auto")`.
 #'
 #' @param object A matrix (N x T) of residuals or a fitted object supported by
-#'   `get_residuals()` (e.g., your `cce_mean_group`).
+#'   `get_residuals()` (e.g., a `csdm_fit`).
 #' @param res_type Residual type passed to `get_residuals()`: "auto", "pca_std",
 #'   "pca", or "cce".
 #' @param min_overlap Minimum overlapping time points per pair (default 2).
 #'
 #' @returns A list with `statistic`, `p.value`, `N`, and `pairs_used`.
+#' @examples
+#' data(PWT_60_07, package = "csdm")
+#' df <- PWT_60_07
+#' keep_ids <- unique(df$id)[1:10]
+#' df_small <- df[df$id %in% keep_ids & df$year >= 1970, ]
+#' fit <- csdm(
+#'   log_rgdpo ~ log_hc + log_ck + log_ngd,
+#'   data = df_small,
+#'   id = "id",
+#'   time = "year",
+#'   model = "dcce",
+#'   csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), lags = 3),
+#'   lr = csdm_lr(type = "ardl", ylags = 1)
+#' )
+#' cd_test(fit)
 #' @export
 cd_test <- function(object,
                     res_type = c("auto", "pca_std", "pca", "cce"),
@@ -225,7 +227,7 @@ cd_test <- function(object,
   if (N < 2) stop("Need at least two units.")
   if (ncol(E) < 2) stop("Need at least two time periods.")
 
-  # 2) pairwise correlations across time with per-pair √T weighting (handles unbalanced)
+  # 2) pairwise correlations across time with per-pair sqrt(T) weighting (handles unbalanced)
   s_sum <- 0     # sum of sqrt(T_ij) * rho_ij
   pairs <- 0L
   for (i in 1:(N - 1)) {
@@ -248,7 +250,7 @@ cd_test <- function(object,
   # CD = sqrt(2 / (N(N-1))) * sum_{i<j} sqrt(T_ij) * rho_ij
   cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
 
-  # 3) N(0,1) null ⇒ two-sided p-value
+  # 3) N(0,1) null => two-sided p-value
   pval <- 2 * (1 - stats::pnorm(abs(cd_stat)))
 
   list(statistic = unname(cd_stat),

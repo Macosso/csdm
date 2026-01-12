@@ -1,3 +1,8 @@
+# Legacy file moved from R/ to inst/attic.
+# This code is preserved for reference and is not loaded by the package.
+
+#' @keywords internal
+#' @noRd
 summary.mg_estimator <- function(object, digits = 4, ...) {
   # Extract from object:
   mg_coef <- object$mg_coef
@@ -30,28 +35,19 @@ summary.mg_estimator <- function(object, digits = 4, ...) {
     row.names = names(mg_coef)
   )
 
-  # Optionally, you might compute (or store) additional summary stats here:
-  # Example placeholders:
-  #   R-squared, residual variance, MG-based CD statistic, etc.
-  # E.g., R-squared is not directly computed by mg_estimator but might be
-  # average of the group-specific R-squareds or something else:
-  # mg_rsq <- NA_real_  # placeholder
-  # mg_cd  <- NA_real_  # placeholder for CD test statistic
-
-  # Build a return list
   out <- list(
     call       = object$formula,
     coefficients = results_table,
     df        = df,
     N         = N
-    # mg_rsq   = mg_rsq,
-    # mg_cd    = mg_cd
   )
   class(out) <- "summary.mg_estimator"
   return(out)
 }
 
 # A corresponding print method for summary.mg_estimator:
+#' @keywords internal
+#' @noRd
 print.summary.mg_estimator <- function(x, digits = 4, ...) {
   cat("Mean Group Estimation (Pesaran & Smith, 1995)\n")
   cat("Formula: ", deparse(x$call), "\n")
@@ -59,20 +55,18 @@ print.summary.mg_estimator <- function(x, digits = 4, ...) {
   cat("Degrees of freedom:   ", x$df, "\n\n")
 
   cat("MG Coefficients:\n")
-  # Format numeric columns with the given precision
   fmt_df <- x$coefficients
   fmt_df[, 1:4] <- lapply(fmt_df[, 1:4], function(col) formatC(col, digits = digits, format = "f"))
   print(fmt_df, row.names = TRUE, right = TRUE)
 
-  # If you computed or stored other summary statistics:
-  # cat("\nAverage R-squared:", formatC(x$mg_rsq, digits = digits, format = "f"), "\n")
-  # cat("CD Statistic:", formatC(x$mg_cd, digits = digits, format = "f"), "\n")
-
   cat("\nSignif. codes:  0 ***  0.001 **  0.01 *  0.05 .  0.1\n\n")
+
   invisible(x)
 }
 
 
+#' @keywords internal
+#' @noRd
 predict.mg_estimator <- function(object, newdata = NULL, id = NULL, time = NULL, ...) {
   # If newdata is not provided, use the stored original data.
   if (is.null(newdata)) {

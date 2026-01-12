@@ -7,7 +7,7 @@
 pooled_vcov(beta_i, weights = NULL, pairwise = TRUE)
 }
 \arguments{
-\item{beta_i}{Numeric matrix of unit-specific coefficients (\eqn{N × K});
+\item{beta_i}{Numeric matrix of unit-specific coefficients (\eqn{N x K});
 rows = units, columns = coefficients. May contain \code{NA}s.}
 
 \item{weights}{Optional numeric vector of length N with nonnegative weights
@@ -16,7 +16,7 @@ summing to 1. If \code{NULL}, uses equal weights.}
 \item{pairwise}{Logical; use pairwise-complete covariances across units (default \code{TRUE}).}
 }
 \value{
-A \code{K × K} covariance matrix for the MG mean, with
+A \code{K x K} covariance matrix for the MG mean, with
   \code{dimnames} inherited from \code{colnames(beta_i)}.
 }
 \description{

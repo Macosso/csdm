@@ -1,61 +1,15 @@
+## Legacy implementation preserved for reference.
+## Stored under inst/attic and NOT loaded by the package.
+
 #' Cross-Sectionally Augmented ARDL (CS-ARDL) Mean Group Estimator
 #'
 #' @description
 #' Estimates unit-specific ARDL(p, q) regressions augmented with cross-sectional
-#' averages (CSAs) of the dependent variable and regressors—plus their lags up to `P`—
+#' averages (CSAs) of the dependent variable and regressors - plus their lags up to `P` -
 #' then averages the coefficients across units (Mean Group). The CSA terms proxy
 #' latent common factors and mitigate cross-sectional dependence.
 #'
-#' @param formula An object like `y ~ x1 + x2 + ...`. All regressors on RHS are treated as levels
-#'   for ARDL construction; lags are generated internally.
-#' @param data A data.frame (or tibble) with columns for `id`, `time`, `y`, `x`'s.
-#' @param id,time Column names (strings) identifying unit and time indices.
-#' @param p Integer \ge 1. Number of lags of y.
-#' @param q Integer (recycled) or named integer vector for lags of each regressor
-#'   (names must match RHS variable names). `q` counts max lag; lag 0 is included by default.
-#' @param P Integer \ge 0. Number of lags of cross-sectional averages added (lag 0..P).
-#' @param loo Logical. If `TRUE`, compute CSAs in leave-one-out fashion.
-#' @param trend Logical. If `TRUE`, adds a deterministic linear trend (common slope) to each unit regression.
-#' @param robust_se One of `c("none","HC1","HC3")` for unit OLS variance; MG SEs are based on cross-sectional dispersion of unit estimates.
-#' @param min_T Integer. Minimum time observations required per unit after lagging; units with fewer are dropped.
-#' @return A list with MG estimates, their SEs, CD test, and unit-level results (see Details).
-#' @details
-#' \strong{Model}. For unit \eqn{i=1,\dots,N} and time \eqn{t}, let \eqn{y_{it}} be the dependent
-#' variable and \eqn{x_{it}} a K-vector of regressors. A CS-ARDL(p, q, P) for unit \eqn{i} is
-#' \deqn{
-#' y_{it} = \alpha_i + \sum_{j=1}^{p} \phi_{ij} y_{i,t-j}
-#'          + \sum_{k=1}^{K} \sum_{s=0}^{q_k} \beta_{ik,s} x_{k,i,t-s}
-#'          + \sum_{\ell=0}^{P} \delta_{i\ell}^{(y)} \bar{y}_{t-\ell}
-#'          + \sum_{k=1}^{K} \sum_{\ell=0}^{P} \delta_{ik,\ell}^{(x)} \bar{x}_{k,t-\ell}
-#'          + u_{it},
-#' }
-#' where \eqn{\bar{y}_t} and \eqn{\bar{x}_{k,t}} are cross-sectional averages (CSAs) that can be
-#' computed either **including** or **excluding** unit \eqn{i} (leave-one-out, `loo=TRUE`).
-#'
-#' \strong{Long-run effects}. For each unit \eqn{i}, the long-run coefficient on regressor \eqn{k} is
-#' \eqn{\theta_{ik} = \big(\sum_{s=0}^{q_k} \beta_{ik,s}\big) / \big(1 - \sum_{j=1}^{p} \phi_{ij}\big)},
-#' provided the AR polynomial is stable. The function reports MG means of \eqn{\theta_{ik}} and
-#' their MG standard errors (cross-sectional dispersion / \eqn{\sqrt{N})}.
-#'
-#' \strong{Unbalanced panels.} Estimation drops rows with insufficient lags; CSAs at time \eqn{t}
-#' are computed using all units with non-missing values at \eqn{t} (and excluding \eqn{i} if `loo=TRUE`).
-#'
-
-#' \strong{Related literature in your PDFs}.
-#' - MG/PMG background and ARDL motivation: Pesaran & Smith (1995); Pesaran, Shin & Smith (1999).
-#' - CS augmentation to address unobserved common factors: see the dynamic CCE/CS-ARDL approach
-#'   developed by Chudik & Pesaran (2015).
-#' - Error-correction and panel cointegration testing context: Westerlund (2007).
-#' @return A an object of class `cs_ardl_mg` with components:
-#' - `coef_mg_short`: MG averages of the unit-level **short-run** coefficients (on the lagged \eqn{y} and lagged \eqn{x}'s).
-#' - `coef_mg_long`: MG averages of **long-run** coefficients \eqn{\theta_k} with MG SEs.
-#' - `phi_mg`: MG average of the sum of lagged-\eqn{y} coefficients \eqn{\sum_j \phi_{ij}} and its SE.
-#' - `r2_mg`: average of unit-level R² from each OLS.
-#' - `cd_stat`, `cd_pval`: Pesaran-style CD test on pooled residuals.
-#' - `units`: tibble with unit-level results (coefficients, long-run, R², residuals index).
-#'
-
-#' @export
+#' @noRd
 cs_ardl_mg <- function(formula, data, id, time,
                        p = 1, q = 1, P = 1, loo = TRUE,
                        trend = FALSE,
@@ -65,7 +19,7 @@ cs_ardl_mg <- function(formula, data, id, time,
   robust_se <- match.arg(robust_se)
   stopifnot(p >= 1, P >= 0)
 
-  tf <- terms(formula)
+  tf <- stats::terms(formula)
   yname  <- as.character(attr(tf, "variables"))[2L]
   xnames <- attr(tf, "term.labels")
   if (length(xnames) == 0L) stop("Formula must have regressors on the RHS.")
@@ -86,7 +40,7 @@ cs_ardl_mg <- function(formula, data, id, time,
   o  <- order(df[[id]], df[[time]])
   df <- df[o, , drop = FALSE]
 
-  csa_frame <- aggregate(df[, c(yname, xnames)],
+  csa_frame <- stats::aggregate(df[, c(yname, xnames)],
                          list(tt = df[[time]]),
                          function(v) mean(v, na.rm = TRUE))
   names(csa_frame)[1L] <- time
@@ -112,8 +66,8 @@ cs_ardl_mg <- function(formula, data, id, time,
     if (loo) {
       tt <- dfi[[time]]
       idx_t <- match(tt, csa_frame[[time]])
-      agg_sum <- aggregate(df[, c(yname, xnames)], list(tt = df[[time]]), function(v) sum(v, na.rm = TRUE))
-      agg_cnt <- aggregate(df[, c(yname, xnames)], list(tt = df[[time]]), function(v) sum(!is.na(v)))
+      agg_sum <- stats::aggregate(df[, c(yname, xnames)], list(tt = df[[time]]), function(v) sum(v, na.rm = TRUE))
+      agg_cnt <- stats::aggregate(df[, c(yname, xnames)], list(tt = df[[time]]), function(v) sum(!is.na(v)))
       names(agg_sum)[1L] <- names(agg_cnt)[1L] <- time
       sums <- agg_sum[idx_t, c(yname, xnames), drop = FALSE]
       cnts <- agg_cnt[idx_t, c(yname, xnames), drop = FALSE]
@@ -168,18 +122,13 @@ cs_ardl_mg <- function(formula, data, id, time,
     r2_i   <- summary(fit)$r.squared
     coef_i <- coef(fit)
 
-    # Identify lagged-y coefficient names for all p lags and sum them to get phi_sum_i
     lag_y_names <- paste0("L", seq_len(p), ".", yname)
     alpha_y_lags <- coef_i[lag_y_names]
-    # phi_sum_i is the sum of the coefficients on lagged y across all p lags
     phi_sum_i <- sum(alpha_y_lags, na.rm = TRUE)
 
-    # Short-run x-coefs (each lag separately)
     bx_names <- unlist(lapply(xnames, function(XK) paste0(XK, "L", 0:qvec[XK])))
     bx_hat <- coef_i[bx_names]
 
-    # Long-run theta_i per regressor: sum contemporaneous and lagged coefficients of each regressor
-    # divided by (1 - phi_sum_i). If the denominator is nearly zero, set NA.
     theta_i <- vapply(xnames, function(XK) {
       num <- sum(coef_i[paste0(XK, "L", 0:qvec[XK])], na.rm = TRUE)
       den <- 1 - phi_sum_i
@@ -187,8 +136,8 @@ cs_ardl_mg <- function(formula, data, id, time,
     }, numeric(1))
 
     kept_times <- dfi[[time]][keep]
-    cd_store$e  <- c(cd_store$e, residuals(fit))
-    cd_store$id <- c(cd_store$id, rep(list(uid), length(residuals(fit))))
+    cd_store$e  <- c(cd_store$e, stats::residuals(fit))
+    cd_store$id <- c(cd_store$id, rep(list(uid), length(stats::residuals(fit))))
     cd_store$tt <- c(cd_store$tt, kept_times)
 
     res_list[[ii]] <- list(
@@ -232,19 +181,18 @@ cs_ardl_mg <- function(formula, data, id, time,
     out
   }))
   bx_mg <- colMeans(BX, na.rm = TRUE)
-  bx_se <- apply(BX, 2, function(v) sd(v, na.rm = TRUE) / sqrt(sum(!is.na(v))))
+  bx_se <- apply(BX, 2, function(v) stats::sd(v, na.rm = TRUE) / sqrt(sum(!is.na(v))))
 
-  ### FIX: phi MG with mean + SE (names expected by your print/summary)
   phi_vec <- vapply(res_list, function(z) z$phi_sum, numeric(1))
   phi_mg  <- c(
     mean = mean(phi_vec, na.rm = TRUE),
-    se   = sd(phi_vec,  na.rm = TRUE) / sqrt(sum(!is.na(phi_vec)))
+    se   = stats::sd(phi_vec,  na.rm = TRUE) / sqrt(sum(!is.na(phi_vec)))
   )
 
   TH <- do.call(rbind, lapply(res_list, function(z) z$theta))
   colnames(TH) <- xnames
   theta_mg <- colMeans(TH, na.rm = TRUE)
-  theta_se <- apply(TH, 2, function(v) sd(v, na.rm = TRUE) / sqrt(sum(!is.na(v))))
+  theta_se <- apply(TH, 2, function(v) stats::sd(v, na.rm = TRUE) / sqrt(sum(!is.na(v))))
 
   units_tbl <- do.call(rbind, lapply(res_list, function(z) {
     cbind(
@@ -259,7 +207,7 @@ cs_ardl_mg <- function(formula, data, id, time,
     call = match.call(),
     coef_mg_short = data.frame(term = names(bx_mg), estimate = unname(bx_mg), se = unname(bx_se)),
     coef_mg_long  = data.frame(variable = names(theta_mg), estimate = unname(theta_mg), se = unname(theta_se)),
-    phi_mg  = phi_mg,                 ### FIX: now a 2-element named vector: c(mean=..., se=...)
+    phi_mg  = phi_mg,
     r2_mg   = r2_mg,
     cd_stat = cd_stat,
     cd_pval = cd_pval,
@@ -270,16 +218,6 @@ cs_ardl_mg <- function(formula, data, id, time,
 }
 
 
-
-
-#' @title Print method for cs_ardl_mg objects
-#' @description Compact display of key results.
-#' @param x A \code{cs_ardl_mg} object.
-#' @param digits Number of digits to print.
-#' @param ... Not used.
-#' @return \code{invisible(x)}.
-#' @export
-#' @method print cs_ardl_mg
 print.cs_ardl_mg <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
   stopifnot(inherits(x, "cs_ardl_mg"))
   N_eff <- if (!is.null(x$units)) nrow(x$units) else NA_integer_
@@ -296,7 +234,6 @@ print.cs_ardl_mg <- function(x, digits = max(3L, getOption("digits") - 3L), ...)
                 digits, x$cd_stat, digits, x$cd_pval))
   }
 
-  # Show a small preview of coefficients
   if (!is.null(x$coef_mg_long)) {
     cat("\nLong-run MG coefficients (preview):\n")
     print(utils::head(x$coef_mg_long, 10L), row.names = FALSE)
@@ -309,15 +246,6 @@ print.cs_ardl_mg <- function(x, digits = max(3L, getOption("digits") - 3L), ...)
 }
 
 
-#' @title Summary for cs_ardl_mg objects
-#' @description Adds test statistics and p-values to MG coefficients.
-#' @param object A \code{cs_ardl_mg} object.
-#' @param z_dist Logical; if \code{TRUE}, use standard normal for p-values (default).
-#'   If \code{FALSE}, uses a t-approximation with df = N - 1.
-#' @param ... Not used.
-#' @return An object of class \code{summary.cs_ardl_mg}.
-#' @export
-#' @method summary cs_ardl_mg
 summary.cs_ardl_mg <- function(object, z_dist = TRUE, ...) {
   stopifnot(inherits(object, "cs_ardl_mg"))
   N_eff <- if (!is.null(object$units)) nrow(object$units) else NA_integer_
@@ -354,19 +282,11 @@ summary.cs_ardl_mg <- function(object, z_dist = TRUE, ...) {
   out
 }
 
-#' @title Print method for summary.cs_ardl_mg
-#' @description Nicely formats the summary output.
-#' @param x A \code{summary.cs_ardl_mg} object.
-#' @param digits Number of digits.
-#' @param signif.stars Logical; print significance stars.
-#' @param ... Not used.
-#' @return \code{invisible(x)}.
-#' @export
-#' @method print summary.cs_ardl_mg
+
 print.summary.cs_ardl_mg <- function(x, digits = max(3L, getOption("digits") - 3L),
                                      signif.stars = TRUE, ...) {
   stopifnot(inherits(x, "summary.cs_ardl_mg"))
-  cat("CS-ARDL Mean Group — Summary\n")
+  cat("CS-ARDL Mean Group - Summary\n")
   cat("Call: "); print(x$call)
   cat(sprintf("Units (N): %s\n", x$N))
   if (!is.null(x$r2_mg)) cat(sprintf("Mean R-squared: %.*f\n", digits, x$r2_mg))
@@ -382,9 +302,8 @@ print.summary.cs_ardl_mg <- function(x, digits = max(3L, getOption("digits") - 3
   pfmt <- function(tab, title) {
     if (is.null(tab) || nrow(tab) == 0L) return(invisible())
     cat(title, "\n", sep = "")
-    # basic stars
     if (signif.stars && "p.value" %in% names(tab)) {
-      stars <- symnum(tab$p.value, corr = FALSE,
+      stars <- stats::symnum(tab$p.value, corr = FALSE,
                       cutpoints = c(0, .001, .01, .05, .1, 1),
                       symbols = c("***","**","*","."," "))
       tab$` ` <- stars
@@ -402,17 +321,6 @@ print.summary.cs_ardl_mg <- function(x, digits = max(3L, getOption("digits") - 3
 }
 
 
-#' @title Coefficients for cs_ardl_mg
-#' @description Extracts MG coefficients.
-#' @param object A \code{cs_ardl_mg} object.
-#' @param type One of \code{"long_run"}, \code{"short_run"}, or \code{"phi"}.
-#'   \code{"long_run"} returns a named numeric vector of MG long-run estimates;
-#'   \code{"short_run"} returns a named numeric vector of MG short-run estimates;
-#'   \code{"phi"} returns a named scalar \code{c(phi_sum = ...)}.
-#' @param ... Not used.
-#' @return A named numeric vector.
-#' @export
-#' @method coef cs_ardl_mg
 coef.cs_ardl_mg <- function(object, type = c("long_run","short_run","phi"), ...) {
   stopifnot(inherits(object, "cs_ardl_mg"))
   type <- match.arg(type)
@@ -426,14 +334,6 @@ coef.cs_ardl_mg <- function(object, type = c("long_run","short_run","phi"), ...)
 }
 
 
-#' @title Variance-covariance for cs_ardl_mg
-#' @description Diagonal VCOV based on MG standard errors.
-#' @param object A \code{cs_ardl_mg} object.
-#' @param type One of \code{"long_run"} (default) or \code{"short_run"}.
-#' @param ... Not used.
-#' @return A variance-covariance matrix with appropriate row/column names.
-#' @export
-#' @method vcov cs_ardl_mg
 vcov.cs_ardl_mg <- function(object, type = c("long_run","short_run"), ...) {
   stopifnot(inherits(object, "cs_ardl_mg"))
   type <- match.arg(type)

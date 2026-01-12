@@ -7,7 +7,7 @@
 cluster_vcov(X, u, cluster, df_correction = TRUE, type = c("oneway", "twoway"))
 }
 \arguments{
-\item{X}{Numeric design matrix (n × k) used in OLS.}
+\item{X}{Numeric design matrix (n x k) used in OLS.}
 
 \item{u}{Numeric residual vector (length n).}
 
@@ -22,10 +22,10 @@ cluster_vcov(X, u, cluster, df_correction = TRUE, type = c("oneway", "twoway"))
 \item{type}{Character, one of \code{"oneway"} or \code{"twoway"}.}
 }
 \value{
-A \code{k × k} variance-covariance matrix.
+A \code{k x k} variance-covariance matrix.
 }
 \description{
 Computes one- or two-way cluster-robust vcov for an OLS design using the
-Liang–Zeger "meat" and Cameron–Gelbach–Miller inclusion–exclusion for two-way clustering.
+Liang-Zeger "meat" and Cameron-Gelbach-Miller inclusion-exclusion for two-way clustering.
 }
 \keyword{internal}

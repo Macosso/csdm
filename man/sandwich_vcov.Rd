@@ -7,16 +7,16 @@
 sandwich_vcov(X, u, type = c("HC0", "HC1", "HC2", "HC3"))
 }
 \arguments{
-\item{X}{Numeric design matrix (n × k) used in OLS.}
+\item{X}{Numeric design matrix (n x k) used in OLS.}
 
 \item{u}{Numeric residual vector (length n).}
 
 \item{type}{Character; one of \code{"HC0"}, \code{"HC1"}, \code{"HC2"}, \code{"HC3"}.}
 }
 \value{
-A \code{k × k} variance-covariance matrix.
+A \code{k x k} variance-covariance matrix.
 }
 \description{
-Computes White/Huber HC0–HC3 sandwich vcov for an OLS design.
+Computes White/Huber HC0-HC3 sandwich vcov for an OLS design.
 }
 \keyword{internal}

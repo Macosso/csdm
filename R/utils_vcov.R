@@ -4,9 +4,9 @@
 #'
 #' @description
 #' Computes one- or two-way cluster-robust vcov for an OLS design using the
-#' Liang–Zeger "meat" and Cameron–Gelbach–Miller inclusion–exclusion for two-way clustering.
+#' Liang-Zeger "meat" and Cameron-Gelbach-Miller inclusion-exclusion for two-way clustering.
 #'
-#' @param X Numeric design matrix (n × k) used in OLS.
+#' @param X Numeric design matrix (n x k) used in OLS.
 #' @param u Numeric residual vector (length n).
 #' @param cluster One of:
 #'   \itemize{
@@ -16,7 +16,7 @@
 #' @param df_correction Logical; apply small-sample corrections. Default \code{TRUE}.
 #' @param type Character, one of \code{"oneway"} or \code{"twoway"}.
 #'
-#' @returns A \code{k × k} variance-covariance matrix.
+#' @returns A \code{k x k} variance-covariance matrix.
 #' @keywords internal
 #' @export
 cluster_vcov <- function(X, u, cluster, df_correction = TRUE,
@@ -70,7 +70,7 @@ cluster_vcov <- function(X, u, cluster, df_correction = TRUE,
     meat2  <- .meat_oneway(g2)
     meat12 <- .meat_oneway(g12)
 
-    # Inclusion–exclusion
+    # Inclusion-exclusion
     meat <- meat1 + meat2 - meat12
   }
 
@@ -83,13 +83,13 @@ cluster_vcov <- function(X, u, cluster, df_correction = TRUE,
 #' Heteroskedasticity-robust (HC) sandwich variance-covariance for OLS
 #'
 #' @description
-#' Computes White/Huber HC0–HC3 sandwich vcov for an OLS design.
+#' Computes White/Huber HC0-HC3 sandwich vcov for an OLS design.
 #'
-#' @param X Numeric design matrix (n × k) used in OLS.
+#' @param X Numeric design matrix (n x k) used in OLS.
 #' @param u Numeric residual vector (length n).
 #' @param type Character; one of \code{"HC0"}, \code{"HC1"}, \code{"HC2"}, \code{"HC3"}.
 #'
-#' @returns A \code{k × k} variance-covariance matrix.
+#' @returns A \code{k x k} variance-covariance matrix.
 #' @keywords internal
 #' @export
 sandwich_vcov <- function(X, u, type = c("HC0", "HC1", "HC2", "HC3")) {
@@ -127,13 +127,13 @@ sandwich_vcov <- function(X, u, type = c("HC0", "HC1", "HC2", "HC3")) {
 #' using the cross-sectional covariance of unit-specific slopes and dividing by the
 #' effective sample sizes per coefficient (handles missing entries per unit).
 #'
-#' @param beta_i Numeric matrix of unit-specific coefficients (\eqn{N × K});
+#' @param beta_i Numeric matrix of unit-specific coefficients (\eqn{N x K});
 #'   rows = units, columns = coefficients. May contain \code{NA}s.
 #' @param weights Optional numeric vector of length N with nonnegative weights
 #'   summing to 1. If \code{NULL}, uses equal weights.
 #' @param pairwise Logical; use pairwise-complete covariances across units (default \code{TRUE}).
 #'
-#' @returns A \code{K × K} covariance matrix for the MG mean, with
+#' @returns A \code{K x K} covariance matrix for the MG mean, with
 #'   \code{dimnames} inherited from \code{colnames(beta_i)}.
 #' @details
 #' For equal weights, diagonal entries coincide with \eqn{\widehat{\mathrm{Var}}(\hat\beta_{ij}) / N_{\text{eff},j}}.

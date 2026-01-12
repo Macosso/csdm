@@ -12,7 +12,7 @@ cd_test(
 }
 \arguments{
 \item{object}{A matrix (N x T) of residuals or a fitted object supported by
-`get_residuals()` (e.g., your `cce_mean_group`).}
+`get_residuals()` (e.g., a `csdm_fit`).}
 
 \item{res_type}{Residual type passed to `get_residuals()`: "auto", "pca_std",
 "pca", or "cce".}
@@ -26,4 +26,20 @@ A list with `statistic`, `p.value`, `N`, and `pairs_used`.
 Computes Pesaran's CD statistic on a residual panel (N x T), allowing for
 unbalanced panels via pair-specific overlap. By default, it fetches
 standardized residuals via `get_residuals(object, type="auto")`.
+}
+\examples{
+data(PWT_60_07, package = "csdm")
+df <- PWT_60_07
+keep_ids <- unique(df$id)[1:10]
+df_small <- df[df$id \%in\% keep_ids & df$year >= 1970, ]
+fit <- csdm(
+  log_rgdpo ~ log_hc + log_ck + log_ngd,
+  data = df_small,
+  id = "id",
+  time = "year",
+  model = "dcce",
+  csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), lags = 3),
+  lr = csdm_lr(type = "ardl", ylags = 1)
+)
+cd_test(fit)
 }

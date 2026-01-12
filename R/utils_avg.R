@@ -30,7 +30,7 @@
 #'   }
 #' @param na.rm Logical; if \code{TRUE}, excludes \code{NA}s from sums and
 #'   denominators. If \code{FALSE}, any \code{NA} in a time slice yields \code{NA}
-#'   for that time’s CSA for that variable.
+#'   for that time's CSA for that variable.
 #'
 #' @returns A \code{data.frame}:
 #'   \itemize{
@@ -43,7 +43,7 @@
 #' Efficiently computes, for each \code{v in vars} and time \code{t},
 #' \deqn{\bar v_t = \frac{\sum_i w_{it}\, 1_{\{v_{it}\text{ finite}\}}\, v_{it}}
 #'                 {\sum_i w_{it}\, 1_{\{v_{it}\text{ finite}\}}}}
-#' For \code{leave_out=TRUE}, each row’s CSA excludes its own contribution; if the
+#' For \code{leave_out=TRUE}, each row's CSA excludes its own contribution; if the
 #' denominator becomes \eqn{\le 0} (e.g., only one finite observation at that time),
 #' the LOO mean is set to \code{NA} for that row/variable.
 #'
@@ -137,7 +137,7 @@ cross_sectional_avg <- function(data,
 
   # --- 3) Compute non-LOO time means if needed
   if (!leave_out) {
-    csa_time <- as.data.frame(setNames(list(uniq_t), time))
+    csa_time <- as.data.frame(stats::setNames(list(uniq_t), time))
     for (k in seq_along(vars)) {
       denom <- sum_w_list[[k]]
       num   <- sum_wx_list[[k]]
@@ -195,7 +195,7 @@ cross_sectional_avg <- function(data,
   if (return_mode == "time") {
     # Collapse to time-level non-LOO (there is no single "time-level LOO" table);
     # return the standard CSA by time to avoid misleading output.
-    csa_time <- as.data.frame(setNames(list(uniq_t), time))
+    csa_time <- as.data.frame(stats::setNames(list(uniq_t), time))
     for (k in seq_along(vars)) {
       denom <- sum_w_list[[k]]
       num   <- sum_wx_list[[k]]
