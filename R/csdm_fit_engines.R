@@ -514,3 +514,19 @@
     )
   )
 }
+
+
+.csdm_fit_cs_ardl <- function(panel_df, formula, id, time, csa, lr, vcov, ...) {
+  fit <- .csdm_fit_dcce(
+    panel_df = panel_df,
+    formula = formula,
+    id = id,
+    time = time,
+    csa = csa,
+    lr = lr,
+    vcov = vcov,
+    ...
+  )
+  fit$model <- "cs_ardl"
+  fit
+}

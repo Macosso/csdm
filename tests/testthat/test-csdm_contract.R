@@ -60,8 +60,24 @@ test_that("csdm() returns a stable csdm_fit contract", {
   expect_equal(ncol(fit_dcce$residuals_e), length(sort(unique(df$time))))
   expect_identical(colnames(fit_dcce$residuals_e), as.character(sort(unique(df$time))))
 
+  fit_cs_ardl <- csdm(
+    y ~ x1 + x2,
+    data = df,
+    id = "id",
+    time = "time",
+    model = "cs_ardl",
+    csa = csdm_csa(vars = "_all", lags = 1),
+    lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 0)
+  )
+  expect_s3_class(fit_cs_ardl, "csdm_fit")
+  expect_identical(fit_cs_ardl$model, "cs_ardl")
+
   expect_error(
-    csdm(y ~ x1 + x2, data = df, id = "id", time = "time", model = "cs_ardl"),
+    csdm(y ~ x1 + x2, data = df, id = "id", time = "time", model = "cs_ecm"),
+    "Not implemented yet"
+  )
+  expect_error(
+    csdm(y ~ x1 + x2, data = df, id = "id", time = "time", model = "cs_dl"),
     "Not implemented yet"
   )
 })
@@ -180,6 +196,102 @@ test_that("xdlags rejects transformed RHS terms", {
       id = "id",
       time = "time",
       model = "dcce",
+      csa = csdm_csa(vars = "_all", lags = 1),
+      lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 1)
+    ),
+    "xdlags currently supports only simple RHS variable names"
+  )
+})
+
+
+test_that("cs_ardl supports ARDL-style ylags", {
+  df <- data.frame(
+    id = rep(1:4, each = 20),
+    time = rep(1:20, times = 4)
+  )
+  set.seed(7)
+  df$x1 <- rnorm(nrow(df))
+  df$x2 <- rnorm(nrow(df))
+  df$y  <- 1 + 0.5 * df$x1 - 0.2 * df$x2 + rnorm(nrow(df), sd = 0.5)
+
+  fit <- csdm(
+    y ~ x1 + x2,
+    data = df,
+    id = "id",
+    time = "time",
+    model = "cs_ardl",
+    csa = csdm_csa(vars = "_all", lags = 1),
+    lr = csdm_lr(type = "ardl", ylags = 2, xdlags = 0)
+  )
+
+  expect_true(all(c("lag1_y", "lag2_y") %in% names(coef(fit))))
+})
+
+
+test_that("cs_ardl supports scalar xdlags", {
+  df <- data.frame(
+    id = rep(1:4, each = 20),
+    time = rep(1:20, times = 4)
+  )
+  set.seed(8)
+  df$x1 <- rnorm(nrow(df))
+  df$x2 <- rnorm(nrow(df))
+  df$y  <- 1 + 0.5 * df$x1 - 0.2 * df$x2 + rnorm(nrow(df), sd = 0.5)
+
+  fit <- csdm(
+    y ~ x1 + x2,
+    data = df,
+    id = "id",
+    time = "time",
+    model = "cs_ardl",
+    csa = csdm_csa(vars = "_all", lags = 1),
+    lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 1)
+  )
+
+  nm <- names(coef(fit))
+  expect_true(all(c("lag1_y", "lag1_x1", "lag1_x2") %in% nm))
+})
+
+
+test_that("cs_ardl xdlags accepts bare variable names like 'xlog'", {
+  df <- data.frame(
+    id = rep(1:4, each = 20),
+    time = rep(1:20, times = 4)
+  )
+  set.seed(9)
+  df$xlog <- rnorm(nrow(df))
+  df$y <- 1 + 0.4 * df$xlog + rnorm(nrow(df), sd = 0.5)
+
+  fit <- csdm(
+    y ~ xlog,
+    data = df,
+    id = "id",
+    time = "time",
+    model = "cs_ardl",
+    csa = csdm_csa(vars = "_all", lags = 1),
+    lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 1)
+  )
+
+  expect_true("lag1_xlog" %in% names(coef(fit)))
+})
+
+
+test_that("cs_ardl xdlags rejects transformed RHS terms", {
+  df <- data.frame(
+    id = rep(1:4, each = 20),
+    time = rep(1:20, times = 4)
+  )
+  set.seed(10)
+  df$x1 <- rnorm(nrow(df))
+  df$y <- 1 + 0.4 * df$x1 + rnorm(nrow(df), sd = 0.5)
+
+  expect_error(
+    csdm(
+      y ~ log(x1),
+      data = df,
+      id = "id",
+      time = "time",
+      model = "cs_ardl",
       csa = csdm_csa(vars = "_all", lags = 1),
       lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 1)
     ),
