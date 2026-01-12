@@ -34,10 +34,37 @@ test_that("cs_ardl summary prints CS-ARDL blocks", {
   expect_true(any(grepl("Short Run Est\\.", out)))
   expect_true(any(grepl("Adjust\\. Term", out)))
   expect_true(any(grepl("Long Run Est\\.", out)))
+  expect_true(any(grepl("R-squared \\(mg\\)", out)))
+  expect_true(any(grepl("Mean Group Variables:", out)))
+  expect_true(any(grepl("Cross Sectional Averaged Variables:", out)))
+  expect_true(any(grepl("Long Run Variables:", out)))
+  expect_true(any(grepl("Cointegration variable", out)))
 
   sm <- summary(fit)
-  expect_true(is.list(sm$cs_ardl))
-  expect_true(all(c("short_run", "adjust", "long_run") %in% names(sm$cs_ardl)))
+  expect_true(is.list(sm$stats))
+  expect_true(is.numeric(sm$stats$R2_mg) || is.na(sm$stats$R2_mg))
+  if (is.numeric(sm$stats$R2_mg)) {
+    expect_true(sm$stats$R2_mg >= 0)
+    expect_true(sm$stats$R2_mg <= 1)
+  }
+
+  expect_true(is.list(sm$tables))
+  expect_true(all(c("short_run", "adjust_term", "long_run") %in% names(sm$tables)))
+  req_cols <- c("Coef.", "Std. Err.", "z", "P>|z|", "CI 2.5%", "CI 97.5%")
+  expect_true(all(req_cols %in% colnames(sm$tables$short_run)))
+  expect_true(all(req_cols %in% colnames(sm$tables$adjust_term)))
+  expect_true(all(c(req_cols, "n_used") %in% colnames(sm$tables$long_run)))
+
+  expect_true(is.list(sm$lists))
+  expect_true(all(
+    c(
+      "mean_group_variables",
+      "csa_vars",
+      "csa_lags",
+      "long_run_variables",
+      "cointegration_variables"
+    ) %in% names(sm$lists)
+  ))
 })
 
 
