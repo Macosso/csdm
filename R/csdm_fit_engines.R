@@ -19,6 +19,7 @@
   fit_long$xb <- numeric(0)
 
   dropped <- character(0)
+  r2_i <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
 
   for (uid in ids) {
     sub <- panel_df[panel_df[[id]] == uid, , drop = FALSE]
@@ -36,6 +37,21 @@
     if (is.null(fit)) {
       dropped <- c(dropped, as.character(uid))
       next
+    }
+
+    # Unit-level R2 on the exact estimation sample
+    y_used <- tryCatch(stats::model.response(stats::model.frame(fit)), error = function(e) NULL)
+    e_used <- tryCatch(as.numeric(fit$residuals), error = function(e) NULL)
+    if (!is.null(y_used) && !is.null(e_used) && length(y_used) == length(e_used) && length(y_used) >= 2L) {
+      ok <- is.finite(y_used) & is.finite(e_used)
+      if (sum(ok) >= 2L) {
+        sse <- sum((e_used[ok])^2)
+        yc <- y_used[ok]
+        sst <- sum((yc - mean(yc))^2)
+        if (is.finite(sse) && is.finite(sst) && sst > 0) {
+          r2_i[[as.character(uid)]] <- 1 - sse / sst
+        }
+      }
     }
 
     cf <- stats::coef(fit)
@@ -109,6 +125,11 @@
     residuals_e = fit$residuals_e
   )
 
+  if (any(is.finite(r2_i))) {
+    fit$stats$R2_i <- r2_i
+    fit$stats$R2_mg <- mean(r2_i, na.rm = TRUE)
+  }
+
   fit
 }
 
@@ -166,6 +187,7 @@
   fit_long$xb <- numeric(0)
 
   dropped <- character(0)
+  r2_i <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
 
   for (uid in ids) {
     sub <- csa_attached[csa_attached[[id]] == uid, , drop = FALSE]
@@ -183,6 +205,21 @@
     if (is.null(fit)) {
       dropped <- c(dropped, as.character(uid))
       next
+    }
+
+    # Unit-level R2 on the exact estimation sample
+    y_used <- tryCatch(stats::model.response(stats::model.frame(fit)), error = function(e) NULL)
+    e_used <- tryCatch(as.numeric(fit$residuals), error = function(e) NULL)
+    if (!is.null(y_used) && !is.null(e_used) && length(y_used) == length(e_used) && length(y_used) >= 2L) {
+      ok <- is.finite(y_used) & is.finite(e_used)
+      if (sum(ok) >= 2L) {
+        sse <- sum((e_used[ok])^2)
+        yc <- y_used[ok]
+        sst <- sum((yc - mean(yc))^2)
+        if (is.finite(sse) && is.finite(sst) && sst > 0) {
+          r2_i[[as.character(uid)]] <- 1 - sse / sst
+        }
+      }
     }
 
     cf <- stats::coef(fit)
@@ -254,6 +291,11 @@
     yname = yname,
     residuals_e = fit$residuals_e
   )
+
+  if (any(is.finite(r2_i))) {
+    fit$stats$R2_i <- r2_i
+    fit$stats$R2_mg <- mean(r2_i, na.rm = TRUE)
+  }
 
   fit
 }
@@ -465,6 +507,7 @@
   fit_long$xb <- numeric(0)
 
   dropped <- character(0)
+  r2_i <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
 
   for (uid in ids) {
     sub <- csa_attached[csa_attached[[id]] == uid, , drop = FALSE]
@@ -482,6 +525,21 @@
     if (is.null(fit)) {
       dropped <- c(dropped, as.character(uid))
       next
+    }
+
+    # Unit-level R2 on the exact estimation sample
+    y_used <- tryCatch(stats::model.response(stats::model.frame(fit)), error = function(e) NULL)
+    e_used <- tryCatch(as.numeric(fit$residuals), error = function(e) NULL)
+    if (!is.null(y_used) && !is.null(e_used) && length(y_used) == length(e_used) && length(y_used) >= 2L) {
+      ok <- is.finite(y_used) & is.finite(e_used)
+      if (sum(ok) >= 2L) {
+        sse <- sum((e_used[ok])^2)
+        yc <- y_used[ok]
+        sst <- sum((yc - mean(yc))^2)
+        if (is.finite(sse) && is.finite(sst) && sst > 0) {
+          r2_i[[as.character(uid)]] <- 1 - sse / sst
+        }
+      }
     }
 
     cf <- stats::coef(fit)
@@ -553,6 +611,11 @@
     yname = yname,
     residuals_e = fit$residuals_e
   )
+
+  if (any(is.finite(r2_i))) {
+    fit$stats$R2_i <- r2_i
+    fit$stats$R2_mg <- mean(r2_i, na.rm = TRUE)
+  }
 
   fit
 }
@@ -674,13 +737,17 @@
     )
   )
 
-  fit$stats <- .csdm_compute_fit_stats(
-    panel_df = panel_df,
-    id = id,
-    time = time,
-    yname = yname,
-    residuals_e = fit$residuals_e
-  )
+  # Preserve stats (including unit-level R2) computed by the underlying fit.
+  # If missing for any reason, compute them from residuals as a fallback.
+  if (is.null(fit$stats) || is.null(fit$stats$nobs) || is.null(fit$stats$cd_stat)) {
+    fit$stats <- .csdm_compute_fit_stats(
+      panel_df = panel_df,
+      id = id,
+      time = time,
+      yname = yname,
+      residuals_e = fit$residuals_e
+    )
+  }
 
   fit
 }
