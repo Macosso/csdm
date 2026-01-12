@@ -139,3 +139,50 @@ test_that("dcce supports scalar x distributed lags via lr(type='ardl')", {
   expect_true(all(c("lag1_y", "lag1_x1", "lag1_x2") %in% nm))
   expect_true(any(is.na(fit$residuals_e["1", ])))
 })
+
+
+test_that("xdlags accepts bare variable names like 'xlog'", {
+  df <- data.frame(
+    id = rep(1:4, each = 10),
+    time = rep(1:10, times = 4)
+  )
+  set.seed(5)
+  df$xlog <- rnorm(nrow(df))
+  df$y <- 1 + 0.4 * df$xlog + rnorm(nrow(df), sd = 0.5)
+
+  fit <- csdm(
+    y ~ xlog,
+    data = df,
+    id = "id",
+    time = "time",
+    model = "dcce",
+    csa = csdm_csa(vars = "_all", lags = 1),
+    lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 1)
+  )
+
+  expect_true("lag1_xlog" %in% names(coef(fit)))
+})
+
+
+test_that("xdlags rejects transformed RHS terms", {
+  df <- data.frame(
+    id = rep(1:4, each = 10),
+    time = rep(1:10, times = 4)
+  )
+  set.seed(6)
+  df$x1 <- rnorm(nrow(df))
+  df$y <- 1 + 0.4 * df$x1 + rnorm(nrow(df), sd = 0.5)
+
+  expect_error(
+    csdm(
+      y ~ log(x1),
+      data = df,
+      id = "id",
+      time = "time",
+      model = "dcce",
+      csa = csdm_csa(vars = "_all", lags = 1),
+      lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 1)
+    ),
+    "xdlags currently supports only simple RHS variable names"
+  )
+})

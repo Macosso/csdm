@@ -263,11 +263,10 @@
       tt <- stats::terms(formula)
       rhs_terms <- attr(tt, "term.labels")
       if (length(rhs_terms)) {
-        disallowed_pat <- "\\(|\\)|:|\\*|\\^|/|\\+|-|log"
         for (term in rhs_terms) {
-          is_simple <- isTRUE(term %in% names(panel_work)) && !grepl(disallowed_pat, term)
+          is_simple <- grepl("^[.A-Za-z][.A-Za-z0-9._]*$", term) && (term %in% names(panel_work))
           if (!is_simple) {
-            stop("xdlags currently supports only simple RHS names; offending term: ", term)
+            stop("xdlags currently supports only simple RHS variable names (no transformations/interactions); offending term: ", term)
           }
         }
         xnames <- rhs_terms
