@@ -246,7 +246,7 @@
   if (identical(lr_type, "ardl") && (isTRUE(lr_ylags > 0L) || isTRUE(lr_xdlags > 0L))) {
     lhs <- formula[[2]]
     if (!is.name(lhs)) {
-      stop("For lr(type='ardl', ylags>0), the dependent variable in 'formula' must be a simple column name.")
+      stop("For lr(type='ardl') with ylags>0 and/or xdlags>0, the dependent variable in 'formula' must be a simple column name.")
     }
     y_name <- as.character(lhs)
     if (!y_name %in% names(panel_work)) stop("Dependent variable not found in data: ", y_name)
