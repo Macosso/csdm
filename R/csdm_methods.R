@@ -25,39 +25,6 @@ print.csdm_fit <- function(x, digits = 4, ...) {
 
 #' @export
 summary.csdm_fit <- function(object, digits = 4, ...) {
-  make_table <- function(estimate, se, n_used = NULL) {
-    estimate <- as.numeric(estimate)
-    se <- as.numeric(se)
-    z <- estimate / se
-    p <- 2 * stats::pnorm(abs(z), lower.tail = FALSE)
-    crit <- stats::qnorm(0.975)
-    ci_lo <- estimate - crit * se
-    ci_hi <- estimate + crit * se
-
-    # handle missing/invalid SE
-    bad <- !is.finite(se) | se <= 0
-    if (any(bad)) {
-      z[bad] <- NA_real_
-      p[bad] <- NA_real_
-      ci_lo[bad] <- NA_real_
-      ci_hi[bad] <- NA_real_
-    }
-
-    tab <- data.frame(
-      `Coef.` = estimate,
-      `Std. Err.` = se,
-      z = z,
-      `P>|z|` = p,
-      `CI 2.5%` = ci_lo,
-      `CI 97.5%` = ci_hi,
-      check.names = FALSE
-    )
-    if (!is.null(n_used)) {
-      tab$n_used <- as.integer(n_used)
-    }
-    tab
-  }
-
   est <- object$coef_mg
   se  <- object$se_mg
   z   <- est / se[names(est)]
@@ -83,16 +50,15 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
   )
 
   if (identical(object$model, "cs_ardl") && !is.null(object$cs_ardl) && !is.null(object$cs_ardl$mg)) {
-    nobs <- NA_integer_
-    R2_mg <- NA_real_
-    if (!is.null(object$stats)) {
-      if (!is.null(object$stats$nobs)) nobs <- as.integer(object$stats$nobs)
-      if (!is.null(object$stats$R2_mg)) R2_mg <- as.numeric(object$stats$R2_mg)
-    }
+    nobs <- if (!is.null(object$stats$nobs)) as.integer(object$stats$nobs) else NA_integer_
     out$nobs <- nobs
-    out$stats <- list(R2_mg = R2_mg)
+    out$stats <- list(
+      R2_mg = if (!is.null(object$stats$R2_mg)) as.numeric(object$stats$R2_mg) else NA_real_,
+      cd_stat = if (!is.null(object$stats$cd_stat)) as.numeric(object$stats$cd_stat) else NA_real_,
+      cd_p_value = if (!is.null(object$stats$cd_p_value)) as.numeric(object$stats$cd_p_value) else NA_real_
+    )
 
-    short_run_tab <- make_table(
+    short_run_tab <- .csdm_make_coef_table(
       estimate = as.numeric(est),
       se = as.numeric(se[names(est)])
     )
@@ -101,7 +67,7 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
     adj_term <- paste0("lr_", object$cs_ardl$y)
     adj_est <- as.numeric(object$cs_ardl$mg$adj[["estimate"]])
     adj_se <- as.numeric(object$cs_ardl$mg$adj[["se"]])
-    adjust_tab <- make_table(estimate = adj_est, se = adj_se)
+    adjust_tab <- .csdm_make_coef_table(estimate = adj_est, se = adj_se)
     rownames(adjust_tab) <- adj_term
 
     lr_tab_raw <- object$cs_ardl$mg$lr
@@ -117,7 +83,7 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
         check.names = FALSE
       )
     } else {
-      long_run_tab <- make_table(
+      long_run_tab <- .csdm_make_coef_table(
         estimate = lr_tab_raw$estimate,
         se = lr_tab_raw$se,
         n_used = lr_tab_raw$n_used
@@ -167,6 +133,30 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
       long_run_variables = xnames,
       cointegration_variables = yname
     )
+  } else {
+    # Common summary structure for MG / CCE / DCCE
+    nobs <- if (!is.null(object$stats$nobs)) as.integer(object$stats$nobs) else NA_integer_
+    out$nobs <- nobs
+    out$stats <- list(
+      R2_mg = if (!is.null(object$stats$R2_mg)) as.numeric(object$stats$R2_mg) else NA_real_,
+      cd_stat = if (!is.null(object$stats$cd_stat)) as.numeric(object$stats$cd_stat) else NA_real_,
+      cd_p_value = if (!is.null(object$stats$cd_p_value)) as.numeric(object$stats$cd_p_value) else NA_real_
+    )
+
+    mg_tab <- .csdm_make_coef_table(
+      estimate = as.numeric(est),
+      se = as.numeric(se[names(est)])
+    )
+    rownames(mg_tab) <- names(est)
+    out$tables <- list(mean_group = mg_tab)
+
+    mg_vars <- setdiff(names(est), c("(Intercept)"))
+    csa_footer <- .csdm_format_csa_footer(object$meta$csa)
+    out$lists <- list(
+      mean_group_variables = mg_vars,
+      csa_vars = csa_footer$csa_vars,
+      csa_lags = csa_footer$csa_lags
+    )
   }
 
   class(out) <- "summary.csdm_fit"
@@ -188,6 +178,12 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     }
     if (!is.null(x$stats$R2_mg)) {
       cat("R-squared (mg) = ", round(x$stats$R2_mg, digits), "\n\n", sep = "")
+    }
+    if (!is.null(x$stats$cd_stat)) {
+      cat("CD Statistic = ", round(x$stats$cd_stat, digits), "\n", sep = "")
+    }
+    if (!is.null(x$stats$cd_p_value)) {
+      cat("p-value = ", round(x$stats$cd_p_value, digits), "\n\n", sep = "")
     } else {
       cat("\n")
     }
@@ -212,6 +208,33 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     cat("Cross Sectional Averaged Variables: ", x$lists$csa_vars, " (lags=", x$lists$csa_lags, ")\n", sep = "")
     cat("Long Run Variables: ", paste(x$lists$long_run_variables, collapse = ", "), "\n", sep = "")
     cat("Cointegration variable(s): ", x$lists$cointegration_variables, "\n", sep = "")
+  } else if (!is.null(x$tables) && !is.null(x$stats) && !is.null(x$lists) && !is.null(x$tables$mean_group)) {
+    if (!is.null(x$N) && !is.null(x$T)) {
+      cat("N = ", x$N, ", T = ", x$T, "\n", sep = "")
+    }
+    if (!is.null(x$nobs)) {
+      cat("Number of obs = ", x$nobs, "\n", sep = "")
+    }
+    if (!is.null(x$stats$R2_mg)) {
+      cat("R-squared (mg) = ", round(x$stats$R2_mg, digits), "\n", sep = "")
+    }
+    if (!is.null(x$stats$cd_stat)) {
+      cat("CD Statistic = ", round(x$stats$cd_stat, digits), "\n", sep = "")
+    }
+    if (!is.null(x$stats$cd_p_value)) {
+      cat("p-value = ", round(x$stats$cd_p_value, digits), "\n\n", sep = "")
+    } else {
+      cat("\n")
+    }
+
+    cat("Mean Group:\n")
+    tab <- x$tables$mean_group
+    tab[] <- lapply(tab, function(col) if (is.numeric(col)) round(col, digits) else col)
+    print(tab)
+
+    cat("\n")
+    cat("Mean Group Variables: ", paste(x$lists$mean_group_variables, collapse = ", "), "\n", sep = "")
+    cat("Cross Sectional Averaged Variables: ", x$lists$csa_vars, " (lags=", x$lists$csa_lags, ")\n", sep = "")
   } else {
     if (!is.null(x$N) && !is.null(x$T)) {
       cat("N = ", x$N, ", T = ", x$T, "\n\n", sep = "")

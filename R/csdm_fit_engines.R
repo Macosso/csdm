@@ -77,7 +77,11 @@
   E <- .csdm_residual_matrix(panel_df, id, time, res_long)
   Xb <- .csdm_fitted_matrix(panel_df, id, time, fit_long)
 
-  list(
+  yname <- NA_character_
+  lhs <- formula[[2]]
+  if (is.name(lhs)) yname <- as.character(lhs)
+
+  fit <- list(
     call = NULL,
     formula = NULL,
     model = "mg",
@@ -96,6 +100,16 @@
       dropped_units = dropped
     )
   )
+
+  fit$stats <- .csdm_compute_fit_stats(
+    panel_df = panel_df,
+    id = id,
+    time = time,
+    yname = yname,
+    residuals_e = fit$residuals_e
+  )
+
+  fit
 }
 
 
@@ -209,7 +223,11 @@
   E <- .csdm_residual_matrix(csa_attached, id, time, res_long)
   Xb <- .csdm_fitted_matrix(csa_attached, id, time, fit_long)
 
-  list(
+  yname <- NA_character_
+  lhs <- formula[[2]]
+  if (is.name(lhs)) yname <- as.character(lhs)
+
+  fit <- list(
     call = NULL,
     formula = NULL,
     model = "cce",
@@ -228,6 +246,16 @@
       dropped_units = dropped
     )
   )
+
+  fit$stats <- .csdm_compute_fit_stats(
+    panel_df = panel_df,
+    id = id,
+    time = time,
+    yname = yname,
+    residuals_e = fit$residuals_e
+  )
+
+  fit
 }
 
 
@@ -494,7 +522,11 @@
   E <- .csdm_residual_matrix(csa_attached, id, time, res_long)
   Xb <- .csdm_fitted_matrix(csa_attached, id, time, fit_long)
 
-  list(
+  yname <- NA_character_
+  lhs <- formula[[2]]
+  if (is.name(lhs)) yname <- as.character(lhs)
+
+  fit <- list(
     call = NULL,
     formula = NULL,
     model = "dcce",
@@ -513,6 +545,16 @@
       dropped_units = dropped
     )
   )
+
+  fit$stats <- .csdm_compute_fit_stats(
+    panel_df = panel_df,
+    id = id,
+    time = time,
+    yname = yname,
+    residuals_e = fit$residuals_e
+  )
+
+  fit
 }
 
 
@@ -632,42 +674,12 @@
     )
   )
 
-  # Fit statistics (derived; does not affect estimation)
-  E <- fit$residuals_e
-  nobs <- if (is.matrix(E)) sum(is.finite(E)) else NA_integer_
-
-  # Reconstruct y matrix aligned to residuals_e dimnames
-  ids_levels <- rownames(E)
-  time_levels <- colnames(E)
-  Y <- matrix(NA_real_, nrow = length(ids_levels), ncol = length(time_levels),
-              dimnames = list(ids_levels, time_levels))
-
-  ii <- match(as.character(panel_df[[id]]), ids_levels)
-  tt <- match(as.character(panel_df[[time]]), time_levels)
-  keep <- is.finite(ii) & is.finite(tt)
-  if (any(keep)) {
-    Y[cbind(ii[keep], tt[keep])] <- as.numeric(panel_df[[yname]][keep])
-  }
-
-  R2_i <- rep(NA_real_, nrow(E))
-  names(R2_i) <- ids_levels
-  for (r in seq_len(nrow(E))) {
-    er <- E[r, ]
-    yr <- Y[r, ]
-    ok <- is.finite(er) & is.finite(yr)
-    if (sum(ok) < 2L) next
-    sse <- sum((er[ok])^2)
-    yc <- yr[ok]
-    sst <- sum((yc - mean(yc))^2)
-    if (!is.finite(sst) || sst <= 0) next
-    R2_i[[r]] <- 1 - sse / sst
-  }
-  R2_mg <- if (all(is.na(R2_i))) NA_real_ else mean(R2_i, na.rm = TRUE)
-
-  fit$stats <- list(
-    nobs = as.integer(nobs),
-    R2_i = R2_i,
-    R2_mg = as.numeric(R2_mg)
+  fit$stats <- .csdm_compute_fit_stats(
+    panel_df = panel_df,
+    id = id,
+    time = time,
+    yname = yname,
+    residuals_e = fit$residuals_e
   )
 
   fit
