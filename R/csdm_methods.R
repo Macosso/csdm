@@ -22,7 +22,6 @@ print.csdm_fit <- function(x, digits = 4, ...) {
   invisible(x)
 }
 
-
 #' @export
 summary.csdm_fit <- function(object, digits = 4, ...) {
   est <- object$coef_mg
@@ -53,7 +52,8 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
     nobs <- if (!is.null(object$stats$nobs)) as.integer(object$stats$nobs) else NA_integer_
     out$nobs <- nobs
     out$stats <- list(
-      R2_mg = if (!is.null(object$stats$R2_mg)) as.numeric(object$stats$R2_mg) else NA_real_,
+       R2_mg = if (!is.null(object$stats$R2_mg)) as.numeric(object$stats$R2_mg) else NA_real_,
+       R2_ols_mg = if (!is.null(object$stats$R2_ols_mg)) as.numeric(object$stats$R2_ols_mg) else NA_real_,
       cd_stat = if (!is.null(object$stats$cd_stat)) as.numeric(object$stats$cd_stat) else NA_real_,
       cd_p_value = if (!is.null(object$stats$cd_p_value)) as.numeric(object$stats$cd_p_value) else NA_real_
     )
@@ -216,15 +216,18 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
       cat("Number of obs = ", x$nobs, "\n", sep = "")
     }
     if (!is.null(x$stats$R2_mg)) {
-      cat("R-squared (mg) = ", round(x$stats$R2_mg, digits), "\n", sep = "")
-    }
-    if (!is.null(x$stats$cd_stat)) {
-      cat("CD Statistic = ", round(x$stats$cd_stat, digits), "\n", sep = "")
-    }
-    if (!is.null(x$stats$cd_p_value)) {
-      cat("p-value = ", round(x$stats$cd_p_value, digits), "\n\n", sep = "")
-    } else {
-      cat("\n")
+      cat("R-squared (mg, residual-matrix) = ", round(x$stats$R2_mg, digits), "\n", sep = "")
+      if (!is.null(x$stats$R2_ols_mg) && !is.na(x$stats$R2_ols_mg) && abs(x$stats$R2_ols_mg - x$stats$R2_mg) > 1e-8) {
+        cat("R-squared (mg, OLS) = ", round(x$stats$R2_ols_mg, digits), "\n", sep = "")
+      }
+      if (!is.null(x$stats$cd_stat)) {
+        cat("CD Statistic = ", round(x$stats$cd_stat, digits), "\n", sep = "")
+      }
+      if (!is.null(x$stats$cd_p_value)) {
+        cat("p-value = ", round(x$stats$cd_p_value, digits), "\n\n", sep = "")
+      } else {
+        cat("\n")
+      }
     }
 
     cat("Mean Group:\n")
@@ -247,7 +250,6 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
 
   invisible(x)
 }
-
 
 #' @export
 coef.csdm_fit <- function(object, ...) {

@@ -1,3 +1,49 @@
+
+test_that("R2_mg from residual-matrix matches manual computation in unbalanced panel", {
+  set.seed(1234)
+  df <- data.frame(
+    id = rep(1:3, each = 10),
+    time = rep(1:10, times = 3)
+  )
+  df$x1 <- rnorm(nrow(df))
+  df$x2 <- rnorm(nrow(df))
+  df$y  <- 2 + 0.5 * df$x1 - 0.2 * df$x2 + rnorm(nrow(df), sd = 0.7)
+  # Drop some cells to create unbalancedness
+  df$x1[df$id == 2 & df$time %in% c(2, 3, 4)] <- NA
+  df$x2[df$id == 3 & df$time %in% c(7, 8)] <- NA
+  df$y[df$id == 1 & df$time == 10] <- NA
+
+  fit <- csdm(y ~ x1 + x2, data = df, id = "id", time = "time", model = "mg")
+  E <- fit$residuals_e
+  yname <- "y"
+  ids_levels <- rownames(E)
+  time_levels <- colnames(E)
+  # Strictly align Y to E
+  Y <- matrix(NA_real_, nrow = length(ids_levels), ncol = length(time_levels),
+              dimnames = list(ids_levels, time_levels))
+  ii <- match(as.character(df$id), ids_levels)
+  tt <- match(as.character(df$time), time_levels)
+  keep <- is.finite(ii) & is.finite(tt)
+  if (any(keep)) {
+    Y[cbind(ii[keep], tt[keep])] <- as.numeric(df[[yname]][keep])
+  }
+  # Manual R2_i and R2_mg
+  R2_i <- rep(NA_real_, nrow(E)); names(R2_i) <- ids_levels
+  for (r in seq_len(nrow(E))) {
+    er <- E[r, ]; yr <- Y[r, ]
+    ok <- is.finite(er) & is.finite(yr)
+    if (sum(ok) < 2L) next
+    sse <- sum((er[ok])^2)
+    yc <- yr[ok]
+    sst <- sum((yc - mean(yc))^2)
+    if (!is.finite(sst) || sst <= 0) next
+    R2_i[[r]] <- 1 - sse / sst
+  }
+  R2_mg <- if (all(is.na(R2_i))) NA_real_ else mean(R2_i, na.rm = TRUE)
+  # Compare to fit$stats
+  expect_equal(fit$stats$R2_i, R2_i, tolerance = 1e-12)
+  expect_equal(fit$stats$R2_mg, R2_mg, tolerance = 1e-12)
+})
 test_that("mg summary includes stats, table columns, and footer lists", {
   df <- data.frame(
     id = rep(1:4, each = 20),
