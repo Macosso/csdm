@@ -32,9 +32,6 @@ jobs:
       - name: Check R package
         uses: r-lib/actions/check-r-package@v2
 
-      - name: Run tests (testthat)
-        run: Rscript -e "testthat::test_dir('tests/testthat')"
-
       - name: Upload Check Results
         uses: actions/upload-artifact@v4
         with:
