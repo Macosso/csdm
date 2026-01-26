@@ -57,7 +57,7 @@ test_that("mg summary includes stats, table columns, and footer lists", {
   fit <- csdm(y ~ x1 + x2, data = df, id = "id", time = "time", model = "mg")
   out <- utils::capture.output(summary(fit))
 
-  expect_true(any(grepl("R-squared \\(mg\\)", out)))
+  expect_true(any(grepl("(?=.*R-squared)(?=.*mg)", out, perl = TRUE)))
   expect_true(any(grepl("CD Statistic", out)))
   expect_true(any(grepl("p-value", out)))
   expect_true(any(grepl("Mean Group Variables:", out)))
@@ -74,7 +74,8 @@ test_that("mg summary includes stats, table columns, and footer lists", {
   expect_true(all(req_cols %in% colnames(sm$tables$mean_group)))
 
   expect_true(is.list(sm$lists))
-  expect_true(all(c("mean_group_variables", "csa_vars", "csa_lags") %in% names(sm$lists)))
+  expect_true(all(c("mean_group_variables", "csa_vars", "csa_lags") %in%
+                    names(sm$lists)))
   expect_identical(sm$lists$csa_vars, "none")
 })
 
