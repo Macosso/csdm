@@ -25,6 +25,7 @@ jobs:
           extra-packages: |
             testthat
             covr
+            rcmdcheck
           needs: |
             # List any needed system libraries here (e.g. libcurl4-openssl-dev)
 
