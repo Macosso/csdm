@@ -169,6 +169,7 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
   cat("csdm summary (", x$model, ")\n", sep = "")
   if (!is.null(x$formula)) cat("Formula: ", deparse(x$formula), "\n", sep = "")
 
+  signif_footer_printed <- FALSE
   if (identical(x$model, "cs_ardl") && !is.null(x$tables) && !is.null(x$stats) && !is.null(x$lists)) {
     if (!is.null(x$N) && !is.null(x$T)) {
       cat("N = ", x$N, ", T = ", x$T, "\n", sep = "")
@@ -192,16 +193,19 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     tab <- x$tables$short_run
     tab[] <- lapply(tab, function(col) if (is.numeric(col)) round(col, digits) else col)
     print(tab)
+    if ("Signif." %in% colnames(tab)) signif_footer_printed <- TRUE
 
     cat("\nAdjust. Term\n")
     atab <- x$tables$adjust_term
     atab[] <- lapply(atab, function(col) if (is.numeric(col)) round(col, digits) else col)
     print(atab)
+    if ("Signif." %in% colnames(atab)) signif_footer_printed <- TRUE
 
     cat("\nLong Run Est.\n")
     lrtab <- x$tables$long_run
     lrtab[] <- lapply(lrtab, function(col) if (is.numeric(col)) round(col, digits) else col)
     print(lrtab)
+    if ("Signif." %in% colnames(lrtab)) signif_footer_printed <- TRUE
 
     cat("\n")
     cat("Mean Group Variables: ", paste(x$lists$mean_group_variables, collapse = ", "), "\n", sep = "")
@@ -234,6 +238,7 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     tab <- x$tables$mean_group
     tab[] <- lapply(tab, function(col) if (is.numeric(col)) round(col, digits) else col)
     print(tab)
+    if ("Signif." %in% colnames(tab)) signif_footer_printed <- TRUE
 
     cat("\n")
     cat("Mean Group Variables: ", paste(x$lists$mean_group_variables, collapse = ", "), "\n", sep = "")
@@ -246,8 +251,12 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     num_cols <- intersect(c("estimate", "se", "z", "p_value"), names(tab))
     tab[num_cols] <- lapply(tab[num_cols], function(col) round(col, digits))
     print(tab, row.names = FALSE)
+    if ("Signif." %in% colnames(tab)) signif_footer_printed <- TRUE
   }
 
+  if (signif_footer_printed) {
+    cat("\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n")
+  }
   invisible(x)
 }
 

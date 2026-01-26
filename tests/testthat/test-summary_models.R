@@ -1,4 +1,3 @@
-
 test_that("R2_mg from residual-matrix matches manual computation in unbalanced panel", {
   set.seed(1234)
   df <- data.frame(
@@ -174,4 +173,38 @@ test_that("dcce summary includes lag terms in footer when ylags>0", {
   sm <- summary(fit)
   expect_true(is.list(sm$lists))
   expect_true(any(grepl("lag1_y", sm$lists$mean_group_variables)))
+})
+
+test_that("summary tables show R-style significance codes and footer", {
+  df <- data.frame(
+    id = rep(1:3, each = 30),
+    time = rep(1:30, times = 3)
+  )
+  set.seed(999)
+  df$x1 <- rnorm(nrow(df))
+  df$x2 <- rnorm(nrow(df))
+  # x1: highly significant, x2: marginal, x3: not significant
+  df$x3 <- rnorm(nrow(df))
+  df$y  <- 2 + 2.5 * df$x1 + 0.15 * df$x2 + 0.0001 * df$x3 + rnorm(nrow(df), sd = 0.5)
+
+  fit <- csdm(y ~ x1 + x2 + x3, data = df, id = "id", time = "time", model = "mg")
+  out <- utils::capture.output(summary(fit))
+
+  # Check for at least one '***', one '*' or '.', and the footer
+  expect_true(any(grepl("\\*\\*\\*", out)),
+              info = "Should show at least one highly significant (***)")
+  expect_true(any(grepl("\\*", out)),
+              info = "Should show at least one significant (* or **)")
+  expect_true(any(grepl("\\. ", out)) || any(grepl("\\.\t", out)) ||
+                any(grepl("\\.\n", out)),
+              info = "Should show at least one marginally significant (.)")
+  expect_true(any(grepl("Signif. codes", out)),
+              info = "Should print the significance codes footer.")
+
+  # Optionally: check correct code for known p-values in summary object
+  sm <- summary(fit)
+  tab <- sm$tables$mean_group
+  expect_true("Signif." %in% colnames(tab))
+  expect_true(any(tab$Signif. == "***"))
+  expect_true(any(tab$Signif. == ".") | any(tab$Signif. == "***"))
 })

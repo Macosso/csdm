@@ -1,3 +1,11 @@
+#' R-style significance codes for p-values (see ?summary.lm)
+.csdm_significance_stars <- function(p) {
+  cut(p,
+      breaks = c(-Inf, 0.001, 0.01, 0.05, 0.1, Inf),
+      labels = c("***", "**", "*", ".", ""),
+      right = FALSE)
+}
+
 # csdm_internal_helpers.R
 
 #' Compute R-squared (mg) from the final wide residual matrix and strictly aligned Y
@@ -149,15 +157,19 @@
     ci_hi[bad] <- NA_real_
   }
 
+  # Add R-style significance codes as in summary.lm
   tab <- data.frame(
     `Coef.` = estimate,
     `Std. Err.` = se,
     z = z,
     `P>|z|` = p,
-    `CI 2.5%` = ci_lo,
-    `CI 97.5%` = ci_hi,
     check.names = FALSE
   )
+  tab$Signif. <- .csdm_significance_stars(tab$`P>|z|`)
+  tab$`CI 2.5%` <- ci_lo
+  tab$`CI 97.5%` <- ci_hi
+  # Reorder columns to put Signif. after P>|z|
+  tab <- tab[, c("Coef.", "Std. Err.", "z", "P>|z|", "Signif.", "CI 2.5%", "CI 97.5%")]
   if (!is.null(n_used)) {
     tab$n_used <- as.integer(n_used)
   }
