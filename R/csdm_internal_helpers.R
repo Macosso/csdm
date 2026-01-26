@@ -1,4 +1,4 @@
-#' R-style significance codes for p-values (see ?summary.lm)
+# R-style significance codes for p-values (see ?summary.lm)
 .csdm_significance_stars <- function(p) {
   cut(p,
       breaks = c(-Inf, 0.001, 0.01, 0.05, 0.1, Inf),
@@ -201,11 +201,11 @@
 
 
 
-#' Compute fit statistics for csdm models, including robust R² (mg)
-#'
-#' R² (mg) is computed for the *model-predicted values on exactly the sample present in the final residual matrix*,
-#' ensuring robustness to index/panel alignment and NA-handling issues. This matches the definition used in xtdcce2.
-#' See .csdm_residual_matrix_r2 for the main logic.
+# Compute fit statistics for csdm models, including robust R² (mg)
+#
+# R² (mg) is computed for the *model-predicted values on exactly the sample present in the final residual matrix*,
+# ensuring robustness to index/panel alignment and NA-handling issues. This matches the definition used in xtdcce2.
+# See .csdm_residual_matrix_r2 for the main logic.
 .csdm_compute_fit_stats <- function(panel_df, id, time, yname, residuals_e, cd_min_overlap = 2L) {
   E <- residuals_e
   nobs <- if (is.matrix(E)) sum(is.finite(E)) else NA_integer_
