@@ -8,7 +8,18 @@ on:
 
 jobs:
   R-CMD-check:
-    runs-on: ubuntu-latest
+    matrix:
+      config:
+        - {os: ubuntu-latest, r: 'release'}
+        - {os: ubuntu-latest, r: '4.4.0'}
+        - {os: ubuntu-latest, r: '4.1.0'}
+        - {os: ubuntu-latest, r: '3.5.0'}
+        - {os: windows-latest, r: 'release'}
+        - {os: windows-latest, r: '4.4.0'}
+        - {os: windows-latest, r: '4.1.0'}
+        - {os: windows-latest, r: '3.5.0'}
+        
+    runs-on: ${{ matrix.confiig.os}}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,5 +46,5 @@ jobs:
       - name: Upload Check Results
         uses: actions/upload-artifact@v4
         with:
-          name: R-CMD-check-results
+          name: R-CMD-check-results-${{ matrix.config.os }}-R-${{ matrix.config.r }}
           path: check
