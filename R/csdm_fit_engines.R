@@ -117,6 +117,15 @@
     )
   )
 
+
+  # Compute R2 (mg) from residual matrix and strictly aligned Y
+  r2_resid <- .csdm_residual_matrix_r2(
+    residuals_e = fit$residuals_e,
+    panel_df = panel_df,
+    id = id,
+    time = time,
+    yname = yname
+  )
   fit$stats <- .csdm_compute_fit_stats(
     panel_df = panel_df,
     id = id,
@@ -124,11 +133,10 @@
     yname = yname,
     residuals_e = fit$residuals_e
   )
-
-  if (any(is.finite(r2_i))) {
-    fit$stats$R2_i <- r2_i
-    fit$stats$R2_mg <- mean(r2_i, na.rm = TRUE)
-  }
+  fit$stats$R2_i <- r2_resid$R2_i
+  fit$stats$R2_mg <- r2_resid$R2_mg
+  fit$stats$R2_ols_i <- r2_resid$R2_ols_i
+  fit$stats$R2_ols_mg <- r2_resid$R2_ols_mg
 
   fit
 }
@@ -284,6 +292,14 @@
     )
   )
 
+
+  r2_resid <- .csdm_residual_matrix_r2(
+    residuals_e = fit$residuals_e,
+    panel_df = panel_df,
+    id = id,
+    time = time,
+    yname = yname
+  )
   fit$stats <- .csdm_compute_fit_stats(
     panel_df = panel_df,
     id = id,
@@ -291,11 +307,10 @@
     yname = yname,
     residuals_e = fit$residuals_e
   )
-
-  if (any(is.finite(r2_i))) {
-    fit$stats$R2_i <- r2_i
-    fit$stats$R2_mg <- mean(r2_i, na.rm = TRUE)
-  }
+  fit$stats$R2_i <- r2_resid$R2_i
+  fit$stats$R2_mg <- r2_resid$R2_mg
+  fit$stats$R2_ols_i <- r2_resid$R2_ols_i
+  fit$stats$R2_ols_mg <- r2_resid$R2_ols_mg
 
   fit
 }
@@ -604,6 +619,14 @@
     )
   )
 
+
+  r2_resid <- .csdm_residual_matrix_r2(
+    residuals_e = fit$residuals_e,
+    panel_df = panel_df,
+    id = id,
+    time = time,
+    yname = yname
+  )
   fit$stats <- .csdm_compute_fit_stats(
     panel_df = panel_df,
     id = id,
@@ -611,11 +634,10 @@
     yname = yname,
     residuals_e = fit$residuals_e
   )
-
-  if (any(is.finite(r2_i))) {
-    fit$stats$R2_i <- r2_i
-    fit$stats$R2_mg <- mean(r2_i, na.rm = TRUE)
-  }
+  fit$stats$R2_i <- r2_resid$R2_i
+  fit$stats$R2_mg <- r2_resid$R2_mg
+  fit$stats$R2_ols_i <- r2_resid$R2_ols_i
+  fit$stats$R2_ols_mg <- r2_resid$R2_ols_mg
 
   fit
 }

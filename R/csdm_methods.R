@@ -22,7 +22,6 @@ print.csdm_fit <- function(x, digits = 4, ...) {
   invisible(x)
 }
 
-
 #' @export
 summary.csdm_fit <- function(object, digits = 4, ...) {
   est <- object$coef_mg
@@ -53,7 +52,8 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
     nobs <- if (!is.null(object$stats$nobs)) as.integer(object$stats$nobs) else NA_integer_
     out$nobs <- nobs
     out$stats <- list(
-      R2_mg = if (!is.null(object$stats$R2_mg)) as.numeric(object$stats$R2_mg) else NA_real_,
+       R2_mg = if (!is.null(object$stats$R2_mg)) as.numeric(object$stats$R2_mg) else NA_real_,
+       R2_ols_mg = if (!is.null(object$stats$R2_ols_mg)) as.numeric(object$stats$R2_ols_mg) else NA_real_,
       cd_stat = if (!is.null(object$stats$cd_stat)) as.numeric(object$stats$cd_stat) else NA_real_,
       cd_p_value = if (!is.null(object$stats$cd_p_value)) as.numeric(object$stats$cd_p_value) else NA_real_
     )
@@ -169,6 +169,7 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
   cat("csdm summary (", x$model, ")\n", sep = "")
   if (!is.null(x$formula)) cat("Formula: ", deparse(x$formula), "\n", sep = "")
 
+  signif_footer_printed <- FALSE
   if (identical(x$model, "cs_ardl") && !is.null(x$tables) && !is.null(x$stats) && !is.null(x$lists)) {
     if (!is.null(x$N) && !is.null(x$T)) {
       cat("N = ", x$N, ", T = ", x$T, "\n", sep = "")
@@ -192,16 +193,19 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     tab <- x$tables$short_run
     tab[] <- lapply(tab, function(col) if (is.numeric(col)) round(col, digits) else col)
     print(tab)
+    if ("Signif." %in% colnames(tab)) signif_footer_printed <- TRUE
 
     cat("\nAdjust. Term\n")
     atab <- x$tables$adjust_term
     atab[] <- lapply(atab, function(col) if (is.numeric(col)) round(col, digits) else col)
     print(atab)
+    if ("Signif." %in% colnames(atab)) signif_footer_printed <- TRUE
 
     cat("\nLong Run Est.\n")
     lrtab <- x$tables$long_run
     lrtab[] <- lapply(lrtab, function(col) if (is.numeric(col)) round(col, digits) else col)
     print(lrtab)
+    if ("Signif." %in% colnames(lrtab)) signif_footer_printed <- TRUE
 
     cat("\n")
     cat("Mean Group Variables: ", paste(x$lists$mean_group_variables, collapse = ", "), "\n", sep = "")
@@ -216,21 +220,25 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
       cat("Number of obs = ", x$nobs, "\n", sep = "")
     }
     if (!is.null(x$stats$R2_mg)) {
-      cat("R-squared (mg) = ", round(x$stats$R2_mg, digits), "\n", sep = "")
-    }
-    if (!is.null(x$stats$cd_stat)) {
-      cat("CD Statistic = ", round(x$stats$cd_stat, digits), "\n", sep = "")
-    }
-    if (!is.null(x$stats$cd_p_value)) {
-      cat("p-value = ", round(x$stats$cd_p_value, digits), "\n\n", sep = "")
-    } else {
-      cat("\n")
+      cat("R-squared (mg, residual-matrix) = ", round(x$stats$R2_mg, digits), "\n", sep = "")
+      if (!is.null(x$stats$R2_ols_mg) && !is.na(x$stats$R2_ols_mg) && abs(x$stats$R2_ols_mg - x$stats$R2_mg) > 1e-8) {
+        cat("R-squared (mg, OLS) = ", round(x$stats$R2_ols_mg, digits), "\n", sep = "")
+      }
+      if (!is.null(x$stats$cd_stat)) {
+        cat("CD Statistic = ", round(x$stats$cd_stat, digits), "\n", sep = "")
+      }
+      if (!is.null(x$stats$cd_p_value)) {
+        cat("p-value = ", round(x$stats$cd_p_value, digits), "\n\n", sep = "")
+      } else {
+        cat("\n")
+      }
     }
 
     cat("Mean Group:\n")
     tab <- x$tables$mean_group
     tab[] <- lapply(tab, function(col) if (is.numeric(col)) round(col, digits) else col)
     print(tab)
+    if ("Signif." %in% colnames(tab)) signif_footer_printed <- TRUE
 
     cat("\n")
     cat("Mean Group Variables: ", paste(x$lists$mean_group_variables, collapse = ", "), "\n", sep = "")
@@ -243,11 +251,14 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     num_cols <- intersect(c("estimate", "se", "z", "p_value"), names(tab))
     tab[num_cols] <- lapply(tab[num_cols], function(col) round(col, digits))
     print(tab, row.names = FALSE)
+    if ("Signif." %in% colnames(tab)) signif_footer_printed <- TRUE
   }
 
+  if (signif_footer_printed) {
+    cat("\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n")
+  }
   invisible(x)
 }
-
 
 #' @export
 coef.csdm_fit <- function(object, ...) {
