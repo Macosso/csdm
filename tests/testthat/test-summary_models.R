@@ -58,7 +58,7 @@ test_that("mg summary includes stats, table columns, and footer lists", {
 
   expect_true(any(grepl("(?=.*R-squared)(?=.*mg)", out, perl = TRUE)))
   expect_true(any(grepl("CD Statistic", out)))
-  expect_true(any(grepl("p-value", out)))
+  expect_true(any(grepl("p =", out)))
   expect_true(any(grepl("Mean Group Variables:", out)))
   expect_true(any(grepl("Cross Sectional Averaged Variables:", out)))
 

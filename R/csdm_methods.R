@@ -22,6 +22,15 @@ print.csdm_fit <- function(x, digits = 4, ...) {
   invisible(x)
 }
 
+#' Summarize csdm_fit model results, including CD and CD* statistics
+#'
+#' @param object A csdm_fit model object.
+#' @param digits Number of digits to print.
+#' @param ... Further arguments passed to methods.
+#'
+#' @details
+#' If the model was fit with both classic and bias-corrected CD statistics available, both will be reported in the summary output. See [cd_test()] for details on the CD-type selection and methodology.
+#' @return An object of class 'summary.csdm_fit'.
 #' @export
 summary.csdm_fit <- function(object, digits = 4, ...) {
   est <- object$coef_mg
@@ -52,10 +61,12 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
     nobs <- if (!is.null(object$stats$nobs)) as.integer(object$stats$nobs) else NA_integer_
     out$nobs <- nobs
     out$stats <- list(
-       R2_mg = if (!is.null(object$stats$R2_mg)) as.numeric(object$stats$R2_mg) else NA_real_,
-       R2_ols_mg = if (!is.null(object$stats$R2_ols_mg)) as.numeric(object$stats$R2_ols_mg) else NA_real_,
+      R2_mg = if (!is.null(object$stats$R2_mg)) as.numeric(object$stats$R2_mg) else NA_real_,
+      R2_ols_mg = if (!is.null(object$stats$R2_ols_mg)) as.numeric(object$stats$R2_ols_mg) else NA_real_,
       cd_stat = if (!is.null(object$stats$cd_stat)) as.numeric(object$stats$cd_stat) else NA_real_,
-      cd_p_value = if (!is.null(object$stats$cd_p_value)) as.numeric(object$stats$cd_p_value) else NA_real_
+      cd_p_value = if (!is.null(object$stats$cd_p_value)) as.numeric(object$stats$cd_p_value) else NA_real_,
+      cdstar_stat = if (!is.null(object$stats$cdstar_stat)) as.numeric(object$stats$cdstar_stat) else NA_real_,
+      cdstar_p_value = if (!is.null(object$stats$cdstar_p_value)) as.numeric(object$stats$cdstar_p_value) else NA_real_
     )
 
     short_run_tab <- .csdm_make_coef_table(
@@ -140,7 +151,9 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
     out$stats <- list(
       R2_mg = if (!is.null(object$stats$R2_mg)) as.numeric(object$stats$R2_mg) else NA_real_,
       cd_stat = if (!is.null(object$stats$cd_stat)) as.numeric(object$stats$cd_stat) else NA_real_,
-      cd_p_value = if (!is.null(object$stats$cd_p_value)) as.numeric(object$stats$cd_p_value) else NA_real_
+      cd_p_value = if (!is.null(object$stats$cd_p_value)) as.numeric(object$stats$cd_p_value) else NA_real_,
+      cdstar_stat = if (!is.null(object$stats$cdstar_stat)) as.numeric(object$stats$cdstar_stat) else NA_real_,
+      cdstar_p_value = if (!is.null(object$stats$cdstar_p_value)) as.numeric(object$stats$cdstar_p_value) else NA_real_
     )
 
     mg_tab <- .csdm_make_coef_table(
@@ -164,6 +177,14 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
 }
 
 
+#' Print summary of csdm_fit model, including CD and CD* statistics if available
+#'
+#' @param x A summary.csdm_fit object.
+#' @param digits Number of digits to print.
+#' @param ... Further arguments passed to methods.
+#'
+#' @details
+#' If both classic and bias-corrected CD statistics are available, both will be printed side-by-side in the summary output. See [cd_test()] for details.
 #' @export
 print.summary.csdm_fit <- function(x, digits = 4, ...) {
   cat("csdm summary (", x$model, ")\n", sep = "")
@@ -180,11 +201,19 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     if (!is.null(x$stats$R2_mg)) {
       cat("R-squared (mg) = ", round(x$stats$R2_mg, digits), "\n\n", sep = "")
     }
-    if (!is.null(x$stats$cd_stat)) {
-      cat("CD Statistic = ", round(x$stats$cd_stat, digits), "\n", sep = "")
+    if (!is.null(x$stats$cd_stat) && !is.na(x$stats$cd_stat)) {
+      cat("CD Statistic (classic) = ", round(x$stats$cd_stat, digits))
+      if (!is.null(x$stats$cd_p_value) && !is.na(x$stats$cd_p_value)) {
+        cat(", p = ", round(x$stats$cd_p_value, digits))
+      }
+      cat("\n")
     }
-    if (!is.null(x$stats$cd_p_value)) {
-      cat("p-value = ", round(x$stats$cd_p_value, digits), "\n\n", sep = "")
+    if (!is.null(x$stats$cdstar_stat) && !is.na(x$stats$cdstar_stat)) {
+      cat("CD Statistic (bias-corrected) = ", round(x$stats$cdstar_stat, digits))
+      if (!is.null(x$stats$cdstar_p_value) && !is.na(x$stats$cdstar_p_value)) {
+        cat(", p = ", round(x$stats$cdstar_p_value, digits))
+      }
+      cat("\n\n")
     } else {
       cat("\n")
     }
@@ -224,11 +253,19 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
       if (!is.null(x$stats$R2_ols_mg) && !is.na(x$stats$R2_ols_mg) && abs(x$stats$R2_ols_mg - x$stats$R2_mg) > 1e-8) {
         cat("R-squared (mg, OLS) = ", round(x$stats$R2_ols_mg, digits), "\n", sep = "")
       }
-      if (!is.null(x$stats$cd_stat)) {
-        cat("CD Statistic = ", round(x$stats$cd_stat, digits), "\n", sep = "")
+      if (!is.null(x$stats$cd_stat) && !is.na(x$stats$cd_stat)) {
+        cat("CD Statistic (classic) = ", round(x$stats$cd_stat, digits))
+        if (!is.null(x$stats$cd_p_value) && !is.na(x$stats$cd_p_value)) {
+          cat(", p = ", round(x$stats$cd_p_value, digits))
+        }
+        cat("\n")
       }
-      if (!is.null(x$stats$cd_p_value)) {
-        cat("p-value = ", round(x$stats$cd_p_value, digits), "\n\n", sep = "")
+      if (!is.null(x$stats$cdstar_stat) && !is.na(x$stats$cdstar_stat)) {
+        cat("CD Statistic (bias-corrected) = ", round(x$stats$cdstar_stat, digits))
+        if (!is.null(x$stats$cdstar_p_value) && !is.na(x$stats$cdstar_p_value)) {
+          cat(", p = ", round(x$stats$cdstar_p_value, digits))
+        }
+        cat("\n\n")
       } else {
         cat("\n")
       }

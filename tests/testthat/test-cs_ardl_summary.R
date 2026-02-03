@@ -36,7 +36,7 @@ test_that("cs_ardl summary prints CS-ARDL blocks", {
   expect_true(any(grepl("Long Run Est\\.", out)))
   expect_true(any(grepl("R-squared \\(mg\\)", out)))
   expect_true(any(grepl("CD Statistic", out)))
-  expect_true(any(grepl("p-value", out)))
+  expect_true(any(grepl("p =", out)))
   expect_true(any(grepl("Mean Group Variables:", out)))
   expect_true(any(grepl("Cross Sectional Averaged Variables:", out)))
   expect_true(any(grepl("Long Run Variables:", out)))

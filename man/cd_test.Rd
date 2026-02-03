@@ -2,44 +2,50 @@
 % Please edit documentation in R/utils_residuals.R
 \name{cd_test}
 \alias{cd_test}
-\title{Pesaran CD test (statistic & p-value)}
+\title{Cross-sectional dependence (CD) test for panel data residuals}
 \usage{
 cd_test(
   object,
+  type = c("classic", "CDstar", "all"),
   res_type = c("auto", "pca_std", "pca", "cce"),
   min_overlap = 2L
 )
 }
 \arguments{
-\item{object}{A matrix (N x T) of residuals or a fitted object supported by
-`get_residuals()` (e.g., a `csdm_fit`).}
+\item{object}{A fitted model object (e.g., class `csdm_fit`) or a numeric N x T matrix of residuals.}
 
-\item{res_type}{Residual type passed to `get_residuals()`: "auto", "pca_std",
-"pca", or "cce".}
+\item{type}{Which CD statistic(s) to compute: one of `"classic"` (default), `"CDstar"` (bias-corrected), or `"all"` (both).}
 
-\item{min_overlap}{Minimum overlapping time points per pair (default 2).}
+\item{res_type}{Residual type to extract from model objects (see [get_residuals()]).}
+
+\item{min_overlap}{Minimum number of overlapping time periods for a unit pair to be included.}
 }
 \value{
-A list with `statistic`, `p.value`, `N`, and `pairs_used`.
+If `type` is `"classic"` or `"CDstar"`, a list with elements `statistic`, `p.value`, `N`, and `pairs_used`. If `type` is `"all"`, a list with elements `classic` and `CDstar` (each as above).
 }
 \description{
-Computes Pesaran's CD statistic on a residual panel (N x T), allowing for
-unbalanced panels via pair-specific overlap. By default, it fetches
-standardized residuals via `get_residuals(object, type="auto")`.
+Computes Pesaran-type tests for cross-sectional dependence (CD) in panel data models.
+Supports both the classic CD statistic (Pesaran 2004, 2015) and the bias-corrected CD* statistic (Pesaran, Ullah & Yamagata 2008; Pesaran & Xie 2022).
+}
+\details{
+The classic CD test (Pesaran 2004, 2015) computes the average pairwise correlation of residuals across cross-sectional units, scaled for asymptotic normality. The bias-corrected CD* test (Pesaran, Ullah & Yamagata 2008; Pesaran & Xie 2022) adjusts for small-sample and heterogeneity bias, providing more reliable inference in finite samples.
 }
 \examples{
-data(PWT_60_07, package = "csdm")
-df <- PWT_60_07
-keep_ids <- unique(df$id)[1:10]
-df_small <- df[df$id \%in\% keep_ids & df$year >= 1970, ]
-fit <- csdm(
-  log_rgdpo ~ log_hc + log_ck + log_ngd,
-  data = df_small,
-  id = "id",
-  time = "year",
-  model = "dcce",
-  csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), lags = 3),
-  lr = csdm_lr(type = "ardl", ylags = 1)
-)
-cd_test(fit)
+# Simulate independent and dependent panels
+set.seed(1)
+E_indep <- matrix(rnorm(100), nrow = 10)
+E_dep <- matrix(rnorm(10), nrow = 10, ncol = 10, byrow = TRUE)
+cd_test(E_indep, type = "all")
+cd_test(E_dep, type = "all")
+
+# On a fitted csdm model:
+# fit <- csdm(...)
+# cd_test(fit, type = "all")
+
+}
+\references{
+Pesaran, M.H. (2004). General diagnostic tests for cross section dependence in panels. *Econometric Reviews*, 23(1), 57-77.
+Pesaran, M.H. (2015). Testing weak cross-sectional dependence in large panels. *Econometric Reviews*, 34(6-10), 1089-1117.
+Pesaran, M.H., Ullah, A., & Yamagata, T. (2008). A bias-adjusted LM test of error cross-section independence. *Econometrics Journal*, 11(1), 105-127.
+Pesaran, M.H., & Xie, Y. (2022). A bias-corrected CD test for error cross-sectional dependence in panel models. *Econometric Reviews*, 41(6), 649-677.
 }

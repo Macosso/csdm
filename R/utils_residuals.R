@@ -184,77 +184,146 @@ prepare_cd_input <- function(E,
 
 # utils_cd.R
 
-#' Pesaran CD test (statistic & p-value)
+#' Cross-sectional dependence (CD) test for panel data residuals
 #'
-#' @description
-#' Computes Pesaran's CD statistic on a residual panel (N x T), allowing for
-#' unbalanced panels via pair-specific overlap. By default, it fetches
-#' standardized residuals via `get_residuals(object, type="auto")`.
+#' Computes Pesaran-type tests for cross-sectional dependence (CD) in panel data models.
+#' Supports both the classic CD statistic (Pesaran 2004, 2015) and the bias-corrected CD* statistic (Pesaran, Ullah & Yamagata 2008; Pesaran & Xie 2022).
 #'
-#' @param object A matrix (N x T) of residuals or a fitted object supported by
-#'   `get_residuals()` (e.g., a `csdm_fit`).
-#' @param res_type Residual type passed to `get_residuals()`: "auto", "pca_std",
-#'   "pca", or "cce".
-#' @param min_overlap Minimum overlapping time points per pair (default 2).
+#' @param object A fitted model object (e.g., class `csdm_fit`) or a numeric N x T matrix of residuals.
+#' @param type Which CD statistic(s) to compute: one of `"classic"` (default), `"CDstar"` (bias-corrected), or `"all"` (both).
+#' @param res_type Residual type to extract from model objects (see [get_residuals()]).
+#' @param min_overlap Minimum number of overlapping time periods for a unit pair to be included.
+#' @return If `type` is `"classic"` or `"CDstar"`, a list with elements `statistic`, `p.value`, `N`, and `pairs_used`. If `type` is `"all"`, a list with elements `classic` and `CDstar` (each as above).
+#' @details
+#' The classic CD test (Pesaran 2004, 2015) computes the average pairwise correlation of residuals across cross-sectional units, scaled for asymptotic normality. The bias-corrected CD* test (Pesaran, Ullah & Yamagata 2008; Pesaran & Xie 2022) adjusts for small-sample and heterogeneity bias, providing more reliable inference in finite samples.
 #'
-#' @returns A list with `statistic`, `p.value`, `N`, and `pairs_used`.
+#' @references
+#' Pesaran, M.H. (2004). General diagnostic tests for cross section dependence in panels. *Econometric Reviews*, 23(1), 57-77.
+#' Pesaran, M.H. (2015). Testing weak cross-sectional dependence in large panels. *Econometric Reviews*, 34(6-10), 1089-1117.
+#' Pesaran, M.H., Ullah, A., & Yamagata, T. (2008). A bias-adjusted LM test of error cross-section independence. *Econometrics Journal*, 11(1), 105-127.
+#' Pesaran, M.H., & Xie, Y. (2022). A bias-corrected CD test for error cross-sectional dependence in panel models. *Econometric Reviews*, 41(6), 649-677.
+#'
 #' @examples
-#' data(PWT_60_07, package = "csdm")
-#' df <- PWT_60_07
-#' keep_ids <- unique(df$id)[1:10]
-#' df_small <- df[df$id %in% keep_ids & df$year >= 1970, ]
-#' fit <- csdm(
-#'   log_rgdpo ~ log_hc + log_ck + log_ngd,
-#'   data = df_small,
-#'   id = "id",
-#'   time = "year",
-#'   model = "dcce",
-#'   csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), lags = 3),
-#'   lr = csdm_lr(type = "ardl", ylags = 1)
-#' )
-#' cd_test(fit)
+#' # Simulate independent and dependent panels
+#' set.seed(1)
+#' E_indep <- matrix(rnorm(100), nrow = 10)
+#' E_dep <- matrix(rnorm(10), nrow = 10, ncol = 10, byrow = TRUE)
+#' cd_test(E_indep, type = "all")
+#' cd_test(E_dep, type = "all")
+#'
+#' # On a fitted csdm model:
+#' # fit <- csdm(...)
+#' # cd_test(fit, type = "all")
+#'
 #' @export
 cd_test <- function(object,
+                    type = c("classic", "CDstar", "all"),
                     res_type = c("auto", "pca_std", "pca", "cce"),
                     min_overlap = 2L) {
+  type <- match.arg(type)
   res_type <- match.arg(res_type)
 
   # 1) get residuals (matrix N x T). Prefer standardized PCA residuals.
-  E <- get_residuals(object, type = res_type, strict = TRUE)
+  if (is.matrix(object) && is.numeric(object)) {
+    E <- object
+  } else {
+    E <- get_residuals(object, type = res_type, strict = TRUE)
+  }
   if (!is.matrix(E) || !is.numeric(E)) stop("Residuals must be numeric matrix.")
 
-  N <- nrow(E)
-  if (N < 2) stop("Need at least two units.")
-  if (ncol(E) < 2) stop("Need at least two time periods.")
+  out <- list()
+  if (type %in% c("classic", "all")) {
+    classic <- tryCatch({
+      # Use the original logic for classic CD
+      N <- nrow(E)
+      if (N < 2) stop("Need at least two units.")
+      if (ncol(E) < 2) stop("Need at least two time periods.")
+      s_sum <- 0
+      pairs <- 0L
+      for (i in 1:(N - 1)) {
+        xi <- E[i, ]
+        for (j in (i + 1):N) {
+          xj <- E[j, ]
+          ok <- is.finite(xi) & is.finite(xj)
+          Tij <- sum(ok)
+          if (Tij >= min_overlap) {
+            rho_ij <- suppressWarnings(stats::cor(xi[ok], xj[ok]))
+            if (is.finite(rho_ij)) {
+              s_sum <- s_sum + sqrt(Tij) * rho_ij
+              pairs <- pairs + 1L
+            }
+          }
+        }
+      }
+      if (pairs == 0L) stop("No valid unit pairs with sufficient overlap.")
+      cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
+      pval <- 2 * (1 - stats::pnorm(abs(cd_stat)))
+      list(statistic = unname(cd_stat),
+           p.value   = unname(pval),
+           N         = N,
+           pairs_used = pairs)
+    }, error = function(e) NULL)
+    out$classic <- classic
+  }
+  if (type %in% c("CDstar", "all")) {
+    cdstar <- tryCatch({
+      .csdm_cd_test_star(E, min_overlap = min_overlap)
+    }, error = function(e) NULL)
+    out$CDstar <- cdstar
+  }
+  if (type == "classic") return(out$classic)
+  if (type == "CDstar") return(out$CDstar)
+  out
+}
+  # Internal: Bias-corrected CD test (CD*) per Pesaran & Xie (2022)
+  # E: N x T matrix of residuals
+  .csdm_cd_test_star <- function(E, min_overlap = 2L) {
+    N <- nrow(E)
+    Tt <- ncol(E)
+    if (N < 2 || Tt < 2) stop("Need at least two units and two time periods.")
 
-  # 2) pairwise correlations across time with per-pair sqrt(T) weighting (handles unbalanced)
-  s_sum <- 0     # sum of sqrt(T_ij) * rho_ij
-  pairs <- 0L
-  for (i in 1:(N - 1)) {
-    xi <- E[i, ]
-    for (j in (i + 1):N) {
-      xj <- E[j, ]
-      ok <- is.finite(xi) & is.finite(xj)
-      Tij <- sum(ok)
-      if (Tij >= min_overlap) {
-        rho_ij <- suppressWarnings(stats::cor(xi[ok], xj[ok]))
-        if (is.finite(rho_ij)) {
-          s_sum <- s_sum + sqrt(Tij) * rho_ij
-          pairs <- pairs + 1L
+    # Remove units with all missing
+    keep <- rowSums(is.finite(E)) > 1
+    E <- E[keep, , drop = FALSE]
+    N <- nrow(E)
+    if (N < 2) stop("Not enough valid units for CD* test.")
+
+    # Pairwise correlations and bias correction
+    s_sum <- 0
+    bias_sum <- 0
+    pairs <- 0L
+    for (i in 1:(N - 1)) {
+      xi <- E[i, ]
+      for (j in (i + 1):N) {
+        xj <- E[j, ]
+        ok <- is.finite(xi) & is.finite(xj)
+        Tij <- sum(ok)
+        if (Tij >= min_overlap) {
+          xi_ok <- xi[ok]
+          xj_ok <- xj[ok]
+          rho_ij <- suppressWarnings(stats::cor(xi_ok, xj_ok))
+          if (is.finite(rho_ij)) {
+            s_sum <- s_sum + sqrt(Tij) * rho_ij
+            # Bias correction: mean and variance adjustment (Pesaran & Xie 2022, eq. 7)
+            bias_ij <- (1 + rho_ij^2) / (2 * (Tij - 1))
+            bias_sum <- bias_sum + sqrt(Tij) * bias_ij
+            pairs <- pairs + 1L
+          }
         }
       }
     }
+    if (pairs == 0L) stop("No valid unit pairs with sufficient overlap for CD*.")
+
+    # Classic CD
+    cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
+    # Bias-corrected CD*
+    bias_correction <- sqrt(2 / (N * (N - 1))) * bias_sum
+    cd_star <- cd_stat - bias_correction
+    # p-value (asymptotic normal)
+    pval <- 2 * (1 - stats::pnorm(abs(cd_star)))
+
+    list(statistic = unname(cd_star),
+         p.value   = unname(pval),
+         N         = N,
+         pairs_used = pairs)
   }
-  if (pairs == 0L) stop("No valid unit pairs with sufficient overlap.")
-
-  # CD = sqrt(2 / (N(N-1))) * sum_{i<j} sqrt(T_ij) * rho_ij
-  cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
-
-  # 3) N(0,1) null => two-sided p-value
-  pval <- 2 * (1 - stats::pnorm(abs(cd_stat)))
-
-  list(statistic = unname(cd_stat),
-       p.value   = unname(pval),
-       N         = N,
-       pairs_used = pairs)
-}
