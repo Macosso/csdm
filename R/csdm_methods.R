@@ -63,10 +63,15 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
     out$stats <- list(
       R2_mg = if (!is.null(object$stats$R2_mg)) as.numeric(object$stats$R2_mg) else NA_real_,
       R2_ols_mg = if (!is.null(object$stats$R2_ols_mg)) as.numeric(object$stats$R2_ols_mg) else NA_real_,
-      cd_stat = if (!is.null(object$stats$cd_stat)) as.numeric(object$stats$cd_stat) else NA_real_,
-      cd_p_value = if (!is.null(object$stats$cd_p_value)) as.numeric(object$stats$cd_p_value) else NA_real_,
-      cdstar_stat = if (!is.null(object$stats$cdstar_stat)) as.numeric(object$stats$cdstar_stat) else NA_real_,
-      cdstar_p_value = if (!is.null(object$stats$cdstar_p_value)) as.numeric(object$stats$cdstar_p_value) else NA_real_
+      CD_stat = if (!is.null(object$stats$CD_stat)) as.numeric(object$stats$CD_stat) else NA_real_,
+      CD_p = if (!is.null(object$stats$CD_p)) as.numeric(object$stats$CD_p) else NA_real_,
+      CDw_stat = if (!is.null(object$stats$CDw_stat)) as.numeric(object$stats$CDw_stat) else NA_real_,
+      CDw_p = if (!is.null(object$stats$CDw_p)) as.numeric(object$stats$CDw_p) else NA_real_,
+      CDw_plus_stat = if (!is.null(object$stats$CDw_plus_stat)) as.numeric(object$stats$CDw_plus_stat) else NA_real_,
+      CDw_plus_p = if (!is.null(object$stats$CDw_plus_p)) as.numeric(object$stats$CDw_plus_p) else NA_real_,
+      CDstar_stat = if (!is.null(object$stats$CDstar_stat)) as.numeric(object$stats$CDstar_stat) else NA_real_,
+      CDstar_p = if (!is.null(object$stats$CDstar_p)) as.numeric(object$stats$CDstar_p) else NA_real_,
+      CDstar_n_pc = if (!is.null(object$stats$CDstar_n_pc)) as.integer(object$stats$CDstar_n_pc) else NA_integer_
     )
 
     short_run_tab <- .csdm_make_coef_table(
@@ -150,10 +155,15 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
     out$nobs <- nobs
     out$stats <- list(
       R2_mg = if (!is.null(object$stats$R2_mg)) as.numeric(object$stats$R2_mg) else NA_real_,
-      cd_stat = if (!is.null(object$stats$cd_stat)) as.numeric(object$stats$cd_stat) else NA_real_,
-      cd_p_value = if (!is.null(object$stats$cd_p_value)) as.numeric(object$stats$cd_p_value) else NA_real_,
-      cdstar_stat = if (!is.null(object$stats$cdstar_stat)) as.numeric(object$stats$cdstar_stat) else NA_real_,
-      cdstar_p_value = if (!is.null(object$stats$cdstar_p_value)) as.numeric(object$stats$cdstar_p_value) else NA_real_
+      CD_stat = if (!is.null(object$stats$CD_stat)) as.numeric(object$stats$CD_stat) else NA_real_,
+      CD_p = if (!is.null(object$stats$CD_p)) as.numeric(object$stats$CD_p) else NA_real_,
+      CDw_stat = if (!is.null(object$stats$CDw_stat)) as.numeric(object$stats$CDw_stat) else NA_real_,
+      CDw_p = if (!is.null(object$stats$CDw_p)) as.numeric(object$stats$CDw_p) else NA_real_,
+      CDw_plus_stat = if (!is.null(object$stats$CDw_plus_stat)) as.numeric(object$stats$CDw_plus_stat) else NA_real_,
+      CDw_plus_p = if (!is.null(object$stats$CDw_plus_p)) as.numeric(object$stats$CDw_plus_p) else NA_real_,
+      CDstar_stat = if (!is.null(object$stats$CDstar_stat)) as.numeric(object$stats$CDstar_stat) else NA_real_,
+      CDstar_p = if (!is.null(object$stats$CDstar_p)) as.numeric(object$stats$CDstar_p) else NA_real_,
+      CDstar_n_pc = if (!is.null(object$stats$CDstar_n_pc)) as.integer(object$stats$CDstar_n_pc) else NA_integer_
     )
 
     mg_tab <- .csdm_make_coef_table(
@@ -201,22 +211,8 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     if (!is.null(x$stats$R2_mg)) {
       cat("R-squared (mg) = ", round(x$stats$R2_mg, digits), "\n\n", sep = "")
     }
-    if (!is.null(x$stats$cd_stat) && !is.na(x$stats$cd_stat)) {
-      cat("CD Statistic (classic) = ", round(x$stats$cd_stat, digits))
-      if (!is.null(x$stats$cd_p_value) && !is.na(x$stats$cd_p_value)) {
-        cat(", p = ", round(x$stats$cd_p_value, digits))
-      }
-      cat("\n")
-    }
-    if (!is.null(x$stats$cdstar_stat) && !is.na(x$stats$cdstar_stat)) {
-      cat("CD Statistic (bias-corrected) = ", round(x$stats$cdstar_stat, digits))
-      if (!is.null(x$stats$cdstar_p_value) && !is.na(x$stats$cdstar_p_value)) {
-        cat(", p = ", round(x$stats$cdstar_p_value, digits))
-      }
-      cat("\n\n")
-    } else {
-      cat("\n")
-    }
+    # Print all CD tests
+    .csdm_print_cd_tests(x$stats, digits)
 
     cat("Short Run Est.\n")
     tab <- x$tables$short_run
@@ -253,22 +249,8 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
       if (!is.null(x$stats$R2_ols_mg) && !is.na(x$stats$R2_ols_mg) && abs(x$stats$R2_ols_mg - x$stats$R2_mg) > 1e-8) {
         cat("R-squared (mg, OLS) = ", round(x$stats$R2_ols_mg, digits), "\n", sep = "")
       }
-      if (!is.null(x$stats$cd_stat) && !is.na(x$stats$cd_stat)) {
-        cat("CD Statistic (classic) = ", round(x$stats$cd_stat, digits))
-        if (!is.null(x$stats$cd_p_value) && !is.na(x$stats$cd_p_value)) {
-          cat(", p = ", round(x$stats$cd_p_value, digits))
-        }
-        cat("\n")
-      }
-      if (!is.null(x$stats$cdstar_stat) && !is.na(x$stats$cdstar_stat)) {
-        cat("CD Statistic (bias-corrected) = ", round(x$stats$cdstar_stat, digits))
-        if (!is.null(x$stats$cdstar_p_value) && !is.na(x$stats$cdstar_p_value)) {
-          cat(", p = ", round(x$stats$cdstar_p_value, digits))
-        }
-        cat("\n\n")
-      } else {
-        cat("\n")
-      }
+      # Print all CD tests
+      .csdm_print_cd_tests(x$stats, digits)
     }
 
     cat("Mean Group:\n")
@@ -338,4 +320,37 @@ predict.csdm_fit <- function(object, newdata = NULL, type = c("xb", "residuals")
   if (type == "residuals") return(stats::residuals(object, type = "e"))
   if (!is.null(object$fitted_xb)) return(object$fitted_xb)
   stop("predict(type='xb') not implemented yet")
+}
+# Helper function to print all CD tests
+.csdm_print_cd_tests <- function(stats, digits = 4) {
+  # Helper to print a single test
+  print_one_test <- function(stat_val, p_val, label) {
+    if (!is.null(stat_val) && !is.na(stat_val)) {
+      cat(label, " = ", round(stat_val, digits), sep = "")
+      if (!is.null(p_val) && !is.na(p_val)) {
+        cat(", p = ", round(p_val, digits), sep = "")
+      }
+      cat("\n")
+      return(TRUE)
+    }
+    return(FALSE)
+  }
+
+  printed_any <- FALSE
+  if (print_one_test(stats$CD_stat, stats$CD_p, "CD")) printed_any <- TRUE
+  if (print_one_test(stats$CDw_stat, stats$CDw_p, "CDw")) printed_any <- TRUE
+  if (print_one_test(stats$CDw_plus_stat, stats$CDw_plus_p, "CDw+")) printed_any <- TRUE
+
+  # CD* includes n_pc in label
+  if (!is.null(stats$CDstar_stat) && !is.na(stats$CDstar_stat)) {
+    n_pc_label <- if (!is.null(stats$CDstar_n_pc) && !is.na(stats$CDstar_n_pc)) {
+      paste0("CD* (n_pc=", stats$CDstar_n_pc, ")")
+    } else {
+      "CD* (n_pc=4)"
+    }
+    print_one_test(stats$CDstar_stat, stats$CDstar_p, n_pc_label)
+    printed_any <- TRUE
+  }
+
+  if (printed_any) cat("\n")
 }

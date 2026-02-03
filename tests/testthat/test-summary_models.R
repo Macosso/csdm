@@ -57,15 +57,15 @@ test_that("mg summary includes stats, table columns, and footer lists", {
   out <- utils::capture.output(summary(fit))
 
   expect_true(any(grepl("(?=.*R-squared)(?=.*mg)", out, perl = TRUE)))
-  expect_true(any(grepl("CD Statistic", out)))
+  expect_true(any(grepl("^CD", out))) # Match CD, CDw, CDw+, CD*
   expect_true(any(grepl("p =", out)))
   expect_true(any(grepl("Mean Group Variables:", out)))
   expect_true(any(grepl("Cross Sectional Averaged Variables:", out)))
 
   sm <- summary(fit)
   expect_true(is.list(sm$stats))
-  expect_true(is.numeric(sm$stats$cd_stat) || is.na(sm$stats$cd_stat))
-  expect_true(is.numeric(sm$stats$cd_p_value) || is.na(sm$stats$cd_p_value))
+  expect_true(is.numeric(sm$stats$CD_stat) || is.na(sm$stats$CD_stat))
+  expect_true(is.numeric(sm$stats$CD_p) || is.na(sm$stats$CD_p))
 
   expect_true(is.list(sm$tables))
   expect_true("mean_group" %in% names(sm$tables))

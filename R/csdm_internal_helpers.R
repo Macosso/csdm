@@ -240,24 +240,41 @@
   }
 
 
-  # CD and CD* tests
-  cd_stat <- NA_real_
-  cd_p_value <- NA_real_
-  cdstar_stat <- NA_real_
-  cdstar_p_value <- NA_real_
+  # All CD tests
+  CD_stat <- NA_real_
+  CD_p <- NA_real_
+  CDw_stat <- NA_real_
+  CDw_p <- NA_real_
+  CDw_plus_stat <- NA_real_
+  CDw_plus_p <- NA_real_
+  CDstar_stat <- NA_real_
+  CDstar_p <- NA_real_
+  CDstar_n_pc <- NA_integer_
+
   if (is.matrix(E) && nrow(E) >= 2L && ncol(E) >= 2L) {
     cd_all <- tryCatch(
-      cd_test(E, type = "all", min_overlap = as.integer(cd_min_overlap)),
+      cd_test(E, type = "all", n_pc = 4L, min_overlap = as.integer(cd_min_overlap)),
       error = function(e) NULL
     )
     if (!is.null(cd_all)) {
-      if (!is.null(cd_all$classic)) {
-        cd_stat <- as.numeric(cd_all$classic$statistic)
-        cd_p_value <- as.numeric(cd_all$classic$p.value)
+      if (!is.null(cd_all$CD)) {
+        CD_stat <- as.numeric(cd_all$CD$statistic)
+        CD_p <- as.numeric(cd_all$CD$p.value)
+      }
+      if (!is.null(cd_all$CDw)) {
+        CDw_stat <- as.numeric(cd_all$CDw$statistic)
+        CDw_p <- as.numeric(cd_all$CDw$p.value)
+      }
+      if (!is.null(cd_all$CDw_plus)) {
+        CDw_plus_stat <- as.numeric(cd_all$CDw_plus$statistic)
+        CDw_plus_p <- as.numeric(cd_all$CDw_plus$p.value)
       }
       if (!is.null(cd_all$CDstar)) {
-        cdstar_stat <- as.numeric(cd_all$CDstar$statistic)
-        cdstar_p_value <- as.numeric(cd_all$CDstar$p.value)
+        CDstar_stat <- as.numeric(cd_all$CDstar$statistic)
+        CDstar_p <- as.numeric(cd_all$CDstar$p.value)
+        if (!is.null(cd_all$CDstar$n_pc)) {
+          CDstar_n_pc <- as.integer(cd_all$CDstar$n_pc)
+        }
       }
     }
   }
@@ -266,9 +283,13 @@
     nobs = as.integer(nobs),
     R2_i = R2_i,
     R2_mg = as.numeric(R2_mg),
-    cd_stat = as.numeric(cd_stat),
-    cd_p_value = as.numeric(cd_p_value),
-    cdstar_stat = as.numeric(cdstar_stat),
-    cdstar_p_value = as.numeric(cdstar_p_value)
-  )
+    CD_stat = as.numeric(CD_stat),
+    CD_p = as.numeric(CD_p),
+    CDw_stat = as.numeric(CDw_stat),
+    CDw_p = as.numeric(CDw_p),
+    CDw_plus_stat = as.numeric(CDw_plus_stat),
+    CDw_plus_p = as.numeric(CDw_plus_p),
+    CDstar_stat = as.numeric(CDstar_stat),
+    CDstar_p = as.numeric(CDstar_p),
+    CDstar_n_pc = as.integer(CDstar_n_pc)  )
 }

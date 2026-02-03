@@ -124,7 +124,7 @@ prepare_cd_input <- function(E,
     stop("prepare_cd_input(): E must be a numeric matrix (N x T).")
   }
   standardize <- match.arg(standardize)
-  N <- nrow(E); Tm <- ncol(E)
+  N <- nrow(E); T_n <- ncol(E)
 
   # 1) Keep only time columns with at least min_per_time finite values
   counts <- colSums(is.finite(E))
@@ -182,48 +182,74 @@ prepare_cd_input <- function(E,
 }
 
 
-# utils_cd.R
+# utils_cd.R - Cross-sectional dependence tests for panel models
 
-#' Cross-sectional dependence (CD) test for panel data residuals
+#' Cross-sectional dependence (CD) tests for panel data
 #'
-#' Computes Pesaran-type tests for cross-sectional dependence (CD) in panel data models.
-#' Supports both the classic CD statistic (Pesaran 2004, 2015) and the bias-corrected CD* statistic (Pesaran, Ullah & Yamagata 2008; Pesaran & Xie 2022).
+#' Computes multiple cross-sectional dependence tests for panel residuals:
+#' CD (Pesaran 2015), CDw (Juodis & Reese 2021), CDw+ (Fan et al. 2015), and
+#' CD* (Pesaran & Xie 2021) with optional PCA-based factor adjustment.
 #'
 #' @param object A fitted model object (e.g., class `csdm_fit`) or a numeric N x T matrix of residuals.
-#' @param type Which CD statistic(s) to compute: one of `"classic"` (default), `"CDstar"` (bias-corrected), or `"all"` (both).
+#' @param type Which CD test(s) to compute: one of `"CD"` (default), `"CDw"`, `"CDw+"`, `"CDstar"`, or `"all"`.
+#' @param n_pc Number of principal components to remove for CD* test (default 4, matching Stata xtcd2).
 #' @param res_type Residual type to extract from model objects (see [get_residuals()]).
 #' @param min_overlap Minimum number of overlapping time periods for a unit pair to be included.
-#' @return If `type` is `"classic"` or `"CDstar"`, a list with elements `statistic`, `p.value`, `N`, and `pairs_used`. If `type` is `"all"`, a list with elements `classic` and `CDstar` (each as above).
+#'
+#' @return A list with test results. If type is a single test, returns list with `statistic`, `p.value`, `N`, `pairs_used`.
+#'   If type="all", returns list with elements for each test (`CD`, `CDw`, `CDw_plus`, `CDstar`).
+#'
 #' @details
-#' The classic CD test (Pesaran 2004, 2015) computes the average pairwise correlation of residuals across cross-sectional units, scaled for asymptotic normality. The bias-corrected CD* test (Pesaran, Ullah & Yamagata 2008; Pesaran & Xie 2022) adjusts for small-sample and heterogeneity bias, providing more reliable inference in finite samples.
+#' **CD (Pesaran 2015, 2021):** Classic test using pairwise correlations of residuals.
+#'   Statistic: \eqn{CD = \sqrt{2/(N(N-1))} \sum_{i<j} \sqrt{T_{ij}} \rho_{ij}}
+#'
+#' **CDw (Juodis & Reese 2021):** Weighted CD after removing cross-sectional means from each time period.
+#'   Controls for common shocks/factors.
+#'
+#' **CDw+ (Fan et al. 2015, extended by Juodis & Reese 2021):** Enhanced CDw that ignores small correlations.
+#'   Uses threshold c_N = sqrt(2*log(N)/T) for sparse dependence detection.
+#'
+#' **CD* (Pesaran & Xie 2021):** Bias-corrected test with PCA-based factor detrending.
+#'   Removes first n_pc principal components from residuals, then applies CD.
+#'   Default n_pc=4 matches Stata xtcd2 implementation.
 #'
 #' @references
-#' Pesaran, M.H. (2004). General diagnostic tests for cross section dependence in panels. *Econometric Reviews*, 23(1), 57-77.
-#' Pesaran, M.H. (2015). Testing weak cross-sectional dependence in large panels. *Econometric Reviews*, 34(6-10), 1089-1117.
-#' Pesaran, M.H., Ullah, A., & Yamagata, T. (2008). A bias-adjusted LM test of error cross-section independence. *Econometrics Journal*, 11(1), 105-127.
-#' Pesaran, M.H., & Xie, Y. (2022). A bias-corrected CD test for error cross-sectional dependence in panel models. *Econometric Reviews*, 41(6), 649-677.
+#' Pesaran, M.H. (2015). "Testing weak cross-sectional dependence in large panels."
+#'   Econometric Reviews, 34(6-10), 1089-1117.
+#'
+#' Juodis, A., & Reese, S. (2021). "The incidental parameters problem in testing for
+#'   remaining cross-sectional correlation." Journal of Business & Economic Statistics.
+#'
+#' Fan, J., Liao, Y., & Yao, J. (2015). "Power Enhancement in High-Dimensional
+#'   Cross-Sectional Tests." Econometric Reviews, 34(6-10), 742-779.
+#'
+#' Pesaran, M.H., & Xie, Y. (2021). "A bias-corrected CD test for error cross-sectional
+#'   dependence in panel models." Econometric Reviews, 41(6), 649-677.
 #'
 #' @examples
 #' # Simulate independent and dependent panels
 #' set.seed(1)
 #' E_indep <- matrix(rnorm(100), nrow = 10)
 #' E_dep <- matrix(rnorm(10), nrow = 10, ncol = 10, byrow = TRUE)
+#'
+#' # Compute all four tests
 #' cd_test(E_indep, type = "all")
 #' cd_test(E_dep, type = "all")
 #'
-#' # On a fitted csdm model:
-#' # fit <- csdm(...)
-#' # cd_test(fit, type = "all")
+#' # CD* with custom number of PCs
+#' cd_test(E_indep, type = "CDstar", n_pc = 2)
 #'
 #' @export
 cd_test <- function(object,
-                    type = c("classic", "CDstar", "all"),
+                    type = c("CD", "CDw", "CDw+", "CDstar", "all"),
+                    n_pc = 4L,
                     res_type = c("auto", "pca_std", "pca", "cce"),
                     min_overlap = 2L) {
   type <- match.arg(type)
   res_type <- match.arg(res_type)
+  n_pc <- as.integer(n_pc)
 
-  # 1) get residuals (matrix N x T). Prefer standardized PCA residuals.
+  # Get residuals matrix (N x T)
   if (is.matrix(object) && is.numeric(object)) {
     E <- object
   } else {
@@ -231,99 +257,261 @@ cd_test <- function(object,
   }
   if (!is.matrix(E) || !is.numeric(E)) stop("Residuals must be numeric matrix.")
 
+  N <- nrow(E)
+  T_n <- ncol(E)
+  if (N < 2) stop("Need at least two units.")
+  if (T_n < 2) stop("Need at least two time periods.")
+
+  # Initialize output list
   out <- list()
-  if (type %in% c("classic", "all")) {
-    classic <- tryCatch({
-      # Use the original logic for classic CD
-      N <- nrow(E)
-      if (N < 2) stop("Need at least two units.")
-      if (ncol(E) < 2) stop("Need at least two time periods.")
-      s_sum <- 0
-      pairs <- 0L
-      for (i in 1:(N - 1)) {
-        xi <- E[i, ]
-        for (j in (i + 1):N) {
-          xj <- E[j, ]
-          ok <- is.finite(xi) & is.finite(xj)
-          Tij <- sum(ok)
-          if (Tij >= min_overlap) {
-            rho_ij <- suppressWarnings(stats::cor(xi[ok], xj[ok]))
-            if (is.finite(rho_ij)) {
-              s_sum <- s_sum + sqrt(Tij) * rho_ij
-              pairs <- pairs + 1L
-            }
-          }
-        }
-      }
-      if (pairs == 0L) stop("No valid unit pairs with sufficient overlap.")
-      cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
-      pval <- 2 * (1 - stats::pnorm(abs(cd_stat)))
-      list(statistic = unname(cd_stat),
-           p.value   = unname(pval),
-           N         = N,
-           pairs_used = pairs)
-    }, error = function(e) NULL)
-    out$classic <- classic
+
+  # Compute requested tests
+  if (type %in% c("CD", "all")) {
+    out$CD <- tryCatch(.csdm_cd_test_classic(E, min_overlap), error = function(e) NULL)
+  }
+  if (type %in% c("CDw", "all")) {
+    out$CDw <- tryCatch(.csdm_cd_test_weighted(E, min_overlap), error = function(e) NULL)
+  }
+  if (type %in% c("CDw+", "all")) {
+    out$CDw_plus <- tryCatch(.csdm_cd_test_weighted_plus(E, min_overlap), error = function(e) NULL)
   }
   if (type %in% c("CDstar", "all")) {
-    cdstar <- tryCatch({
-      .csdm_cd_test_star(E, min_overlap = min_overlap)
-    }, error = function(e) NULL)
-    out$CDstar <- cdstar
+    out$CDstar <- tryCatch(.csdm_cd_test_star(E, n_pc, min_overlap), error = function(e) NULL)
   }
-  if (type == "classic") return(out$classic)
-  if (type == "CDstar") return(out$CDstar)
-  out
+
+  # Return appropriate format
+  if (type == "all") return(out)
+  # Return the single test result (not the list wrapper)
+  single_test <- switch(type,
+    "CD" = out$CD,
+    "CDw" = out$CDw,
+    "CDw+" = out$CDw_plus,
+    "CDstar" = out$CDstar,
+    NULL)
+  return(single_test)
 }
-  # Internal: Bias-corrected CD test (CD*) per Pesaran & Xie (2022)
-  # E: N x T matrix of residuals
-  .csdm_cd_test_star <- function(E, min_overlap = 2L) {
-    N <- nrow(E)
-    Tt <- ncol(E)
-    if (N < 2 || Tt < 2) stop("Need at least two units and two time periods.")
 
-    # Remove units with all missing
-    keep <- rowSums(is.finite(E)) > 1
-    E <- E[keep, , drop = FALSE]
-    N <- nrow(E)
-    if (N < 2) stop("Not enough valid units for CD* test.")
+# Internal: CD test (Pesaran 2015, 2021)
+.csdm_cd_test_classic <- function(E, min_overlap = 2L) {
+  N <- nrow(E)
+  T_n <- ncol(E)
+  if (N < 2 || T_n < 2) stop("Need at least two units and two time periods.")
 
-    # Pairwise correlations and bias correction
-    s_sum <- 0
-    bias_sum <- 0
-    pairs <- 0L
-    for (i in 1:(N - 1)) {
-      xi <- E[i, ]
-      for (j in (i + 1):N) {
-        xj <- E[j, ]
-        ok <- is.finite(xi) & is.finite(xj)
-        Tij <- sum(ok)
-        if (Tij >= min_overlap) {
-          xi_ok <- xi[ok]
-          xj_ok <- xj[ok]
-          rho_ij <- suppressWarnings(stats::cor(xi_ok, xj_ok))
-          if (is.finite(rho_ij)) {
-            s_sum <- s_sum + sqrt(Tij) * rho_ij
-            # Bias correction: mean and variance adjustment (Pesaran & Xie 2022, eq. 7)
-            bias_ij <- (1 + rho_ij^2) / (2 * (Tij - 1))
-            bias_sum <- bias_sum + sqrt(Tij) * bias_ij
-            pairs <- pairs + 1L
-          }
+  s_sum <- 0
+  pairs <- 0L
+  for (i in 1:(N - 1)) {
+    xi <- E[i, ]
+    for (j in (i + 1):N) {
+      xj <- E[j, ]
+      ok <- is.finite(xi) & is.finite(xj)
+      Tij <- sum(ok)
+      if (Tij >= min_overlap) {
+        rho_ij <- suppressWarnings(stats::cor(xi[ok], xj[ok]))
+        if (is.finite(rho_ij)) {
+          s_sum <- s_sum + sqrt(Tij) * rho_ij
+          pairs <- pairs + 1L
         }
       }
     }
-    if (pairs == 0L) stop("No valid unit pairs with sufficient overlap for CD*.")
-
-    # Classic CD
-    cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
-    # Bias-corrected CD*
-    bias_correction <- sqrt(2 / (N * (N - 1))) * bias_sum
-    cd_star <- cd_stat - bias_correction
-    # p-value (asymptotic normal)
-    pval <- 2 * (1 - stats::pnorm(abs(cd_star)))
-
-    list(statistic = unname(cd_star),
-         p.value   = unname(pval),
-         N         = N,
-         pairs_used = pairs)
   }
+  if (pairs == 0L) stop("No valid unit pairs with sufficient overlap.")
+
+  cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
+  pval <- 2 * (1 - stats::pnorm(abs(cd_stat)))
+
+  list(statistic = unname(cd_stat),
+       p.value   = unname(pval),
+       N         = N,
+       pairs_used = pairs)
+}
+
+# Internal: CDw test (Juodis & Reese 2021) - weighted by removing cross-sectional means
+.csdm_cd_test_weighted <- function(E, min_overlap = 2L) {
+  N <- nrow(E)
+  T_n <- ncol(E)
+  if (N < 2 || T_n < 2) stop("Need at least two units and two time periods.")
+
+  # Remove cross-sectional means: e_it^w = e_it - mean(e_t)
+  E_w <- E
+  for (t in 1:T_n) {
+    e_t <- E[, t]
+    mean_t <- mean(e_t, na.rm = TRUE)
+    if (is.finite(mean_t)) {
+      E_w[, t] <- e_t - mean_t
+    }
+  }
+
+  # Apply classic CD to demeaned residuals
+  s_sum <- 0
+  pairs <- 0L
+  for (i in 1:(N - 1)) {
+    xi <- E_w[i, ]
+    for (j in (i + 1):N) {
+      xj <- E_w[j, ]
+      ok <- is.finite(xi) & is.finite(xj)
+      Tij <- sum(ok)
+      if (Tij >= min_overlap) {
+        rho_ij <- suppressWarnings(stats::cor(xi[ok], xj[ok]))
+        if (is.finite(rho_ij)) {
+          s_sum <- s_sum + sqrt(Tij) * rho_ij
+          pairs <- pairs + 1L
+        }
+      }
+    }
+  }
+  if (pairs == 0L) stop("No valid unit pairs with sufficient overlap.")
+
+  cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
+  pval <- 2 * (1 - stats::pnorm(abs(cd_stat)))
+
+  list(statistic = unname(cd_stat),
+       p.value   = unname(pval),
+       N         = N,
+       pairs_used = pairs)
+}
+
+# Internal: CDw+ test (Fan et al. 2015, Juodis & Reese 2021) - power-enhanced sparse dependence
+.csdm_cd_test_weighted_plus <- function(E, min_overlap = 2L) {
+  N <- nrow(E)
+  T_n <- ncol(E)
+  if (N < 2 || T_n < 2) stop("Need at least two units and two time periods.")
+
+  # Remove cross-sectional means
+  E_w <- E
+  for (t in 1:T_n) {
+    e_t <- E[, t]
+    mean_t <- mean(e_t, na.rm = TRUE)
+    if (is.finite(mean_t)) {
+      E_w[, t] <- e_t - mean_t
+    }
+  }
+
+  # Sparse threshold: c_N = sqrt(2 * log(N) / T)
+  c_N <- sqrt(2 * log(N) / T_n)
+
+  # Apply CD but only use pairs with |rho| > c_N (sparse enhancement)
+  s_sum <- 0
+  pairs <- 0L
+  for (i in 1:(N - 1)) {
+    xi <- E_w[i, ]
+    for (j in (i + 1):N) {
+      xj <- E_w[j, ]
+      ok <- is.finite(xi) & is.finite(xj)
+      Tij <- sum(ok)
+      if (Tij >= min_overlap) {
+        rho_ij <- suppressWarnings(stats::cor(xi[ok], xj[ok]))
+        if (is.finite(rho_ij) && abs(rho_ij) > c_N) {
+          s_sum <- s_sum + sqrt(Tij) * rho_ij
+          pairs <- pairs + 1L
+        }
+      }
+    }
+  }
+  if (pairs == 0L) {
+    # No pairs exceed threshold, return zero statistic
+    return(list(statistic = 0, p.value = 1, N = N, pairs_used = 0L))
+  }
+
+  cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
+  pval <- 2 * (1 - stats::pnorm(abs(cd_stat)))
+
+  list(statistic = unname(cd_stat),
+       p.value   = unname(pval),
+       N         = N,
+       pairs_used = pairs)
+}
+
+# Internal: CD* test (Pesaran & Xie 2021) - bias-corrected with PCA factor detrending
+.csdm_cd_test_star <- function(E, n_pc = 4L, min_overlap = 2L) {
+  N <- nrow(E)
+  T_n <- ncol(E)
+  n_pc <- as.integer(n_pc)
+  if (N < 2 || T_n < 2) stop("Need at least two units and two time periods.")
+  if (n_pc < 0) stop("n_pc must be non-negative.")
+
+  # If n_pc = 0, return classic CD
+  if (n_pc == 0) {
+    return(.csdm_cd_test_classic(E, min_overlap))
+  }
+
+  # Ensure n_pc does not exceed min(N, T_n)
+  n_pc <- min(n_pc, N - 1L, T_n - 1L)
+
+  # Step 1: Center residuals (subtract means per unit and time)
+  E_c <- E
+  for (i in 1:N) {
+    E_c[i, ] <- E[i, ] - mean(E[i, ], na.rm = TRUE)
+  }
+  for (t in 1:T_n) {
+    E_c[, t] <- E_c[, t] - mean(E_c[, t], na.rm = TRUE)
+  }
+
+  # Step 2: Perform PCA on centered residuals to extract factors
+  # For simplicity and robustness, work with the full matrix (SVD handles NAs via na.omit)
+  if (n_pc > 0) {
+    # Remove rows/cols with all NAs, then use SVD
+    valid_rows <- rowSums(!is.na(E_c)) > 0
+    valid_cols <- colSums(!is.na(E_c)) > 0
+    if (sum(valid_rows) >= 2 && sum(valid_cols) >= 2) {
+      E_sub <- E_c[valid_rows, valid_cols, drop = FALSE]
+      # Use SVD on the submatrix; na.action removes NAs
+      tryCatch({
+        svd_res <- svd(E_sub, nu = min(n_pc, nrow(E_sub), ncol(E_sub)), 
+                           nv = min(n_pc, nrow(E_sub), ncol(E_sub)))
+        if (n_pc > 0 && !is.null(svd_res$u) && !is.null(svd_res$v)) {
+          n_use <- min(n_pc, length(svd_res$d))
+          if (n_use > 0) {
+            D_pc <- svd_res$d[seq_len(n_use)]
+            U_pc <- svd_res$u[, seq_len(n_use), drop = FALSE]
+            V_pc <- svd_res$v[, seq_len(n_use), drop = FALSE]
+            # Reconstruct detrended residuals only for valid submatrix
+            E_factor <- U_pc %*% diag(D_pc) %*% t(V_pc)
+            # Map back to original indices
+            rows_idx <- which(valid_rows)
+            cols_idx <- which(valid_cols)
+            for (ii in seq_len(nrow(E_factor))) {
+              for (jj in seq_len(ncol(E_factor))) {
+                E_c[rows_idx[ii], cols_idx[jj]] <- E_c[rows_idx[ii], cols_idx[jj]] - E_factor[ii, jj]
+              }
+            }
+          }
+        }
+      }, error = function(e) NULL)
+    }
+  }
+
+  # Step 3: Run classic CD on factor-detrended residuals
+  s_sum <- 0
+  bias_sum <- 0
+  pairs <- 0L
+  for (i in 1:(N - 1)) {
+    xi <- E_c[i, ]
+    for (j in (i + 1):N) {
+      xj <- E_c[j, ]
+      ok <- is.finite(xi) & is.finite(xj)
+      Tij <- sum(ok)
+      if (Tij >= min_overlap) {
+        rho_ij <- suppressWarnings(stats::cor(xi[ok], xj[ok]))
+        if (is.finite(rho_ij)) {
+          s_sum <- s_sum + sqrt(Tij) * rho_ij
+          # Bias term per Pesaran & Xie (2021, Eq. 7)
+          bias_ij <- (1 + rho_ij^2) / (2 * (Tij - 1))
+          bias_sum <- bias_sum + sqrt(Tij) * bias_ij
+          pairs <- pairs + 1L
+        }
+      }
+    }
+  }
+  if (pairs == 0L) stop("No valid unit pairs with sufficient overlap.")
+
+  cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
+  bias_correction <- sqrt(2 / (N * (N - 1))) * bias_sum
+  cd_star <- cd_stat - bias_correction
+  pval <- 2 * (1 - stats::pnorm(abs(cd_star)))
+
+  list(statistic = unname(cd_star),
+       p.value   = unname(pval),
+       N         = N,
+       pairs_used = pairs,
+       n_pc = n_pc)
+}

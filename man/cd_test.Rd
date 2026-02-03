@@ -2,11 +2,12 @@
 % Please edit documentation in R/utils_residuals.R
 \name{cd_test}
 \alias{cd_test}
-\title{Cross-sectional dependence (CD) test for panel data residuals}
+\title{Cross-sectional dependence (CD) tests for panel data}
 \usage{
 cd_test(
   object,
-  type = c("classic", "CDstar", "all"),
+  type = c("CD", "CDw", "CDw+", "CDstar", "all"),
+  n_pc = 4L,
   res_type = c("auto", "pca_std", "pca", "cce"),
   min_overlap = 2L
 )
@@ -14,38 +15,61 @@ cd_test(
 \arguments{
 \item{object}{A fitted model object (e.g., class `csdm_fit`) or a numeric N x T matrix of residuals.}
 
-\item{type}{Which CD statistic(s) to compute: one of `"classic"` (default), `"CDstar"` (bias-corrected), or `"all"` (both).}
+\item{type}{Which CD test(s) to compute: one of `"CD"` (default), `"CDw"`, `"CDw+"`, `"CDstar"`, or `"all"`.}
+
+\item{n_pc}{Number of principal components to remove for CD* test (default 4, matching Stata xtcd2).}
 
 \item{res_type}{Residual type to extract from model objects (see [get_residuals()]).}
 
 \item{min_overlap}{Minimum number of overlapping time periods for a unit pair to be included.}
 }
 \value{
-If `type` is `"classic"` or `"CDstar"`, a list with elements `statistic`, `p.value`, `N`, and `pairs_used`. If `type` is `"all"`, a list with elements `classic` and `CDstar` (each as above).
+A list with test results. If type is a single test, returns list with `statistic`, `p.value`, `N`, `pairs_used`.
+  If type="all", returns list with elements for each test (`CD`, `CDw`, `CDw_plus`, `CDstar`).
 }
 \description{
-Computes Pesaran-type tests for cross-sectional dependence (CD) in panel data models.
-Supports both the classic CD statistic (Pesaran 2004, 2015) and the bias-corrected CD* statistic (Pesaran, Ullah & Yamagata 2008; Pesaran & Xie 2022).
+Computes multiple cross-sectional dependence tests for panel residuals:
+CD (Pesaran 2015), CDw (Juodis & Reese 2021), CDw+ (Fan et al. 2015), and
+CD* (Pesaran & Xie 2021) with optional PCA-based factor adjustment.
 }
 \details{
-The classic CD test (Pesaran 2004, 2015) computes the average pairwise correlation of residuals across cross-sectional units, scaled for asymptotic normality. The bias-corrected CD* test (Pesaran, Ullah & Yamagata 2008; Pesaran & Xie 2022) adjusts for small-sample and heterogeneity bias, providing more reliable inference in finite samples.
+**CD (Pesaran 2015, 2021):** Classic test using pairwise correlations of residuals.
+  Statistic: \eqn{CD = \sqrt{2/(N(N-1))} \sum_{i<j} \sqrt{T_{ij}} \rho_{ij}}
+
+**CDw (Juodis & Reese 2021):** Weighted CD after removing cross-sectional means from each time period.
+  Controls for common shocks/factors.
+
+**CDw+ (Fan et al. 2015, extended by Juodis & Reese 2021):** Enhanced CDw that ignores small correlations.
+  Uses threshold c_N = sqrt(2*log(N)/T) for sparse dependence detection.
+
+**CD* (Pesaran & Xie 2021):** Bias-corrected test with PCA-based factor detrending.
+  Removes first n_pc principal components from residuals, then applies CD.
+  Default n_pc=4 matches Stata xtcd2 implementation.
 }
 \examples{
 # Simulate independent and dependent panels
 set.seed(1)
 E_indep <- matrix(rnorm(100), nrow = 10)
 E_dep <- matrix(rnorm(10), nrow = 10, ncol = 10, byrow = TRUE)
+
+# Compute all four tests
 cd_test(E_indep, type = "all")
 cd_test(E_dep, type = "all")
 
-# On a fitted csdm model:
-# fit <- csdm(...)
-# cd_test(fit, type = "all")
+# CD* with custom number of PCs
+cd_test(E_indep, type = "CDstar", n_pc = 2)
 
 }
 \references{
-Pesaran, M.H. (2004). General diagnostic tests for cross section dependence in panels. *Econometric Reviews*, 23(1), 57-77.
-Pesaran, M.H. (2015). Testing weak cross-sectional dependence in large panels. *Econometric Reviews*, 34(6-10), 1089-1117.
-Pesaran, M.H., Ullah, A., & Yamagata, T. (2008). A bias-adjusted LM test of error cross-section independence. *Econometrics Journal*, 11(1), 105-127.
-Pesaran, M.H., & Xie, Y. (2022). A bias-corrected CD test for error cross-sectional dependence in panel models. *Econometric Reviews*, 41(6), 649-677.
+Pesaran, M.H. (2015). "Testing weak cross-sectional dependence in large panels."
+  Econometric Reviews, 34(6-10), 1089-1117.
+
+Juodis, A., & Reese, S. (2021). "The incidental parameters problem in testing for
+  remaining cross-sectional correlation." Journal of Business & Economic Statistics.
+
+Fan, J., Liao, Y., & Yao, J. (2015). "Power Enhancement in High-Dimensional
+  Cross-Sectional Tests." Econometric Reviews, 34(6-10), 742-779.
+
+Pesaran, M.H., & Xie, Y. (2021). "A bias-corrected CD test for error cross-sectional
+  dependence in panel models." Econometric Reviews, 41(6), 649-677.
 }
