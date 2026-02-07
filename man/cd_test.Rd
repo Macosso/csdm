@@ -7,32 +7,34 @@
 cd_test(
   object,
   type = c("CD", "CDw", "CDw+", "CDstar", "all"),
-  n_pc = 4L,
-  res_type = c("auto", "pca_std", "pca", "cce"),
-  min_overlap = 2L
+  n_pc = 4,
+  seed = 101
 )
 }
 \arguments{
-\item{object}{A fitted model object (e.g., class `csdm_fit`) or a numeric N x T matrix of residuals.}
+\item{object}{A csdm_fit model or an N x T residuals matrix (units × time).}
 
-\item{type}{Which CD test(s) to compute: one of `"CD"` (default), `"CDw"`, `"CDw+"`, `"CDstar"`, or `"all"`.}
+\item{type}{Which test(s) to compute: one or more of c("CD", "CDw", "CDw+", "CDstar", "all")}
 
-\item{n_pc}{Number of principal components to remove for CD* test (default 4, matching Stata xtcd2).}
+\item{n_pc}{Number of principal components for CD* (default 4, matches Stata).}
 
-\item{res_type}{Residual type to extract from model objects (see [get_residuals()]).}
-
-\item{min_overlap}{Minimum number of overlapping time periods for a unit pair to be included.}
+\item{seed}{Integer. Seed for weight draws in CDw/CDw+ (default 101).}
 }
 \value{
-A list with test results. If type is a single test, returns list with `statistic`, `p.value`, `N`, `pairs_used`.
-  If type="all", returns list with elements for each test (`CD`, `CDw`, `CDw_plus`, `CDstar`).
+Named list with statistics and p-values for selected tests.
 }
 \description{
 Computes multiple cross-sectional dependence tests for panel residuals:
-CD (Pesaran 2015), CDw (Juodis & Reese 2021), CDw+ (Fan et al. 2015), and
+CD (Pesaran 2015), CDw (Juodis & Reese 2021), CDw+ (Fan et al. 2015), the
+unstandardised CDw+ statistic used by Stata (`CDw_plus`), and
 CD* (Pesaran & Xie 2021) with optional PCA-based factor adjustment.
 }
 \details{
+Cross-sectional dependence tests (CD, CDw, CDw+, CD*) for panel residuals or model fits
+
+Computes CD, weighted-CD, power-enhanced CDw+, or bias-corrected CD* statistics—as in Stata xtcd2.
+
+
 **CD (Pesaran 2015, 2021):** Classic test using pairwise correlations of residuals.
   Statistic: \eqn{CD = \sqrt{2/(N(N-1))} \sum_{i<j} \sqrt{T_{ij}} \rho_{ij}}
 
@@ -41,6 +43,14 @@ CD* (Pesaran & Xie 2021) with optional PCA-based factor adjustment.
 
 **CDw+ (Fan et al. 2015, extended by Juodis & Reese 2021):** Enhanced CDw that ignores small correlations.
   Uses threshold c_N = sqrt(2*log(N)/T) for sparse dependence detection.
+
+**CDw_plus_raw:** Stata-style version of CDw+ that reports the raw power–enhanced
+statistic without normalising by \eqn{\sqrt{2/(N(N-1))}}.  This statistic
+multiplies the Juodis–Reese CDw component by \eqn{\sqrt{N}} and adds the
+sum of \eqn{\sqrt{T_{ij}} |\rho_{ij}|} over pairs exceeding the threshold \eqn{c_N}.
+Because it is unstandardised, it can be very large and its sampling
+distribution under the null is not standard normal; p-values are therefore
+not reported.  Use this option only to reproduce Stata's `xtcd2` output.
 
 **CD* (Pesaran & Xie 2021):** Bias-corrected test with PCA-based factor detrending.
   Removes first n_pc principal components from residuals, then applies CD.
