@@ -8,7 +8,7 @@ cd_test(
   object,
   type = c("CD", "CDw", "CDw+", "CDstar", "all"),
   n_pc = 4,
-  seed = 101
+  seed = NULL
 )
 }
 \arguments{
