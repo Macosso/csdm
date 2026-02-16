@@ -240,9 +240,10 @@
   }
 
 
-  # All CD tests
+  # Classic CD test only (for model summary)
   CD_stat <- NA_real_
   CD_p <- NA_real_
+  # Advanced tests (not shown in summary by default)
   CDw_stat <- NA_real_
   CDw_p <- NA_real_
   CDw_plus_stat <- NA_real_
@@ -252,28 +253,36 @@
   CDstar_n_pc <- NA_integer_
 
   if (is.matrix(E) && nrow(E) >= 2L && ncol(E) >= 2L) {
+    # Compute classic CD
+    cd_classic <- tryCatch(
+      cd_test(E, type = "CD"),
+      error = function(e) NULL,
+      warning = function(w) NULL
+    )
+    if (!is.null(cd_classic) && !is.null(cd_classic$tests$CD)) {
+      CD_stat <- as.numeric(cd_classic$tests$CD$statistic)
+      CD_p <- as.numeric(cd_classic$tests$CD$p.value)
+    }
+    
+    # Compute all tests for storage (user can access via cd_test later)
     cd_all <- tryCatch(
-      cd_test(E, type = "all", n_pc = 4L, min_overlap = as.integer(cd_min_overlap)),
+      suppressWarnings(cd_test(E, type = "all", n_pc = 4L)),
       error = function(e) NULL
     )
-    if (!is.null(cd_all)) {
-      if (!is.null(cd_all$CD)) {
-        CD_stat <- as.numeric(cd_all$CD$statistic)
-        CD_p <- as.numeric(cd_all$CD$p.value)
+    if (!is.null(cd_all) && !is.null(cd_all$tests)) {
+      if (!is.null(cd_all$tests$CDw)) {
+        CDw_stat <- as.numeric(cd_all$tests$CDw$statistic)
+        CDw_p <- as.numeric(cd_all$tests$CDw$p.value)
       }
-      if (!is.null(cd_all$CDw)) {
-        CDw_stat <- as.numeric(cd_all$CDw$statistic)
-        CDw_p <- as.numeric(cd_all$CDw$p.value)
+      if (!is.null(cd_all$tests$CDw_plus)) {
+        CDw_plus_stat <- as.numeric(cd_all$tests$CDw_plus$statistic)
+        CDw_plus_p <- as.numeric(cd_all$tests$CDw_plus$p.value)
       }
-      if (!is.null(cd_all$CDw_plus)) {
-        CDw_plus_stat <- as.numeric(cd_all$CDw_plus$statistic)
-        CDw_plus_p <- as.numeric(cd_all$CDw_plus$p.value)
-      }
-      if (!is.null(cd_all$CDstar)) {
-        CDstar_stat <- as.numeric(cd_all$CDstar$statistic)
-        CDstar_p <- as.numeric(cd_all$CDstar$p.value)
-        if (!is.null(cd_all$CDstar$n_pc)) {
-          CDstar_n_pc <- as.integer(cd_all$CDstar$n_pc)
+      if (!is.null(cd_all$tests$CDstar)) {
+        CDstar_stat <- as.numeric(cd_all$tests$CDstar$statistic)
+        CDstar_p <- as.numeric(cd_all$tests$CDstar$p.value)
+        if (!is.null(cd_all$tests$CDstar$n_pc)) {
+          CDstar_n_pc <- as.integer(cd_all$tests$CDstar$n_pc)
         }
       }
     }

@@ -22,14 +22,16 @@ print.csdm_fit <- function(x, digits = 4, ...) {
   invisible(x)
 }
 
-#' Summarize csdm_fit model results, including CD and CD* statistics
+#' Summarize csdm_fit model results
 #'
 #' @param object A csdm_fit model object.
 #' @param digits Number of digits to print.
 #' @param ... Further arguments passed to methods.
 #'
 #' @details
-#' If the model was fit with both classic and bias-corrected CD statistics available, both will be reported in the summary output. See [cd_test()] for details on the CD-type selection and methodology.
+#' The summary displays classic Pesaran CD test statistics. For additional CD diagnostics
+#' (CDw, CDw+, CD*), use `cd_test()` on the fitted model object.
+#'
 #' @return An object of class 'summary.csdm_fit'.
 #' @export
 summary.csdm_fit <- function(object, digits = 4, ...) {
@@ -187,14 +189,16 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
 }
 
 
-#' Print summary of csdm_fit model, including CD and CD* statistics if available
+#' Print summary of csdm_fit model
 #'
 #' @param x A summary.csdm_fit object.
 #' @param digits Number of digits to print.
 #' @param ... Further arguments passed to methods.
 #'
 #' @details
-#' If both classic and bias-corrected CD statistics are available, both will be printed side-by-side in the summary output. See [cd_test()] for details.
+#' Displays classic Pesaran CD test statistics in the summary output. For extended CD diagnostics
+#' (CDw, CDw+, CD*), call `cd_test()` on the fitted model object.
+#'
 #' @export
 print.summary.csdm_fit <- function(x, digits = 4, ...) {
   cat("csdm summary (", x$model, ")\n", sep = "")
@@ -211,8 +215,8 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     if (!is.null(x$stats$R2_mg)) {
       cat("R-squared (mg) = ", round(x$stats$R2_mg, digits), "\n\n", sep = "")
     }
-    # Print all CD tests
-    .csdm_print_cd_tests(x$stats, digits)
+    # Print CD test (classic only)
+    .csdm_print_cd_tests(x$stats, digits, classic_only = TRUE)
 
     cat("Short Run Est.\n")
     tab <- x$tables$short_run
@@ -249,8 +253,8 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
       if (!is.null(x$stats$R2_ols_mg) && !is.na(x$stats$R2_ols_mg) && abs(x$stats$R2_ols_mg - x$stats$R2_mg) > 1e-8) {
         cat("R-squared (mg, OLS) = ", round(x$stats$R2_ols_mg, digits), "\n", sep = "")
       }
-      # Print all CD tests
-      .csdm_print_cd_tests(x$stats, digits)
+      # Print CD test (classic only)
+      .csdm_print_cd_tests(x$stats, digits, classic_only = TRUE)
     }
 
     cat("Mean Group:\n")
@@ -321,8 +325,8 @@ predict.csdm_fit <- function(object, newdata = NULL, type = c("xb", "residuals")
   if (!is.null(object$fitted_xb)) return(object$fitted_xb)
   stop("predict(type='xb') not implemented yet")
 }
-# Helper function to print all CD tests
-.csdm_print_cd_tests <- function(stats, digits = 4) {
+# Helper function to print CD tests
+.csdm_print_cd_tests <- function(stats, digits = 4, classic_only = FALSE) {
   # Helper to print a single test
   print_one_test <- function(stat_val, p_val, label) {
     if (!is.null(stat_val) && !is.na(stat_val)) {
@@ -337,20 +341,33 @@ predict.csdm_fit <- function(object, newdata = NULL, type = c("xb", "residuals")
   }
 
   printed_any <- FALSE
-  if (print_one_test(stats$CD_stat, stats$CD_p, "CD")) printed_any <- TRUE
-  if (print_one_test(stats$CDw_stat, stats$CDw_p, "CDw")) printed_any <- TRUE
-  if (print_one_test(stats$CDw_plus_stat, stats$CDw_plus_p, "CDw+")) printed_any <- TRUE
-
-  # CD* includes n_pc in label
-  if (!is.null(stats$CDstar_stat) && !is.na(stats$CDstar_stat)) {
-    n_pc_label <- if (!is.null(stats$CDstar_n_pc) && !is.na(stats$CDstar_n_pc)) {
-      paste0("CD* (n_pc=", stats$CDstar_n_pc, ")")
-    } else {
-      "CD* (n_pc=4)"
-    }
-    print_one_test(stats$CDstar_stat, stats$CDstar_p, n_pc_label)
+  
+  # Always print classic CD
+  if (print_one_test(stats$CD_stat, stats$CD_p, "CD")) {
     printed_any <- TRUE
   }
+  
+  # If not classic_only, print advanced tests
+  if (!classic_only) {
+    if (print_one_test(stats$CDw_stat, stats$CDw_p, "CDw")) printed_any <- TRUE
+    if (print_one_test(stats$CDw_plus_stat, stats$CDw_plus_p, "CDw+")) printed_any <- TRUE
 
-  if (printed_any) cat("\n")
+    # CD* includes n_pc in label
+    if (!is.null(stats$CDstar_stat) && !is.na(stats$CDstar_stat)) {
+      n_pc_label <- if (!is.null(stats$CDstar_n_pc) && !is.na(stats$CDstar_n_pc)) {
+        paste0("CD* (n_pc=", stats$CDstar_n_pc, ")")
+      } else {
+        "CD* (n_pc=4)"
+      }
+      print_one_test(stats$CDstar_stat, stats$CDstar_p, n_pc_label)
+      printed_any <- TRUE
+    }
+  }
+
+  if (printed_any) {
+    if (classic_only) {
+      cat("(For additional CD diagnostics, use cd_test())\n")
+    }
+    cat("\n")
+  }
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/csdm_methods.R
 \name{summary.csdm_fit}
 \alias{summary.csdm_fit}
-\title{Summarize csdm_fit model results, including CD and CD* statistics}
+\title{Summarize csdm_fit model results}
 \usage{
 \method{summary}{csdm_fit}(object, digits = 4, ...)
 }
@@ -17,8 +17,9 @@
 An object of class 'summary.csdm_fit'.
 }
 \description{
-Summarize csdm_fit model results, including CD and CD* statistics
+Summarize csdm_fit model results
 }
 \details{
-If the model was fit with both classic and bias-corrected CD statistics available, both will be reported in the summary output. See [cd_test()] for details on the CD-type selection and methodology.
+The summary displays classic Pesaran CD test statistics. For additional CD diagnostics
+(CDw, CDw+, CD*), use `cd_test()` on the fitted model object.
 }
