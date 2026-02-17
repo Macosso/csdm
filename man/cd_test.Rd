@@ -59,10 +59,6 @@ An object of class \code{cd_test} with a \code{tests} list.
   Each test returns a sublist with:
   \item{statistic}{Test statistic value}
   \item{p.value}{Two-sided p-value under standard normal null}
-  \item{N}{Number of units}
-  \item{T}{Number of time periods}
-  \item{pairs_used}{Number of unit pairs with sufficient overlap (for CD/CDw/CDw+)}
-  \item{n_pc}{Number of principal components removed (for CD* only)}
 }
 \description{
 Computes cross-sectional dependence tests for panel residuals: CD (Pesaran 2015),

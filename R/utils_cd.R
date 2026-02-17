@@ -13,10 +13,6 @@
 #'   Each test returns a sublist with:
 #'   \item{statistic}{Test statistic value}
 #'   \item{p.value}{Two-sided p-value under standard normal null}
-#'   \item{N}{Number of units}
-#'   \item{T}{Number of time periods}
-#'   \item{pairs_used}{Number of unit pairs with sufficient overlap (for CD/CDw/CDw+)}
-#'   \item{n_pc}{Number of principal components removed (for CD* only)}
 #'
 #' @details
 #' \strong{Handling of missing data:}
@@ -106,7 +102,7 @@ cd_test.default <- function(object,
   }
 
   E <- object  # N × T matrix
-  
+
   # Handle missing data
   if (na.action == "drop.incomplete.times" && anyNA(E)) {
     # Drop time periods with any missing observations
@@ -118,11 +114,11 @@ cd_test.default <- function(object,
     E <- E[, complete_times, drop = FALSE]
     if (n_dropped > 0) {
       message(sprintf("cd_test: Dropped %d incomplete time period%s (%.1f%%). Balanced panel: %d units × %d periods.",
-                      n_dropped, if(n_dropped > 1) "s" else "", 
+                      n_dropped, if(n_dropped > 1) "s" else "",
                       100 * n_dropped / ncol(object), nrow(E), ncol(E)))
     }
   }
-  
+
   N <- nrow(E)
   Tt <- ncol(E)
 
@@ -180,7 +176,7 @@ cd_test.default <- function(object,
     # Power term: sum sqrt(T_ij) * |rho_ij| for correlations exceeding threshold
     exceeds <- abs(upper_corr * sqrt(upper_overlap)) > crit & upper_overlap >= min_overlap
     power_term <- sum(sqrt(upper_overlap[exceeds]) * abs(upper_corr[exceeds]))
-    
+
     if (is.null(out$CDw)) {
       if (!is.null(seed)) set.seed(seed)
       w <- sample(c(-1, 1), N, replace = TRUE)
@@ -192,10 +188,10 @@ cd_test.default <- function(object,
         pairs_used = out$CDw$pairs_used
       )
     }
-    
+
     cdw_plus_stat <- cdw_res$statistic + power_term
     cdw_plus_p <- 2 * (1 - stats::pnorm(abs(cdw_plus_stat)))
-    
+
     out$CDw_plus <- list(
       statistic = cdw_plus_stat,
       p.value = cdw_plus_p,
@@ -330,13 +326,13 @@ print.cd_test <- function(x, digits = 3, ...) {
 .cd_compute_classic <- function(data_tn, N, Tt, min_overlap = 2L) {
   # data_tn: T × N matrix
   # Returns: list(statistic, p.value, pairs_used)
-  
+
   corr_mat <- stats::cor(data_tn, use = "pairwise.complete.obs")
-  
+
   # Count valid pairs (those with sufficient overlap)
   pairs_used <- 0
   cd_sum <- 0
-  
+
   for (i in seq_len(N - 1)) {
     for (j in (i + 1):N) {
       ok <- is.finite(data_tn[, i]) & is.finite(data_tn[, j])
@@ -350,16 +346,16 @@ print.cd_test <- function(x, digits = 3, ...) {
       }
     }
   }
-  
+
   if (pairs_used == 0) {
     warning("cd_test: No unit pairs have sufficient overlap for CD computation.")
     return(list(statistic = NA_real_, p.value = NA_real_, pairs_used = 0L))
   }
-  
+
   # Normalize by number of pairs used (not total pairs)
   cd_stat <- sqrt(2 / (N * (N - 1))) * cd_sum
   cd_p <- 2 * (1 - stats::pnorm(abs(cd_stat)))
-  
+
   list(statistic = cd_stat, p.value = cd_p, pairs_used = as.integer(pairs_used))
 }
 
@@ -367,29 +363,29 @@ print.cd_test <- function(x, digits = 3, ...) {
 .cd_compute_star <- function(data_tn, N, Tt, n_pc) {
   # data_tn: T × N matrix (must be complete/balanced)
   # Returns: list(statistic, p.value)
-  
+
   # Standardize columns
   col_means <- colMeans(data_tn)
   col_sds <- apply(data_tn, 2, stats::sd)
   col_sds[col_sds == 0 | !is.finite(col_sds)] <- 1
   data_std <- sweep(sweep(data_tn, 2, col_means), 2, col_sds, `/`)
-  
+
   # PCA: Extract factors
   S <- data_std %*% t(data_std)
   eig <- eigen(S, symmetric = TRUE)
   idx <- order(eig$values, decreasing = TRUE)[seq_len(n_pc)]
   f <- eig$vectors[, idx, drop = FALSE]
   fx <- cbind(1, f)  # intercept + factors
-  
+
   # Defactor residuals
   beta <- solve(t(fx) %*% fx, t(fx) %*% data_std)
   res_defac <- data_std - fx %*% beta
-  
+
   # CD on defactored residuals
   corr_defac <- stats::cor(res_defac)
   upper_defac <- corr_defac[upper.tri(corr_defac)]
   cd_defac <- sqrt(2 / (N * (N - 1))) * sum(upper_defac * sqrt(Tt))
-  
+
   # Bias correction (Pesaran & Xie 2021)
   betai <- beta[-1, , drop = FALSE]  # remove intercept
   betaij <- (betai %*% t(betai)) / N
@@ -402,9 +398,9 @@ print.cd_test <- function(x, digits = 3, ...) {
   ai_vals <- as.numeric((1 - t(gamma * sgm) %*% phi) / sqrt(N))
   theta <- sum(ai_vals^2)
   if (theta == 0) theta <- 1  # avoid division by zero
-  
+
   cd_star_stat <- (cd_defac + sqrt(Tt / 2) * (1 - theta)) / theta
   cd_star_p <- 2 * (1 - stats::pnorm(abs(cd_star_stat)))
-  
+
   list(statistic = cd_star_stat, p.value = cd_star_p)
 }

@@ -21,6 +21,9 @@
   dropped <- character(0)
   r2_i <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
 
+  # residual degrees of freedom for R2_i calculation
+  df_e <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
+
   for (uid in ids) {
     sub <- panel_df[panel_df[[id]] == uid, , drop = FALSE]
 
@@ -39,6 +42,9 @@
       next
     }
 
+    df_e[[as.character(uid)]] <- stats::df.residual(fit)
+
+    # extract resi
     # Unit-level R2 on the exact estimation sample
     y_used <- tryCatch(stats::model.response(stats::model.frame(fit)), error = function(e) NULL)
     e_used <- tryCatch(as.numeric(fit$residuals), error = function(e) NULL)
@@ -124,7 +130,8 @@
     panel_df = panel_df,
     id = id,
     time = time,
-    yname = yname
+    yname = yname,
+    df_e = df_e
   )
   fit$stats <- .csdm_compute_fit_stats(
     panel_df = panel_df,
@@ -197,6 +204,9 @@
   dropped <- character(0)
   r2_i <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
 
+  # residual degrees of freedom for R2_i calculation; will be used in .csdm_residual_matrix_r2
+  df_e <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
+
   for (uid in ids) {
     sub <- csa_attached[csa_attached[[id]] == uid, , drop = FALSE]
 
@@ -214,6 +224,7 @@
       dropped <- c(dropped, as.character(uid))
       next
     }
+    df_e[[as.character(uid)]] <- stats::df.residual(fit)
 
     # Unit-level R2 on the exact estimation sample
     y_used <- tryCatch(stats::model.response(stats::model.frame(fit)), error = function(e) NULL)
@@ -298,7 +309,8 @@
     panel_df = panel_df,
     id = id,
     time = time,
-    yname = yname
+    yname = yname,
+    df_e = df_e
   )
   fit$stats <- .csdm_compute_fit_stats(
     panel_df = panel_df,
@@ -524,6 +536,8 @@
   dropped <- character(0)
   r2_i <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
 
+  # residual degrees of freedom for R2_i calculation; will be used in .csdm_residual_matrix_r2
+  df_e <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
   for (uid in ids) {
     sub <- csa_attached[csa_attached[[id]] == uid, , drop = FALSE]
 
@@ -541,7 +555,7 @@
       dropped <- c(dropped, as.character(uid))
       next
     }
-
+    df_e[[as.character(uid)]] <- stats::df.residual(fit)
     # Unit-level R2 on the exact estimation sample
     y_used <- tryCatch(stats::model.response(stats::model.frame(fit)), error = function(e) NULL)
     e_used <- tryCatch(as.numeric(fit$residuals), error = function(e) NULL)
@@ -625,7 +639,8 @@
     panel_df = panel_df,
     id = id,
     time = time,
-    yname = yname
+    yname = yname,
+    df_e = df_e
   )
   fit$stats <- .csdm_compute_fit_stats(
     panel_df = panel_df,
