@@ -44,7 +44,7 @@
 
     df_e[[as.character(uid)]] <- stats::df.residual(fit)
 
-    # extract resi
+    # extract residuals
     # Unit-level R2 on the exact estimation sample
     y_used <- tryCatch(stats::model.response(stats::model.frame(fit)), error = function(e) NULL)
     e_used <- tryCatch(as.numeric(fit$residuals), error = function(e) NULL)
