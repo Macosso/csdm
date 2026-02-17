@@ -1,3 +1,7 @@
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/Macosso/csdm/workflows/R-CMD-check/badge.svg)](https://github.com/Macosso/csdm/actions)
+<!-- badges: end -->
+
 # csdm
 
 `csdm` provides Mean Group (MG), Common Correlated Effects (CCE), and Dynamic CCE (DCCE) estimators via `csdm()`.
