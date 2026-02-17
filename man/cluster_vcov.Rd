@@ -13,8 +13,8 @@ cluster_vcov(X, u, cluster, df_correction = TRUE, type = c("oneway", "twoway"))
 
 \item{cluster}{One of:
 \itemize{
-  \item a vector (length n) of cluster ids for one-way clustering; or
-  \item a data.frame/list with two vectors (each length n) for two-way clustering.
+\item a vector (length n) of cluster ids for one-way clustering; or
+\item a data.frame/list with two vectors (each length n) for two-way clustering.
 }}
 
 \item{df_correction}{Logical; apply small-sample corrections. Default \code{TRUE}.}

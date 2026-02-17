@@ -1,5 +1,17 @@
 # csdm_methods.R
 
+#' Compact print method for fitted csdm models
+#'
+#' Prints a concise overview of a fitted \code{csdm_fit} object, including the
+#' model type, formula, panel dimensions, and a coefficient table with standard
+#' errors when available.
+#'
+#' @param x A fitted object of class \code{csdm_fit}.
+#' @param digits Number of printed digits.
+#' @param ... Currently unused.
+#'
+#' @return Invisibly returns \code{x}.
+#' @seealso [summary.csdm_fit()], [coef.csdm_fit()], [residuals.csdm_fit()]
 #' @export
 print.csdm_fit <- function(x, digits = 4, ...) {
   cat("csdm fit (", x$model, ")\n", sep = "")
@@ -22,17 +34,49 @@ print.csdm_fit <- function(x, digits = 4, ...) {
   invisible(x)
 }
 
-#' Summarize csdm_fit model results
+#' Summarize csdm model estimation results
 #'
-#' @param object A csdm_fit model object.
+#' Computes post-estimation summaries for \code{csdm_fit} objects, including
+#' mean-group coefficient inference, model-level diagnostics, and model-specific
+#' summary tables (for example, short-run and long-run blocks for CS-ARDL).
+#'
+#' @param object A fitted model object of class \code{csdm_fit}.
 #' @param digits Number of digits to print.
 #' @param ... Further arguments passed to methods.
 #'
 #' @details
-#' The summary displays classic Pesaran CD test statistics. For additional CD diagnostics
-#' (CDw, CDw+, CD*), use `cd_test()` on the fitted model object.
+#' ## Reported inference
 #'
-#' @return An object of class 'summary.csdm_fit'.
+#' For each coefficient \eqn{\hat\beta_k}, the summary reports standard errors,
+#' \eqn{z}-statistics, and two-sided normal-approximation p-values:
+#' \deqn{z_k = \frac{\hat\beta_k}{\operatorname{se}(\hat\beta_k)}, \qquad
+#' p_k = 2\{1-\Phi(|z_k|)\}.}
+#'
+#' ## Diagnostics
+#'
+#' The printed summary shows the classic Pesaran CD diagnostic by default. Extended
+#' diagnostics (CDw, CDw+, CD*) are available through [cd_test()].
+#'
+#' @return An object of class \code{summary.csdm_fit} with core metadata
+#'   (call/formula/model/N/T), coefficient tables, fit statistics, and
+#'   model-specific components for printing and downstream inspection.
+#' @seealso [print.summary.csdm_fit()], [cd_test()], [coef.csdm_fit()], [vcov.csdm_fit()]
+#'
+#' @examples
+#' data(PWT_60_07, package = "csdm")
+#' df <- PWT_60_07
+#' ids <- unique(df$id)[1:10]
+#' df_small <- df[df$id %in% ids & df$year >= 1970, ]
+#' fit <- csdm(
+#'   log_rgdpo ~ log_hc + log_ck + log_ngd,
+#'   data = df_small,
+#'   id = "id",
+#'   time = "year",
+#'   model = "cce",
+#'   csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"))
+#' )
+#' s <- summary(fit)
+#' s
 #' @export
 summary.csdm_fit <- function(object, digits = 4, ...) {
   est <- object$coef_mg
@@ -189,15 +233,23 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
 }
 
 
-#' Print summary of csdm_fit model
+#' Print method for csdm summary objects
 #'
-#' @param x A summary.csdm_fit object.
+#' Formats and prints a \code{summary.csdm_fit} object. Output adapts to model
+#' type and includes coefficient tables, selected goodness-of-fit diagnostics,
+#' and compact model metadata.
+#'
+#' @param x A \code{summary.csdm_fit} object.
 #' @param digits Number of digits to print.
 #' @param ... Further arguments passed to methods.
 #'
 #' @details
-#' Displays classic Pesaran CD test statistics in the summary output. For extended CD diagnostics
-#' (CDw, CDw+, CD*), call `cd_test()` on the fitted model object.
+#' The printout includes classic Pesaran CD diagnostics from the summary object.
+#' For a full CD diagnostic panel (CD, CDw, CDw+, CD*), use [cd_test()] on the
+#' fitted model.
+#'
+#' @return Invisibly returns \code{x}.
+#' @seealso [summary.csdm_fit()], [cd_test()]
 #'
 #' @export
 print.summary.csdm_fit <- function(x, digits = 4, ...) {
@@ -290,6 +342,18 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
   invisible(x)
 }
 
+#' Extract model coefficients from a fitted csdm model
+#'
+#' Returns estimated mean-group coefficients from a \code{csdm_fit} object. For
+#' \code{model = "cs_ardl"}, the returned vector includes short-run mean-group
+#' coefficients, the adjustment coefficient (named \code{lr_<y>}), and long-run
+#' coefficients when available.
+#'
+#' @param object A fitted object of class \code{csdm_fit}.
+#' @param ... Currently unused.
+#'
+#' @return A named numeric vector of estimated coefficients.
+#' @seealso [summary.csdm_fit()], [vcov.csdm_fit()]
 #' @export
 coef.csdm_fit <- function(object, ...) {
   if (identical(object$model, "cs_ardl") && !is.null(object$cs_ardl) && !is.null(object$cs_ardl$mg)) {
@@ -310,12 +374,32 @@ coef.csdm_fit <- function(object, ...) {
 }
 
 
+#' Extract coefficient covariance matrix from a fitted csdm model
+#'
+#' @param object A fitted object of class \code{csdm_fit}.
+#' @param ... Currently unused.
+#'
+#' @return A numeric variance-covariance matrix aligned with \code{coef(object)}
+#'   for models where this is available.
+#' @seealso [coef.csdm_fit()], [summary.csdm_fit()]
 #' @export
 vcov.csdm_fit <- function(object, ...) {
   object$vcov_mg
 }
 
 
+#' Extract residual matrix from a fitted csdm model
+#'
+#' Returns residuals as an \eqn{N x T} matrix (rows are units, columns are time).
+#' This method is designed for panel diagnostics and downstream tools such as
+#' [cd_test()].
+#'
+#' @param object A fitted object of class \code{csdm_fit}.
+#' @param type Residual type. Currently only \code{"e"} is implemented.
+#' @param ... Currently unused.
+#'
+#' @return A numeric matrix of residuals with dimensions \eqn{N x T}.
+#' @seealso [get_residuals()], [cd_test()], [predict.csdm_fit()]
 #' @export
 residuals.csdm_fit <- function(object, type = c("e", "u"), ...) {
   type <- match.arg(type)
@@ -324,6 +408,19 @@ residuals.csdm_fit <- function(object, type = c("e", "u"), ...) {
 }
 
 
+#' Predict method for csdm models
+#'
+#' Produces fitted values (index \code{"xb"}) when available, or returns model
+#' residuals. Prediction on new data is not yet implemented.
+#'
+#' @param object A fitted object of class \code{csdm_fit}.
+#' @param newdata Optional new data (not yet supported).
+#' @param type One of \code{"xb"} for fitted values or \code{"residuals"}.
+#' @param ... Currently unused.
+#'
+#' @return A numeric matrix of fitted values or residuals, depending on
+#'   \code{type}.
+#' @seealso [residuals.csdm_fit()], [summary.csdm_fit()]
 #' @export
 predict.csdm_fit <- function(object, newdata = NULL, type = c("xb", "residuals"), ...) {
   type <- match.arg(type)

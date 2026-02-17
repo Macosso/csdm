@@ -1,7 +1,7 @@
 Package: csdm
-Title: Cross Section Dependence Models
+Title: Cross-Sectional Dependence Models
 Version: 1.0.0
-Depends: R (>= 3.5.0)
+Depends: R (>= 4.0.0)
 Imports: MASS
 Suggests:
     testthat (>= 3.0.0),
@@ -9,12 +9,16 @@ Suggests:
     rmarkdown,
     kableExtra,
     xtsum
-Author: Joao Claudio Macosso 
-Maintainer: Joao Claudio Macosso <joaoclaudiomacosso@gmail.com>
-Description: Estimators and utilities for panel-data models with cross-sectional dependence.
+Authors@R: 
+    person(given = c("Joao", "Claudio"), 
+          family = "Macosso",
+          email = "joaoclaudiomacosso@gmail.com",
+          role = c("aut", "cre"))
+Description: Provides estimators and utilities for large panel-data models with cross-sectional dependence, including mean group (MG), common correlated effects (CCE) and dynamic CCE (DCCE) estimators, and cross-sectionally augmented ARDL (CS-ARDL) specifications, plus related inference and diagnostics.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
+Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3
 VignetteBuilder: knitr

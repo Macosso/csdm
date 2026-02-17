@@ -2,7 +2,7 @@
 % Please edit documentation in R/csdm.R
 \name{csdm}
 \alias{csdm}
-\title{Unified front door for csdm estimators}
+\title{Panel Model Estimation with Cross Section Dependence}
 \usage{
 csdm(
   formula,
@@ -21,61 +21,141 @@ csdm(
 )
 }
 \arguments{
-\item{formula}{A model formula like `y ~ x1 + x2`.}
+\item{formula}{Model formula of the form \code{y ~ x1 + x2}.}
 
-\item{data}{A `data.frame` (or `plm::pdata.frame`) containing the variables in `formula`.}
+\item{data}{A \code{data.frame} (or \code{plm::pdata.frame}) containing the
+variables in \code{formula}.}
 
-\item{id, time}{Column names (strings) for the unit and time indexes.
-If `data` is a `pdata.frame`, these are taken from its index and the provided values are ignored.}
+\item{id, time}{Column names (strings) for the unit and time indexes. If
+\code{data} is a \code{pdata.frame}, these are taken from its index and the
+provided values are ignored.}
 
-\item{model}{Which estimator to fit. Currently implemented: `"mg"`, `"cce"`, `"dcce"`.}
+\item{model}{Estimator to fit. One of \code{"mg"}, \code{"cce"},
+\code{"dcce"}, or \code{"cs_ardl"}.}
 
-\item{csa}{Cross-sectional-average specification, created by [csdm_csa()].}
+\item{csa}{Cross-sectional-average specification, created by \code{\link[=csdm_csa]{csdm_csa()}}.}
 
-\item{lr}{Long-run specification (currently a stub), created by [csdm_lr()].}
+\item{lr}{Long-run or dynamic specification, created by \code{\link[=csdm_lr]{csdm_lr()}}.}
 
-\item{pooled}{Pooled specification (currently a stub), created by [csdm_pooled()].}
+\item{pooled}{Pooled specification (reserved for future use), created by
+\code{\link[=csdm_pooled]{csdm_pooled()}}.}
 
-\item{trend}{One of `"none"` or `"unit"` (a linear trend per unit is added as a regressor).
-`"pooled"` is reserved and not implemented.}
+\item{trend}{One of \code{"none"} or \code{"unit"} (adds a linear unit trend).
+\code{"pooled"} is reserved and not implemented.}
 
 \item{fullsample}{Logical; reserved for future extensions.}
 
 \item{mgmissing}{Logical; reserved for future extensions.}
 
-\item{vcov}{Variance-covariance specification, created by [csdm_vcov()].}
+\item{vcov}{Variance-covariance specification, created by \code{\link[=csdm_vcov]{csdm_vcov()}}.}
 
 \item{...}{Reserved for future extensions.}
 }
 \value{
-An object of class `csdm_fit`.
+An object of class \code{csdm_fit} containing estimated coefficients,
+residuals, variance-covariance estimates, model metadata, and diagnostics.
+Use \code{summary()}, \code{coef()}, \code{residuals()}, \code{vcov()}, and
+\code{cd_test()} to access standard outputs.
 }
 \description{
-Unified front door for csdm estimators
+Estimate panel data models that allow for cross-sectional dependence and
+heterogeneous slopes. The interface supports Mean Group (MG), Common
+Correlated Effects (CCE), Dynamic CCE (DCCE), and Cross-Sectionally
+Augmented ARDL (CS-ARDL) estimators with consistent handling of
+cross-sectional averages, dynamic structure, and robust inference.
+}
+\details{
+\subsection{Model equations}{
+
+\describe{
+\item{MG (Pesaran and Smith, 1995)}{
+\deqn{y_{it} = x_{it}^\top \beta_i + u_{it}}
+}
+\item{CCE (Pesaran, 2006)}{
+\deqn{y_{it} = x_{it}^\top \beta_i + \lambda_i^\top F_t + u_{it}}
+}
+\item{DCCE (Chudik and Pesaran, 2015)}{
+\deqn{\Delta y_{it} = \Delta x_{it}^\top \beta_i + \lambda_i^\top \Delta F_t + u_{it}}
+}
+\item{CS-ARDL (Chudik and Pesaran, 2015)}{
+\deqn{y_{it} = \phi_i y_{it-1} + x_{it}^\top \theta_i + \lambda_i^\top F_t + u_{it}}
+}
+}
+}
+
+\subsection{Estimation, identification, and assumptions}{
+
+\describe{
+\item{MG}{Unit-by-unit estimation with heterogeneous slopes. The reported
+coefficients are cross-sectional averages of unit estimates. Requires
+sufficient time series per unit and weak serial dependence in errors.}
+\item{CCE}{Augments regressions with cross-sectional averages (CSA) to proxy
+unobserved common factors. Identification relies on large N and T, weak
+dependence in idiosyncratic errors after CSA, and weak exogeneity of
+regressors.}
+\item{DCCE}{Extends CCE to dynamic settings with lagged dependent variables
+and CSA lags. Identification relies on weak exogeneity, adequate time length
+for dynamic lags, and a stable factor structure.}
+\item{CS-ARDL}{Specifies dynamic distributed lags with CSA terms. Estimation
+follows ARDL-style dynamics in each unit and aggregates to panel averages.
+Assumes weak exogeneity and sufficient time length for lag structure.}
+}
+}
 }
 \examples{
+library(csdm)
 data(PWT_60_07, package = "csdm")
 df <- PWT_60_07
 
-# Keep examples fast: use a small subset
+# Keep examples fast but fully runnable
 keep_ids <- unique(df$id)[1:10]
-# Use enough time periods so DCCE + CSA lags is estimable
 df_small <- df[df$id \%in\% keep_ids & df$year >= 1970, ]
 
-# xtdcce2-style DCCE specification
-fit <- csdm(
+# Mean Group (MG)
+mg <- csdm(
   log_rgdpo ~ log_hc + log_ck + log_ngd,
-  data = df_small,
-  id = "id",
-  time = "year",
-  model = "dcce",
-  csa = csdm_csa(
-    vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"),
-    lags = 3
-  ),
-  lr = csdm_lr(type = "ardl", ylags = 1)
+  data = df_small, id = "id", time = "year", model = "mg"
 )
+summary(mg)
 
-summary(fit)
-cd_test(fit)
+# Common Correlated Effects (CCE)
+cce <- csdm(
+  log_rgdpo ~ log_hc + log_ck + log_ngd,
+  data = df_small, id = "id", time = "year", model = "cce",
+  csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"))
+)
+summary(cce)
+
+# Dynamic CCE (DCCE)
+dcce <- csdm(
+  log_rgdpo ~ log_hc + log_ck + log_ngd,
+  data = df_small, id = "id", time = "year", model = "dcce",
+  csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), lags = 3),
+  lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 0)
+)
+summary(dcce)
+
+# CS-ARDL
+cs_ardl <- csdm(
+  log_rgdpo ~ log_hc + log_ck + log_ngd,
+  data = df_small, id = "id", time = "year", model = "cs_ardl",
+  csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), lags = 3),
+  lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 0)
+)
+summary(cs_ardl)
+}
+\references{
+Pesaran, M.H. and Smith, R. (1995). "Estimating long-run relationships from
+dynamic heterogeneous panels." Journal of Econometrics, 68(1), 79-113.
+
+Pesaran, M.H. (2006). "Estimation and inference in large heterogeneous panels
+with multifactor error structure." Econometrica, 74(4), 967-1012.
+
+Chudik, A. and Pesaran, M.H. (2015). "Common correlated effects estimation of
+heterogeneous dynamic panel data models with weakly exogenous regressors."
+Journal of Econometrics, 188(2), 393-420.
+
+Chudik, A. and Pesaran, M.H. (2015). "Large panel data models with
+cross-sectional dependence: A survey." Annals of Economics and Finance, 16(1),
+53-78.
 }

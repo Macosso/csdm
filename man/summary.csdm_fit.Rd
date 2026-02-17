@@ -2,24 +2,58 @@
 % Please edit documentation in R/csdm_methods.R
 \name{summary.csdm_fit}
 \alias{summary.csdm_fit}
-\title{Summarize csdm_fit model results}
+\title{Summarize csdm model estimation results}
 \usage{
 \method{summary}{csdm_fit}(object, digits = 4, ...)
 }
 \arguments{
-\item{object}{A csdm_fit model object.}
+\item{object}{A fitted model object of class \code{csdm_fit}.}
 
 \item{digits}{Number of digits to print.}
 
 \item{...}{Further arguments passed to methods.}
 }
 \value{
-An object of class 'summary.csdm_fit'.
+An object of class \code{summary.csdm_fit} with core metadata
+(call/formula/model/N/T), coefficient tables, fit statistics, and
+model-specific components for printing and downstream inspection.
 }
 \description{
-Summarize csdm_fit model results
+Computes post-estimation summaries for \code{csdm_fit} objects, including
+mean-group coefficient inference, model-level diagnostics, and model-specific
+summary tables (for example, short-run and long-run blocks for CS-ARDL).
 }
 \details{
-The summary displays classic Pesaran CD test statistics. For additional CD diagnostics
-(CDw, CDw+, CD*), use `cd_test()` on the fitted model object.
+\subsection{Reported inference}{
+
+For each coefficient \eqn{\hat\beta_k}, the summary reports standard errors,
+\eqn{z}-statistics, and two-sided normal-approximation p-values:
+\deqn{z_k = \frac{\hat\beta_k}{\operatorname{se}(\hat\beta_k)}, \qquad
+p_k = 2\{1-\Phi(|z_k|)\}.}
+}
+
+\subsection{Diagnostics}{
+
+The printed summary shows the classic Pesaran CD diagnostic by default. Extended
+diagnostics (CDw, CDw+, CD*) are available through \code{\link[=cd_test]{cd_test()}}.
+}
+}
+\examples{
+data(PWT_60_07, package = "csdm")
+df <- PWT_60_07
+ids <- unique(df$id)[1:10]
+df_small <- df[df$id \%in\% ids & df$year >= 1970, ]
+fit <- csdm(
+  log_rgdpo ~ log_hc + log_ck + log_ngd,
+  data = df_small,
+  id = "id",
+  time = "year",
+  model = "cce",
+  csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"))
+)
+s <- summary(fit)
+s
+}
+\seealso{
+\code{\link[=print.summary.csdm_fit]{print.summary.csdm_fit()}}, \code{\link[=cd_test]{cd_test()}}, \code{\link[=coef.csdm_fit]{coef.csdm_fit()}}, \code{\link[=vcov.csdm_fit]{vcov.csdm_fit()}}
 }

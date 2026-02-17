@@ -1,51 +1,67 @@
 # utils_cd.R - Cross-sectional dependence tests for panel models
 
-#' Cross-sectional dependence (CD) tests for panel data
+#' Cross-sectional dependence (CD) tests for panel residuals
 #'
-#' Computes cross-sectional dependence tests for panel residuals: CD (Pesaran 2015),
-#' CDw (Juodis & Reese 2021), CDw+ (Fan et al. 2015), and CD* (Pesaran & Xie 2021)
-#' with PCA-based factor adjustment.
+#' Computes Pesaran CD, CDw, CDw+, and CD* tests for cross-sectional dependence
+#' in panel residuals. The implementation supports residual matrices or fitted
+#' \code{csdm_fit} objects and provides consistent handling of unbalanced panels.
 #'
 #' @param object A \code{csdm_fit} model object or a numeric matrix of residuals (N x T).
 #' @param ... Additional arguments passed to methods.
 #'
-#' @return An object of class \code{cd_test} with a \code{tests} list.
-#'   Each test returns a sublist with:
-#'   \item{statistic}{Test statistic value}
-#'   \item{p.value}{Two-sided p-value under standard normal null}
+#' @return An object of class \code{cd_test} with fields \code{tests}, \code{type},
+#'   \code{N}, \code{T}, \code{na.action}, and \code{call}. The \code{tests} list
+#'   contains one or more test results, each with \code{statistic} and \code{p.value}.
 #'
 #' @details
-#' \strong{Handling of missing data:}
-#' \itemize{
-#'   \item \strong{CD, CDw, CDw+:} Always use pairwise-complete observations. Each pair (i,j)
-#'     correlation is computed over time periods where both units have finite residuals.
-#'   \item \strong{CD*:} By default (\code{na.action = "drop.incomplete.times"}), automatically
-#'     removes time periods with any missing observations to create a balanced panel and
-#'     applies CD*. With \code{na.action = "pairwise"}, requires a balanced panel and
-#'     returns \code{NA} with a warning if NAs are present.
+#' ## Notation
+#'
+#' Let \eqn{E} be the residual matrix with \eqn{N} cross-sectional units and \eqn{T}
+#' time periods. For each unit pair \eqn{(i,j)}, let \eqn{T_{ij}} be the number of
+#' overlapping time periods and \eqn{\rho_{ij}} the pairwise correlation.
+#'
+#' ## Test statistics
+#'
+#' \describe{
+#'   \item{CD (Pesaran, 2015)}{
+#'     \deqn{CD = \sqrt{\frac{2}{N(N-1)}} \sum_{i<j} \sqrt{T_{ij}} \, \rho_{ij}}
+#'   }
+#'   \item{CDw (Juodis and Reese, 2021)}{
+#'     Random sign flips \eqn{w_i \in \{-1,1\}} are applied to residuals before
+#'     computing correlations. The statistic is CD applied to the sign-flipped data.
+#'   }
+#'   \item{CDw+ (Fan, Liao, and Yao, 2015)}{
+#'     Power enhancement adds a sparse thresholding term to CDw. The threshold is
+#'     \deqn{c_N = \sqrt{\frac{2 \log(N)}{T}}}
+#'     and the power term sums \eqn{\sqrt{T_{ij}} |\rho_{ij}|} for pairs exceeding
+#'     the threshold.
+#'   }
+#'   \item{CD* (Pesaran and Xie, 2021)}{
+#'     CD is computed on residuals after removing \code{n_pc} principal components
+#'     from \eqn{E}. This provides a bias-corrected test under multifactor errors.
+#'   }
 #' }
 #'
-#' When \code{na.action = "drop.incomplete.times"}, the function reports how many time periods
-#' were dropped and the dimensions of the resulting balanced panel.
+#' ## Missing data and balance
 #'
-#' \strong{Test descriptions:}
-#' \itemize{
-#'   \item \strong{CD (Pesaran 2015, 2021):} Classic test using pairwise correlations.
-#'     Statistic: \eqn{CD = \sqrt{2/(N(N-1))} \sum_{i<j} \sqrt{T_{ij}} \rho_{ij}}.
-#'   \item \strong{CDw (Juodis & Reese 2021):} Weighted CD with random sign flips,
-#'     controlling for common shocks/factors.
-#'   \item \strong{CDw+ (Fan et al. 2015):} Power-enhanced CDw using sparse thresholding.
-#'     Threshold: \eqn{c_N = \sqrt{2 \log(N)/T}}.
-#'   \item \strong{CD* (Pesaran & Xie 2021):} Bias-corrected CD after removing
-#'     \code{n_pc} principal components via PCA (default 4, matching Stata xtcd2).
+#' \describe{
+#'   \item{CD, CDw, CDw+}{Always use pairwise-complete observations. Each pairwise
+#'   correlation uses available overlaps.}
+#'   \item{CD*}{Requires a balanced panel. By default, \code{na.action = "drop.incomplete.times"}
+#'   removes any time period with missing observations. With \code{na.action = "pairwise"},
+#'   CD* returns \code{NA} and a warning when missing values are present.}
 #' }
 #'
 #' @references
 #' Pesaran, M.H. (2015). "Testing weak cross-sectional dependence in large panels."
-#'   \emph{Econometric Reviews}, 34(6-10), 1089-1117.
+#' \emph{Econometric Reviews}, 34(6-10), 1089-1117.
+#'
+#' Pesaran, M.H. (2021). "General diagnostic tests for cross-sectional dependence
+#' in panels." \emph{Empirical Economics}, 60, 13-50.
 #'
 #' Juodis, A., & Reese, S. (2021). "The incidental parameters problem in testing for
-#'   remaining cross-sectional correlation." \emph{Journal of Business & Economic Statistics}.
+#' remaining cross-sectional correlation." \emph{Journal of Business and Economic Statistics},
+#' 40(3), 1193-1203.
 #'
 #' Fan, J., Liao, Y., & Yao, J. (2015). "Power Enhancement in High-Dimensional
 #'   Cross-Sectional Tests." \emph{Econometric Reviews}, 34(6-10), 742-779.
@@ -65,6 +81,21 @@
 #'
 #' # Specific test with parameters
 #' cd_test(E_indep, type = "CDstar", n_pc = 2)
+#'
+#' # From a fitted csdm model
+#' data(PWT_60_07, package = "csdm")
+#' df <- PWT_60_07
+#' ids <- unique(df$id)[1:10]
+#' df_small <- df[df$id %in% ids & df$year >= 1970, ]
+#' fit <- csdm(
+#'   log_rgdpo ~ log_hc + log_ck + log_ngd,
+#'   data = df_small,
+#'   id = "id",
+#'   time = "year",
+#'   model = "cce",
+#'   csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"))
+#' )
+#' cd_test(fit, type = "all")
 #'
 #' @export
 cd_test <- function(object, ...) {

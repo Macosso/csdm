@@ -2,21 +2,30 @@
 % Please edit documentation in R/csdm_methods.R
 \name{print.summary.csdm_fit}
 \alias{print.summary.csdm_fit}
-\title{Print summary of csdm_fit model}
+\title{Print method for csdm summary objects}
 \usage{
 \method{print}{summary.csdm_fit}(x, digits = 4, ...)
 }
 \arguments{
-\item{x}{A summary.csdm_fit object.}
+\item{x}{A \code{summary.csdm_fit} object.}
 
 \item{digits}{Number of digits to print.}
 
 \item{...}{Further arguments passed to methods.}
 }
+\value{
+Invisibly returns \code{x}.
+}
 \description{
-Print summary of csdm_fit model
+Formats and prints a \code{summary.csdm_fit} object. Output adapts to model
+type and includes coefficient tables, selected goodness-of-fit diagnostics,
+and compact model metadata.
 }
 \details{
-Displays classic Pesaran CD test statistics in the summary output. For extended CD diagnostics
-(CDw, CDw+, CD*), call `cd_test()` on the fitted model object.
+The printout includes classic Pesaran CD diagnostics from the summary object.
+For a full CD diagnostic panel (CD, CDw, CDw+, CD*), use \code{\link[=cd_test]{cd_test()}} on the
+fitted model.
+}
+\seealso{
+\code{\link[=summary.csdm_fit]{summary.csdm_fit()}}, \code{\link[=cd_test]{cd_test()}}
 }
