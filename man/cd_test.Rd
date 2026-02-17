@@ -56,9 +56,9 @@ removes time periods with any missing observations to create a balanced panel fo
 }
 \value{
 An object of class \code{cd_test} with a \code{tests} list.
-  Each test returns a sublist with:
-  \item{statistic}{Test statistic value}
-  \item{p.value}{Two-sided p-value under standard normal null}
+Each test returns a sublist with:
+\item{statistic}{Test statistic value}
+\item{p.value}{Two-sided p-value under standard normal null}
 }
 \description{
 Computes cross-sectional dependence tests for panel residuals: CD (Pesaran 2015),
@@ -68,12 +68,12 @@ with PCA-based factor adjustment.
 \details{
 \strong{Handling of missing data:}
 \itemize{
-  \item \strong{CD, CDw, CDw+:} Always use pairwise-complete observations. Each pair (i,j)
-    correlation is computed over time periods where both units have finite residuals.
-  \item \strong{CD*:} By default (\code{na.action = "drop.incomplete.times"}), automatically
-    removes time periods with any missing observations to create a balanced panel and
-    applies CD*. With \code{na.action = "pairwise"}, requires a balanced panel and
-    returns \code{NA} with a warning if NAs are present.
+\item \strong{CD, CDw, CDw+:} Always use pairwise-complete observations. Each pair (i,j)
+correlation is computed over time periods where both units have finite residuals.
+\item \strong{CD*:} By default (\code{na.action = "drop.incomplete.times"}), automatically
+removes time periods with any missing observations to create a balanced panel and
+applies CD*. With \code{na.action = "pairwise"}, requires a balanced panel and
+returns \code{NA} with a warning if NAs are present.
 }
 
 When \code{na.action = "drop.incomplete.times"}, the function reports how many time periods
@@ -81,14 +81,14 @@ were dropped and the dimensions of the resulting balanced panel.
 
 \strong{Test descriptions:}
 \itemize{
-  \item \strong{CD (Pesaran 2015, 2021):} Classic test using pairwise correlations.
-    Statistic: \eqn{CD = \sqrt{2/(N(N-1))} \sum_{i<j} \sqrt{T_{ij}} \rho_{ij}}.
-  \item \strong{CDw (Juodis & Reese 2021):} Weighted CD with random sign flips,
-    controlling for common shocks/factors.
-  \item \strong{CDw+ (Fan et al. 2015):} Power-enhanced CDw using sparse thresholding.
-    Threshold: \eqn{c_N = \sqrt{2 \log(N)/T}}.
-  \item \strong{CD* (Pesaran & Xie 2021):} Bias-corrected CD after removing
-    \code{n_pc} principal components via PCA (default 4, matching Stata xtcd2).
+\item \strong{CD (Pesaran 2015, 2021):} Classic test using pairwise correlations.
+Statistic: \eqn{CD = \sqrt{2/(N(N-1))} \sum_{i<j} \sqrt{T_{ij}} \rho_{ij}}.
+\item \strong{CDw (Juodis & Reese 2021):} Weighted CD with random sign flips,
+controlling for common shocks/factors.
+\item \strong{CDw+ (Fan et al. 2015):} Power-enhanced CDw using sparse thresholding.
+Threshold: \eqn{c_N = \sqrt{2 \log(N)/T}}.
+\item \strong{CD* (Pesaran & Xie 2021):} Bias-corrected CD after removing
+\code{n_pc} principal components via PCA (default 4, matching Stata xtcd2).
 }
 }
 \examples{
@@ -107,14 +107,14 @@ cd_test(E_indep, type = "CDstar", n_pc = 2)
 }
 \references{
 Pesaran, M.H. (2015). "Testing weak cross-sectional dependence in large panels."
-  \emph{Econometric Reviews}, 34(6-10), 1089-1117.
+\emph{Econometric Reviews}, 34(6-10), 1089-1117.
 
 Juodis, A., & Reese, S. (2021). "The incidental parameters problem in testing for
-  remaining cross-sectional correlation." \emph{Journal of Business & Economic Statistics}.
+remaining cross-sectional correlation." \emph{Journal of Business & Economic Statistics}.
 
 Fan, J., Liao, Y., & Yao, J. (2015). "Power Enhancement in High-Dimensional
-  Cross-Sectional Tests." \emph{Econometric Reviews}, 34(6-10), 742-779.
+Cross-Sectional Tests." \emph{Econometric Reviews}, 34(6-10), 742-779.
 
 Pesaran, M.H., & Xie, Y. (2021). "A bias-corrected CD test for error cross-sectional
-  dependence in panel models." \emph{Econometric Reviews}, 41(6), 649-677.
+dependence in panel models." \emph{Econometric Reviews}, 41(6), 649-677.
 }

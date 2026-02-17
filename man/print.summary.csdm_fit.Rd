@@ -18,5 +18,5 @@ Print summary of csdm_fit model
 }
 \details{
 Displays classic Pesaran CD test statistics in the summary output. For extended CD diagnostics
-(CDw, CDw+, CD*), call `cd_test()` on the fitted model object.
+(CDw, CDw+, CD*), call \code{cd_test()} on the fitted model object.
 }

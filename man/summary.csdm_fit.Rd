@@ -21,5 +21,5 @@ Summarize csdm_fit model results
 }
 \details{
 The summary displays classic Pesaran CD test statistics. For additional CD diagnostics
-(CDw, CDw+, CD*), use `cd_test()` on the fitted model object.
+(CDw, CDw+, CD*), use \code{cd_test()} on the fitted model object.
 }

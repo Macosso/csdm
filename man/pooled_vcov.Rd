@@ -17,7 +17,7 @@ summing to 1. If \code{NULL}, uses equal weights.}
 }
 \value{
 A \code{K x K} covariance matrix for the MG mean, with
-  \code{dimnames} inherited from \code{colnames(beta_i)}.
+\code{dimnames} inherited from \code{colnames(beta_i)}.
 }
 \description{
 Computes the covariance matrix of the MG estimator \eqn{\bar{\beta} = N^{-1} \sum_i \hat\beta_i},

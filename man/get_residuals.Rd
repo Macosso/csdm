@@ -14,12 +14,12 @@ get_residuals(object, type = c("auto", "cce", "pca", "pca_std"), strict = TRUE)
 \item{type}{Character string selecting which residuals to return when available:
 one of \code{"auto"}, \code{"cce"}, \code{"pca"}, or \code{"pca_std"}.
 \itemize{
-  \item \code{"auto"}: prefer standardized PCA residuals if present, otherwise
-    PCA residuals, otherwise CCE residuals, otherwise \code{object} if it is a matrix.
-  \item \code{"cce"}: residuals from the CCE-augmented per-unit regressions.
-  \item \code{"pca"}: residuals after removing estimated factors from \eqn{\hat v_{it}}.
-  \item \code{"pca_std"}: \code{"pca"} residuals standardized by unit-specific
-    scale (recommended for CD).
+\item \code{"auto"}: prefer standardized PCA residuals if present, otherwise
+PCA residuals, otherwise CCE residuals, otherwise \code{object} if it is a matrix.
+\item \code{"cce"}: residuals from the CCE-augmented per-unit regressions.
+\item \code{"pca"}: residuals after removing estimated factors from \eqn{\hat v_{it}}.
+\item \code{"pca_std"}: \code{"pca"} residuals standardized by unit-specific
+scale (recommended for CD).
 }}
 
 \item{strict}{Logical; if \code{TRUE}, error on unsupported objects. If \code{FALSE},
@@ -27,8 +27,8 @@ return \code{NULL} when residuals cannot be found.}
 }
 \value{
 A numeric matrix of residuals with rows = units and columns = time,
-  preserving \code{rownames} and \code{colnames} when available; or \code{NULL}
-  if nothing suitable is found and \code{strict = FALSE}.
+preserving \code{rownames} and \code{colnames} when available; or \code{NULL}
+if nothing suitable is found and \code{strict = FALSE}.
 }
 \description{
 Unified accessor that returns an \eqn{N \times T} residual matrix suitable for

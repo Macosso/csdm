@@ -36,9 +36,9 @@ A list with:
 Cleans and transforms an \eqn{N \times T} residual matrix for cross-sectional
 dependence testing. Operations include:
 \enumerate{
-  \item Dropping time periods with fewer than \code{min_per_time} finite observations.
-  \item Optional row-wise standardization to unit variance over available times.
-  \item Optional demeaning across units at each time (recommended for CD).
+\item Dropping time periods with fewer than \code{min_per_time} finite observations.
+\item Optional row-wise standardization to unit variance over available times.
+\item Optional demeaning across units at each time (recommended for CD).
 }
 }
 \keyword{internal}

@@ -32,8 +32,8 @@ If \code{FALSE}, computes standard time means:
 
 \item{weights}{Optional. Either:
 \itemize{
-  \item a numeric vector of length \code{nrow(data)}, or
-  \item the name of a column in \code{data} with nonnegative weights.
+\item a numeric vector of length \code{nrow(data)}, or
+\item the name of a column in \code{data} with nonnegative weights.
 }
 If \code{NULL}, uses equal weights (1 for observed values).}
 
@@ -41,8 +41,8 @@ If \code{NULL}, uses equal weights (1 for observed values).}
 
 \item{return_mode}{One of \code{"attach"} or \code{"time"}.
 \itemize{
-  \item \code{"attach"} returns the original \code{data} with CSA columns added.
-  \item \code{"time"} returns a unique-time table \code{[time, csa_*]}.
+\item \code{"attach"} returns the original \code{data} with CSA columns added.
+\item \code{"time"} returns a unique-time table \code{[time, csa_*]}.
 }}
 
 \item{na.rm}{Logical; if \code{TRUE}, excludes \code{NA}s from sums and
@@ -51,11 +51,11 @@ for that time's CSA for that variable.}
 }
 \value{
 A \code{data.frame}:
-  \itemize{
-    \item If \code{return_mode="attach"}: original data + CSA columns
-      named \code{paste0(suffix, "_", vars)}.
-    \item If \code{return_mode="time"}: unique time rows with CSA columns.
-  }
+\itemize{
+\item If \code{return_mode="attach"}: original data + CSA columns
+named \code{paste0(suffix, "_", vars)}.
+\item If \code{return_mode="time"}: unique time rows with CSA columns.
+}
 }
 \description{
 Computes cross-sectional averages (CSAs) of specified variables for each time
