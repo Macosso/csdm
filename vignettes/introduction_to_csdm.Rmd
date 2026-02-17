@@ -53,7 +53,7 @@ $$\hat{\beta}_{MG} = \frac{1}{N} \sum_{i=1}^{N} \hat{\beta}_i$$
 
 **Use case**: When dependence is present but you only care about average effects. MG is robust to forms of CSD that would break other methods.
 
-### 2. Pooled Mean Group (CCE) Estimator
+### 2. Common Correlated Effects (CCE) Estimator
 
 The Common Correlated Effects (CCE) estimator augments the model with cross-sectional averages of regressors $\bar{x}_t = N^{-1} \sum_{i=1}^{N} x_{it}$:
 
