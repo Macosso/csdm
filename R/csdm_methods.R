@@ -5,7 +5,7 @@ print.csdm_fit <- function(x, digits = 4, ...) {
   cat("csdm fit (", x$model, ")\n", sep = "")
   if (!is.null(x$formula)) cat("Formula: ", deparse(x$formula), "\n", sep = "")
   if (!is.null(x$meta$N) && !is.null(x$meta$T)) {
-    cat("N = ", x$meta$N, ", T = ", x$meta$T, "\n", sep = "")
+    cat("N: ", x$meta$N, ", T: ", x$meta$T, "\n", sep = "")
   }
 
   if (length(x$coef_mg)) {
@@ -217,13 +217,13 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
   signif_footer_printed <- FALSE
   if (identical(x$model, "cs_ardl") && !is.null(x$tables) && !is.null(x$stats) && !is.null(x$lists)) {
     if (!is.null(x$N) && !is.null(x$T)) {
-      cat("N = ", x$N, ", T = ", x$T, "\n", sep = "")
+      cat("N: ", x$N, ", T: ", x$T, "\n", sep = "")
     }
     if (!is.null(x$nobs)) {
-      cat("Number of obs = ", x$nobs, "\n", sep = "")
+      cat("Number of obs: ", x$nobs, "\n", sep = "")
     }
     if (!is.null(x$stats$R2_mg)) {
-      cat("R-squared (mg) = ", round(x$stats$R2_mg, digits), "\n\n", sep = "")
+      cat("R-squared (mg): ", round(x$stats$R2_mg, digits), "\n\n", sep = "")
     }
     # Print CD test (classic only)
     .csdm_print_cd_tests(x$stats, digits, classic_only = TRUE)
@@ -253,13 +253,13 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     cat("Cointegration variable(s): ", x$lists$cointegration_variables, "\n", sep = "")
   } else if (!is.null(x$tables) && !is.null(x$stats) && !is.null(x$lists) && !is.null(x$tables$mean_group)) {
     if (!is.null(x$N) && !is.null(x$T)) {
-      cat("N = ", x$N, ", T = ", x$T, "\n", sep = "")
+      cat("N: ", x$N, ", T: ", x$T, "\n", sep = "")
     }
     if (!is.null(x$nobs)) {
-      cat("Number of obs = ", x$nobs, "\n", sep = "")
+      cat("Number of obs: ", x$nobs, "\n", sep = "")
     }
     if (!is.null(x$stats$R2_mg)) {
-      cat("R-squared (mg) = ", round(x$stats$R2_mg, digits), "\n", sep = "")
+      cat("R-squared (mg): ", round(x$stats$R2_mg, digits), "\n", sep = "")
       # Print CD test (classic only)
       .csdm_print_cd_tests(x$stats, digits, classic_only = TRUE)
     }
@@ -275,7 +275,7 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     cat("Cross Sectional Averaged Variables: ", x$lists$csa_vars, " (lags=", x$lists$csa_lags, ")\n", sep = "")
   } else {
     if (!is.null(x$N) && !is.null(x$T)) {
-      cat("N = ", x$N, ", T = ", x$T, "\n\n", sep = "")
+      cat("N: ", x$N, ", T: ", x$T, "\n\n", sep = "")
     }
     tab <- x$coef_table
     num_cols <- intersect(c("estimate", "se", "z", "p_value"), names(tab))
