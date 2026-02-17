@@ -32,7 +32,7 @@ cd_test(object, ...)
 \method{print}{cd_test}(x, digits = 3, ...)
 }
 \arguments{
-\item{object}{A \code{csdm_fit} model object or a numeric matrix of residuals (N × T).}
+\item{object}{A \code{csdm_fit} model object or a numeric matrix of residuals (N x T).}
 
 \item{...}{Additional arguments passed to methods.}
 
