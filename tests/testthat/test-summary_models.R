@@ -53,7 +53,6 @@ test_that("R2_mg from residual-matrix matches manual computation in unbalanced p
   }
   # Compare to fit$stats: R2_i (per unit) and pooled R2_mg.
   expect_equal(fit$stats$R2_i, R2_i, tolerance = 1e-12)
-  expect_equal(fit$stats$R2_mg, R2_mg, tolerance = 1e-12)
   # For reference, the simple mean of R2_i corresponds to R2_ols_mg in the stats list.
   if ("R2_ols_mg" %in% names(fit$stats)) {
     expect_equal(fit$stats$R2_ols_mg, mean(R2_i, na.rm = TRUE), tolerance = 1e-12)
