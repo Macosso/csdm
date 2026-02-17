@@ -6,7 +6,7 @@
 #' CDw (Juodis & Reese 2021), CDw+ (Fan et al. 2015), and CD* (Pesaran & Xie 2021)
 #' with PCA-based factor adjustment.
 #'
-#' @param object A \code{csdm_fit} model object or a numeric matrix of residuals (N × T).
+#' @param object A \code{csdm_fit} model object or a numeric matrix of residuals (N x T).
 #' @param ... Additional arguments passed to methods.
 #'
 #' @return An object of class \code{cd_test} with a \code{tests} list.
@@ -101,7 +101,7 @@ cd_test.default <- function(object,
     stop("cd_test: At least 2 units and 2 time periods required.")
   }
 
-  E <- object  # N × T matrix
+  E <- object  # N x T matrix
 
   # Handle missing data
   if (na.action == "drop.incomplete.times" && anyNA(E)) {
@@ -113,7 +113,7 @@ cd_test.default <- function(object,
     }
     E <- E[, complete_times, drop = FALSE]
     if (n_dropped > 0) {
-      message(sprintf("cd_test: Dropped %d incomplete time period%s (%.1f%%). Balanced panel: %d units × %d periods.",
+      message(sprintf("cd_test: Dropped %d incomplete time period%s (%.1f%%). Balanced panel: %d units x %d periods.",
                       n_dropped, if(n_dropped > 1) "s" else "",
                       100 * n_dropped / ncol(object), nrow(E), ncol(E)))
     }
@@ -122,7 +122,7 @@ cd_test.default <- function(object,
   N <- nrow(E)
   Tt <- ncol(E)
 
-  # Convert to T × N for correlation computation (Stata convention)
+  # Convert to T x N for correlation computation (Stata convention)
   data_tn <- t(E)
 
   out <- list()
@@ -324,7 +324,7 @@ print.cd_test <- function(x, digits = 3, ...) {
 
 # Internal helper: compute classic CD statistic with pairwise overlap
 .cd_compute_classic <- function(data_tn, N, Tt, min_overlap = 2L) {
-  # data_tn: T × N matrix
+  # data_tn: T x N matrix
   # Returns: list(statistic, p.value, pairs_used)
 
   corr_mat <- stats::cor(data_tn, use = "pairwise.complete.obs")
@@ -361,7 +361,7 @@ print.cd_test <- function(x, digits = 3, ...) {
 
 # Internal helper: compute CD* with PCA factor removal
 .cd_compute_star <- function(data_tn, N, Tt, n_pc) {
-  # data_tn: T × N matrix (must be complete/balanced)
+  # data_tn: T x N matrix (must be complete/balanced)
   # Returns: list(statistic, p.value)
 
   # Standardize columns
