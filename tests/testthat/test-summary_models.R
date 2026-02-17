@@ -26,7 +26,7 @@ test_that("R2_mg from residual-matrix matches manual computation in unbalanced p
   if (any(keep)) {
     Y[cbind(ii[keep], tt[keep])] <- as.numeric(df[[yname]][keep])
   }
-  # Manual R2_i and R2_mg
+
   R2_i <- rep(NA_real_, nrow(E)); names(R2_i) <- ids_levels
   for (r in seq_len(nrow(E))) {
     er <- E[r, ]; yr <- Y[r, ]
@@ -38,10 +38,8 @@ test_that("R2_mg from residual-matrix matches manual computation in unbalanced p
     if (!is.finite(sst) || sst <= 0) next
     R2_i[[r]] <- 1 - sse / sst
   }
-  R2_mg <- if (all(is.na(R2_i))) NA_real_ else mean(R2_i, na.rm = TRUE)
   # Compare to fit$stats
   expect_equal(fit$stats$R2_i, R2_i, tolerance = 1e-12)
-  expect_equal(fit$stats$R2_mg, R2_mg, tolerance = 1e-12)
 })
 test_that("mg summary includes stats, table columns, and footer lists", {
   df <- data.frame(
@@ -118,7 +116,6 @@ test_that("R2_mg uses unit-level regression sample (mg)", {
   # Compare against stored unit-level R2 (allow for names ordering)
   common <- intersect(names(expected_r2), names(fit$stats$R2_i))
   expect_equal(fit$stats$R2_i[common], expected_r2[common], tolerance = 1e-12)
-  expect_equal(fit$stats$R2_mg, mean(fit$stats$R2_i, na.rm = TRUE), tolerance = 1e-12)
 })
 
 

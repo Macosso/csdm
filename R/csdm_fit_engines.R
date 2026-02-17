@@ -759,17 +759,5 @@
     )
   )
 
-  # Preserve stats (including unit-level R2) computed by the underlying fit.
-  # If missing for any reason, compute them from residuals as a fallback.
-  if (is.null(fit$stats) || is.null(fit$stats$nobs) || is.null(fit$stats$cd_stat)) {
-    fit$stats <- .csdm_compute_fit_stats(
-      panel_df = panel_df,
-      id = id,
-      time = time,
-      yname = yname,
-      residuals_e = fit$residuals_e
-    )
-  }
-
-  fit
+  return(fit)
 }

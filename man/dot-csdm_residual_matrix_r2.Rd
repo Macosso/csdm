@@ -4,7 +4,7 @@
 \alias{.csdm_residual_matrix_r2}
 \title{Compute R-squared (mg) from the final wide residual matrix and strictly aligned Y}
 \usage{
-.csdm_residual_matrix_r2(residuals_e, panel_df, id, time, yname)
+.csdm_residual_matrix_r2(residuals_e, panel_df, id, time, yname, df_e = NULL)
 }
 \arguments{
 \item{residuals_e}{Wide matrix of residuals (units x time), as from .csdm_residual_matrix().}

@@ -4,6 +4,7 @@
 \alias{cd_test}
 \alias{cd_test.default}
 \alias{cd_test.csdm_fit}
+\alias{print.cd_test}
 \title{Cross-sectional dependence (CD) tests for panel data}
 \usage{
 cd_test(object, ...)
@@ -14,7 +15,7 @@ cd_test(object, ...)
   n_pc = 4L,
   seed = NULL,
   min_overlap = 2L,
-  na.action = c("pairwise", "drop.incomplete.times"),
+  na.action = c("drop.incomplete.times", "pairwise"),
   ...
 )
 
@@ -24,9 +25,11 @@ cd_test(object, ...)
   n_pc = 4L,
   seed = NULL,
   min_overlap = 2L,
-  na.action = c("pairwise", "drop.incomplete.times"),
+  na.action = c("drop.incomplete.times", "pairwise"),
   ...
 )
+
+\method{print}{cd_test}(x, digits = 3, ...)
 }
 \arguments{
 \item{object}{A \code{csdm_fit} model object or a numeric matrix of residuals (N × T).}
@@ -43,12 +46,17 @@ cd_test(object, ...)
 \item{min_overlap}{Minimum number of overlapping time periods required for a unit
 pair to be included in CD/CDw/CDw+ (default 2).}
 
-\item{na.action}{How to handle missing data: \code{"pairwise"} (default) uses pairwise
-correlations for CD/CDw/CDw+ and warns for CD*; \code{"drop.incomplete.times"} removes
-time periods with any missing observations to create a balanced panel for CD*.}
+\item{na.action}{How to handle missing data: \code{"drop.incomplete.times"} (default)
+removes time periods with any missing observations to create a balanced panel for CD*;
+\code{"pairwise"} uses pairwise correlations for CD/CDw/CDw+ and warns for CD*.}
+
+\item{x}{An object of class \code{cd_test}.}
+
+\item{digits}{Number of digits to print (default 3).}
 }
 \value{
-A list with test results. Each test returns a sublist with:
+An object of class \code{cd_test} with a \code{tests} list.
+  Each test returns a sublist with:
   \item{statistic}{Test statistic value}
   \item{p.value}{Two-sided p-value under standard normal null}
   \item{N}{Number of units}
@@ -66,10 +74,10 @@ with PCA-based factor adjustment.
 \itemize{
   \item \strong{CD, CDw, CDw+:} Always use pairwise-complete observations. Each pair (i,j)
     correlation is computed over time periods where both units have finite residuals.
-  \item \strong{CD*:} By default (\code{na.action = "pairwise"}), requires a balanced panel
-    and returns \code{NA} with a warning if NAs are present. With
-    \code{na.action = "drop.incomplete.times"}, automatically removes time periods with
-    any missing observations to create a balanced panel, then applies CD*.
+  \item \strong{CD*:} By default (\code{na.action = "drop.incomplete.times"}), automatically
+    removes time periods with any missing observations to create a balanced panel and
+    applies CD*. With \code{na.action = "pairwise"}, requires a balanced panel and
+    returns \code{NA} with a warning if NAs are present.
 }
 
 When \code{na.action = "drop.incomplete.times"}, the function reports how many time periods
