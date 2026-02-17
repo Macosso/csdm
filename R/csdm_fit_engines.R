@@ -142,7 +142,6 @@
   )
   fit$stats$R2_i <- r2_resid$R2_i
   fit$stats$R2_mg <- r2_resid$R2_mg
-  fit$stats$R2_ols_i <- r2_resid$R2_ols_i
   fit$stats$R2_ols_mg <- r2_resid$R2_ols_mg
 
   fit
@@ -321,7 +320,6 @@
   )
   fit$stats$R2_i <- r2_resid$R2_i
   fit$stats$R2_mg <- r2_resid$R2_mg
-  fit$stats$R2_ols_i <- r2_resid$R2_ols_i
   fit$stats$R2_ols_mg <- r2_resid$R2_ols_mg
 
   fit
@@ -651,7 +649,6 @@
   )
   fit$stats$R2_i <- r2_resid$R2_i
   fit$stats$R2_mg <- r2_resid$R2_mg
-  fit$stats$R2_ols_i <- r2_resid$R2_ols_i
   fit$stats$R2_ols_mg <- r2_resid$R2_ols_mg
 
   fit
