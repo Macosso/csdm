@@ -201,7 +201,17 @@ summary.csdm_fit <- function(object, digits = 4, ...) {
 #'
 #' @export
 print.summary.csdm_fit <- function(x, digits = 4, ...) {
-  cat("csdm summary (", x$model, ")\n", sep = "")
+
+  model_amapping <- c(
+    "mg" = "Mean Group Model (MG)",
+    "cce" = "Static Common Correlated Error Model (CCE)",
+    "dcce" = "Dynamic Common Correlated Error Model (DCCE)",
+    "cs_ardl" = "Cross-Sectional ARDL (CS-ARDL)",
+    "cs_ecm" = "Cross-Sectional ECM (CS-ECM)",
+    "cs_dl" = "Cross-Sectional Distributed Lag (CS-DL)"
+    )
+
+  cat("csdm summary: ", model_amapping[x$model], "\n", sep = "")
   if (!is.null(x$formula)) cat("Formula: ", deparse(x$formula), "\n", sep = "")
 
   signif_footer_printed <- FALSE
@@ -243,16 +253,13 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     cat("Cointegration variable(s): ", x$lists$cointegration_variables, "\n", sep = "")
   } else if (!is.null(x$tables) && !is.null(x$stats) && !is.null(x$lists) && !is.null(x$tables$mean_group)) {
     if (!is.null(x$N) && !is.null(x$T)) {
-      cat("N = ", x$N, ", T = ", x$T, "\n", sep = "")
+      cat("N: ", x$N, ", T: ", x$T, "\n", sep = "")
     }
     if (!is.null(x$nobs)) {
-      cat("Number of obs = ", x$nobs, "\n", sep = "")
+      cat("Number of obs: ", x$nobs, "\n", sep = "")
     }
     if (!is.null(x$stats$R2_mg)) {
-      cat("R-squared (mg, residual-matrix) = ", round(x$stats$R2_mg, digits), "\n", sep = "")
-      if (!is.null(x$stats$R2_ols_mg) && !is.na(x$stats$R2_ols_mg) && abs(x$stats$R2_ols_mg - x$stats$R2_mg) > 1e-8) {
-        cat("R-squared (mg, OLS) = ", round(x$stats$R2_ols_mg, digits), "\n", sep = "")
-      }
+      cat("R-squared (mg): ", round(x$stats$R2_mg, digits), "\n", sep = "")
       # Print CD test (classic only)
       .csdm_print_cd_tests(x$stats, digits, classic_only = TRUE)
     }
@@ -268,7 +275,7 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     cat("Cross Sectional Averaged Variables: ", x$lists$csa_vars, " (lags=", x$lists$csa_lags, ")\n", sep = "")
   } else {
     if (!is.null(x$N) && !is.null(x$T)) {
-      cat("N = ", x$N, ", T = ", x$T, "\n\n", sep = "")
+      cat("N: ", x$N, ", T: ", x$T, "\n\n", sep = "")
     }
     tab <- x$coef_table
     num_cols <- intersect(c("estimate", "se", "z", "p_value"), names(tab))
@@ -341,12 +348,12 @@ predict.csdm_fit <- function(object, newdata = NULL, type = c("xb", "residuals")
   }
 
   printed_any <- FALSE
-  
+
   # Always print classic CD
   if (print_one_test(stats$CD_stat, stats$CD_p, "CD")) {
     printed_any <- TRUE
   }
-  
+
   # If not classic_only, print advanced tests
   if (!classic_only) {
     if (print_one_test(stats$CDw_stat, stats$CDw_p, "CDw")) printed_any <- TRUE
