@@ -37,17 +37,31 @@
 
   # Compute R2 for each unit using only cells present in E and Y
   R2_i <- rep(NA_real_, nrow(E)); names(R2_i) <- ids_levels
+  Ti <- rep(NA_real_, nrow(E)); names(Ti) <- ids_levels
+  SSE <- rep(NA_real_, nrow(E)); names(SSE) <- ids_levels
+  SST <- rep(NA_real_, nrow(E)); names(SST) <- ids_levels
+
   for (r in seq_len(nrow(E))) {
     er <- E[r, ]; yr <- Y[r, ]
     ok <- is.finite(er) & is.finite(yr)
     if (sum(ok) < 2L) next
     sse <- sum((er[ok])^2)
+    SSE[r] <- sse
     yc <- yr[ok]
+    Ti[r] <- sum(ok)
     sst <- sum((yc - mean(yc))^2)
+    SST[r] <- sst
+
     if (!is.finite(sst) || sst <= 0) next
     R2_i[[r]] <- 1 - sse / sst
   }
+
+  k <- 3
   R2_mg <- if (all(is.na(R2_i))) NA_real_ else mean(R2_i, na.rm = TRUE)
+  s2 <- sum(SST) / sum(Ti - 1)
+  s_mg2 <- mean(SSE / (Ti - 2*k - 2))
+  R2_mg <- 1 - s_mg2 / s2
+
 
   # Optionally: also compute OLS-based R2 for each unit (using lm on regression sample)
   R2_ols_i <- rep(NA_real_, nrow(E)); names(R2_ols_i) <- ids_levels
@@ -226,17 +240,28 @@
       Y[cbind(ii[keep], tt[keep])] <- as.numeric(panel_df[[yname]][keep])
     }
     R2_i <- rep(NA_real_, nrow(E)); names(R2_i) <- ids_levels
+    SSE <- c()
+    Ti <- c()
+    SST <- c()
     for (r in seq_len(nrow(E))) {
       er <- E[r, ]; yr <- Y[r, ]
       ok <- is.finite(er) & is.finite(yr)
       if (sum(ok) < 2L) next
-      sse <- sum((er[ok])^2)
+      sse_i <- sum((er[ok])^2)
+      SSE[r] <- sse_i
       yc <- yr[ok]
+      Ti[r] <- sum(yc)
       sst <- sum((yc - mean(yc))^2)
+      SST[r] <- sst
       if (!is.finite(sst) || sst <= 0) next
-      R2_i[[r]] <- 1 - sse / sst
+      R2_i[[r]] <- 1 - sse_i / sst
     }
     R2_mg <- if (all(is.na(R2_i))) NA_real_ else mean(R2_i, na.rm = TRUE)
+
+    k <- 3
+    s2 <- sum(sst) / sum(Ti - 1)
+    s_mg2 <- mean(SSE / (Ti - 2*k - 2), na.rm = TRUE)
+    R2_mg <- 1 - s_mg2 / s2
   }
 
 
@@ -263,7 +288,7 @@
       CD_stat <- as.numeric(cd_classic$tests$CD$statistic)
       CD_p <- as.numeric(cd_classic$tests$CD$p.value)
     }
-    
+
     # Compute all tests for storage (user can access via cd_test later)
     cd_all <- tryCatch(
       suppressWarnings(cd_test(E, type = "all", n_pc = 4L)),
