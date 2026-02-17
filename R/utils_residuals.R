@@ -124,7 +124,8 @@ prepare_cd_input <- function(E,
     stop("prepare_cd_input(): E must be a numeric matrix (N x T).")
   }
   standardize <- match.arg(standardize)
-  N <- nrow(E); Tm <- ncol(E)
+  N <- nrow(E)
+  T_n <- ncol(E)
 
   # 1) Keep only time columns with at least min_per_time finite values
   counts <- colSums(is.finite(E))
@@ -179,82 +180,4 @@ prepare_cd_input <- function(E,
     col_means = if (demean_time) col_means else rep(0, length(keep))
   )
   return(out)
-}
-
-
-# utils_cd.R
-
-#' Pesaran CD test (statistic & p-value)
-#'
-#' @description
-#' Computes Pesaran's CD statistic on a residual panel (N x T), allowing for
-#' unbalanced panels via pair-specific overlap. By default, it fetches
-#' standardized residuals via `get_residuals(object, type="auto")`.
-#'
-#' @param object A matrix (N x T) of residuals or a fitted object supported by
-#'   `get_residuals()` (e.g., a `csdm_fit`).
-#' @param res_type Residual type passed to `get_residuals()`: "auto", "pca_std",
-#'   "pca", or "cce".
-#' @param min_overlap Minimum overlapping time points per pair (default 2).
-#'
-#' @returns A list with `statistic`, `p.value`, `N`, and `pairs_used`.
-#' @examples
-#' data(PWT_60_07, package = "csdm")
-#' df <- PWT_60_07
-#' keep_ids <- unique(df$id)[1:10]
-#' df_small <- df[df$id %in% keep_ids & df$year >= 1970, ]
-#' fit <- csdm(
-#'   log_rgdpo ~ log_hc + log_ck + log_ngd,
-#'   data = df_small,
-#'   id = "id",
-#'   time = "year",
-#'   model = "dcce",
-#'   csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), lags = 3),
-#'   lr = csdm_lr(type = "ardl", ylags = 1)
-#' )
-#' cd_test(fit)
-#' @export
-cd_test <- function(object,
-                    res_type = c("auto", "pca_std", "pca", "cce"),
-                    min_overlap = 2L) {
-  res_type <- match.arg(res_type)
-
-  # 1) get residuals (matrix N x T). Prefer standardized PCA residuals.
-  E <- get_residuals(object, type = res_type, strict = TRUE)
-  if (!is.matrix(E) || !is.numeric(E)) stop("Residuals must be numeric matrix.")
-
-  N <- nrow(E)
-  if (N < 2) stop("Need at least two units.")
-  if (ncol(E) < 2) stop("Need at least two time periods.")
-
-  # 2) pairwise correlations across time with per-pair sqrt(T) weighting (handles unbalanced)
-  s_sum <- 0     # sum of sqrt(T_ij) * rho_ij
-  pairs <- 0L
-  for (i in 1:(N - 1)) {
-    xi <- E[i, ]
-    for (j in (i + 1):N) {
-      xj <- E[j, ]
-      ok <- is.finite(xi) & is.finite(xj)
-      Tij <- sum(ok)
-      if (Tij >= min_overlap) {
-        rho_ij <- suppressWarnings(stats::cor(xi[ok], xj[ok]))
-        if (is.finite(rho_ij)) {
-          s_sum <- s_sum + sqrt(Tij) * rho_ij
-          pairs <- pairs + 1L
-        }
-      }
-    }
-  }
-  if (pairs == 0L) stop("No valid unit pairs with sufficient overlap.")
-
-  # CD = sqrt(2 / (N(N-1))) * sum_{i<j} sqrt(T_ij) * rho_ij
-  cd_stat <- sqrt(2 / (N * (N - 1))) * s_sum
-
-  # 3) N(0,1) null => two-sided p-value
-  pval <- 2 * (1 - stats::pnorm(abs(cd_stat)))
-
-  list(statistic = unname(cd_stat),
-       p.value   = unname(pval),
-       N         = N,
-       pairs_used = pairs)
 }

@@ -21,6 +21,9 @@
   dropped <- character(0)
   r2_i <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
 
+  # residual degrees of freedom for R2_i calculation
+  df_e <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
+
   for (uid in ids) {
     sub <- panel_df[panel_df[[id]] == uid, , drop = FALSE]
 
@@ -39,6 +42,9 @@
       next
     }
 
+    df_e[[as.character(uid)]] <- stats::df.residual(fit)
+
+    # extract residuals
     # Unit-level R2 on the exact estimation sample
     y_used <- tryCatch(stats::model.response(stats::model.frame(fit)), error = function(e) NULL)
     e_used <- tryCatch(as.numeric(fit$residuals), error = function(e) NULL)
@@ -124,7 +130,8 @@
     panel_df = panel_df,
     id = id,
     time = time,
-    yname = yname
+    yname = yname,
+    df_e = df_e
   )
   fit$stats <- .csdm_compute_fit_stats(
     panel_df = panel_df,
@@ -135,7 +142,6 @@
   )
   fit$stats$R2_i <- r2_resid$R2_i
   fit$stats$R2_mg <- r2_resid$R2_mg
-  fit$stats$R2_ols_i <- r2_resid$R2_ols_i
   fit$stats$R2_ols_mg <- r2_resid$R2_ols_mg
 
   fit
@@ -197,6 +203,9 @@
   dropped <- character(0)
   r2_i <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
 
+  # residual degrees of freedom for R2_i calculation; will be used in .csdm_residual_matrix_r2
+  df_e <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
+
   for (uid in ids) {
     sub <- csa_attached[csa_attached[[id]] == uid, , drop = FALSE]
 
@@ -214,6 +223,7 @@
       dropped <- c(dropped, as.character(uid))
       next
     }
+    df_e[[as.character(uid)]] <- stats::df.residual(fit)
 
     # Unit-level R2 on the exact estimation sample
     y_used <- tryCatch(stats::model.response(stats::model.frame(fit)), error = function(e) NULL)
@@ -298,7 +308,8 @@
     panel_df = panel_df,
     id = id,
     time = time,
-    yname = yname
+    yname = yname,
+    df_e = df_e
   )
   fit$stats <- .csdm_compute_fit_stats(
     panel_df = panel_df,
@@ -309,7 +320,6 @@
   )
   fit$stats$R2_i <- r2_resid$R2_i
   fit$stats$R2_mg <- r2_resid$R2_mg
-  fit$stats$R2_ols_i <- r2_resid$R2_ols_i
   fit$stats$R2_ols_mg <- r2_resid$R2_ols_mg
 
   fit
@@ -524,6 +534,8 @@
   dropped <- character(0)
   r2_i <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
 
+  # residual degrees of freedom for R2_i calculation; will be used in .csdm_residual_matrix_r2
+  df_e <- stats::setNames(rep(NA_real_, length(ids)), as.character(ids))
   for (uid in ids) {
     sub <- csa_attached[csa_attached[[id]] == uid, , drop = FALSE]
 
@@ -541,7 +553,7 @@
       dropped <- c(dropped, as.character(uid))
       next
     }
-
+    df_e[[as.character(uid)]] <- stats::df.residual(fit)
     # Unit-level R2 on the exact estimation sample
     y_used <- tryCatch(stats::model.response(stats::model.frame(fit)), error = function(e) NULL)
     e_used <- tryCatch(as.numeric(fit$residuals), error = function(e) NULL)
@@ -625,7 +637,8 @@
     panel_df = panel_df,
     id = id,
     time = time,
-    yname = yname
+    yname = yname,
+    df_e = df_e
   )
   fit$stats <- .csdm_compute_fit_stats(
     panel_df = panel_df,
@@ -636,7 +649,6 @@
   )
   fit$stats$R2_i <- r2_resid$R2_i
   fit$stats$R2_mg <- r2_resid$R2_mg
-  fit$stats$R2_ols_i <- r2_resid$R2_ols_i
   fit$stats$R2_ols_mg <- r2_resid$R2_ols_mg
 
   fit
@@ -759,17 +771,5 @@
     )
   )
 
-  # Preserve stats (including unit-level R2) computed by the underlying fit.
-  # If missing for any reason, compute them from residuals as a fallback.
-  if (is.null(fit$stats) || is.null(fit$stats$nobs) || is.null(fit$stats$cd_stat)) {
-    fit$stats <- .csdm_compute_fit_stats(
-      panel_df = panel_df,
-      id = id,
-      time = time,
-      yname = yname,
-      residuals_e = fit$residuals_e
-    )
-  }
-
-  fit
+  return(fit)
 }

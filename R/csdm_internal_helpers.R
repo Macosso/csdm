@@ -8,71 +8,91 @@
 
 # csdm_internal_helpers.R
 
-#' Compute R-squared (mg) from the final wide residual matrix and strictly aligned Y
-#'
-#' This function computes R² (mg) for mean-group models using only the cells present in the final
-#' wide residual matrix (residuals_e), with Y strictly aligned by id/time. This ensures R² reflects
-#' the model's actual predictions and is robust to data alignment and NA-handling issues. Optionally
-#' also returns the per-unit OLS R² for debugging.
-#'
-#' @param residuals_e Wide matrix of residuals (units x time), as from .csdm_residual_matrix().
-#' @param panel_df Original panel data.frame.
-#' @param id Name of id column.
-#' @param time Name of time column.
-#' @param yname Name of outcome variable.
-#' @return List with R2_i (by unit), R2_mg (mean), Y (aligned), and optionally R2_ols_i, R2_ols_mg.
-.csdm_residual_matrix_r2 <- function(residuals_e, panel_df, id, time, yname) {
-  # Strictly align Y to residuals_e: same dimnames, types, and only cells present in E
+# Compute R-squared (mg) from the final wide residual matrix and strictly aligned Y
+#
+# This function computes R² (mg) for mean-group models using only the cells present in the final
+# wide residual matrix (residuals_e), with Y strictly aligned by id/time. This ensures R² reflects
+# the model's actual predictions and is robust to data alignment and NA-handling issues. Optionally
+# also returns the per-unit OLS R² for debugging.
+.csdm_residual_matrix_r2 <- function(residuals_e, panel_df, id, time, yname, df_e = NULL) {
+
   E <- residuals_e
-  ids_levels <- rownames(E)
+  ids_levels  <- rownames(E)
   time_levels <- colnames(E)
+
+  # --- Align Y to E (IMPORTANT: yname must be the ACTUAL LHS used in estimation, e.g. dy for CS-ARDL/ECM) ---
   Y <- matrix(NA_real_, nrow = length(ids_levels), ncol = length(time_levels),
               dimnames = list(ids_levels, time_levels))
+
   ii <- match(as.character(panel_df[[id]]), ids_levels)
   tt <- match(as.character(panel_df[[time]]), time_levels)
   keep <- is.finite(ii) & is.finite(tt)
+
   if (any(keep)) {
     Y[cbind(ii[keep], tt[keep])] <- as.numeric(panel_df[[yname]][keep])
   }
 
-  # Compute R2 for each unit using only cells present in E and Y
-  R2_i <- rep(NA_real_, nrow(E)); names(R2_i) <- ids_levels
-  for (r in seq_len(nrow(E))) {
-    er <- E[r, ]; yr <- Y[r, ]
+  # --- Per unit statistics ---
+  n <- nrow(E)
+  R2_i <- rep(NA_real_, n); names(R2_i) <- ids_levels
+  Ti   <- rep(NA_integer_, n); names(Ti) <- ids_levels
+  SSE  <- rep(NA_real_, n); names(SSE)  <- ids_levels
+  SST  <- rep(NA_real_, n); names(SST)  <- ids_levels
+  dfy  <- rep(NA_integer_, n); names(dfy) <- ids_levels
+
+  for (r in seq_len(n)) {
+    er <- E[r, ]
+    yr <- Y[r, ]
     ok <- is.finite(er) & is.finite(yr)
-    if (sum(ok) < 2L) next
-    sse <- sum((er[ok])^2)
+    Ti[r] <- sum(ok)
+
+    if (Ti[r] < 2L) next
+
+    SSE[r] <- sum(er[ok]^2)
+
     yc <- yr[ok]
-    sst <- sum((yc - mean(yc))^2)
-    if (!is.finite(sst) || sst <= 0) next
-    R2_i[[r]] <- 1 - sse / sst
-  }
-  R2_mg <- if (all(is.na(R2_i))) NA_real_ else mean(R2_i, na.rm = TRUE)
+    SST[r] <- sum((yc - mean(yc))^2)
+    dfy[r] <- Ti[r] - 1L
 
-  # Optionally: also compute OLS-based R2 for each unit (using lm on regression sample)
-  R2_ols_i <- rep(NA_real_, nrow(E)); names(R2_ols_i) <- ids_levels
-  for (r in seq_len(nrow(E))) {
-    uid <- ids_levels[[r]]
-    sub <- panel_df[as.character(panel_df[[id]]) == uid, , drop = FALSE]
-    if (!nrow(sub)) next
-    if (!all(c(yname) %in% names(sub))) next
-    # Try to fit OLS on available data for this unit
-    yvals <- sub[[yname]]
-    oky <- is.finite(yvals)
-    if (sum(oky) < 2L) next
-    yc <- yvals[oky]
-    sst <- sum((yc - mean(yc))^2)
-    if (!is.finite(sst) || sst <= 0) next
-    # OLS R2: need to know the regression sample (not just y)
-    # For debugging, use all available y for this unit
-    # (If you want exact OLS R2, use the regression sample as in the fit loop)
-    # Here, just for reference
-    # R2_ols_i[[r]] <- ...
-    # For now, leave as NA or implement if needed
+    if (is.finite(SST[r]) && SST[r] > 0) {
+      R2_i[r] <- 1 - SSE[r] / SST[r]   # plain per-unit R²
+    }
   }
-  R2_ols_mg <- if (all(is.na(R2_ols_i))) NA_real_ else mean(R2_ols_i, na.rm = TRUE)
 
-  list(R2_i = R2_i, R2_mg = R2_mg, Y = Y, R2_ols_i = R2_ols_i, R2_ols_mg = R2_ols_mg)
+  # --- Plain MG R² (mean of unit R²) ---
+  R2_ols_mg <- if (all(is.na(R2_i))) NA_real_ else mean(R2_i, na.rm = TRUE)
+
+  # --- xtdcce2-style R²(CCEMG): 1 - s_mg^2 / s^2 ---
+  # s^2 = pooled variance around unit means using the SAME trimmed sample as E
+  ok_s2 <- is.finite(SST) & is.finite(dfy) & dfy > 0
+  s2 <- if (!any(ok_s2)) NA_real_ else sum(SST[ok_s2]) / sum(dfy[ok_s2])
+
+  # s_mg^2 = mean of unit sigma^2_i = SSE_i / df_ei
+  # df_e must be provided for exact replication (varies with lags, rank, collinearity)
+  if (is.null(df_e)) {
+    # fallback: use Ti-1 (not exact, but safe)
+    df_e <- Ti - 1L
+  } else {
+    df_e <- as.numeric(df_e)
+    if (length(df_e) == 1L) df_e <- rep(df_e, n)
+    names(df_e) <- ids_levels
+  }
+
+  ok_sig <- is.finite(SSE) & is.finite(df_e) & df_e > 0
+  s_mg2 <- if (!any(ok_sig)) NA_real_ else mean(SSE[ok_sig] / df_e[ok_sig])
+
+  R2_mg <- if (!is.finite(s2) || s2 <= 0 || !is.finite(s_mg2)) NA_real_ else 1 - s_mg2 / s2
+
+  list(
+    R2_i = R2_i,
+    R2_ols_mg = R2_ols_mg,
+    R2_mg = R2_mg,
+    Ti = Ti,
+    SSE = SSE,
+    SST = SST,
+    s2 = s2,
+    s_mg2 = s_mg2
+  )
 }
 
 .csdm_mg_vcov <- function(B) {
@@ -225,40 +245,64 @@
     if (any(keep)) {
       Y[cbind(ii[keep], tt[keep])] <- as.numeric(panel_df[[yname]][keep])
     }
-    R2_i <- rep(NA_real_, nrow(E)); names(R2_i) <- ids_levels
-    for (r in seq_len(nrow(E))) {
-      er <- E[r, ]; yr <- Y[r, ]
-      ok <- is.finite(er) & is.finite(yr)
-      if (sum(ok) < 2L) next
-      sse <- sum((er[ok])^2)
-      yc <- yr[ok]
-      sst <- sum((yc - mean(yc))^2)
-      if (!is.finite(sst) || sst <= 0) next
-      R2_i[[r]] <- 1 - sse / sst
-    }
-    R2_mg <- if (all(is.na(R2_i))) NA_real_ else mean(R2_i, na.rm = TRUE)
   }
+  # Classic CD test only (for model summary)
+  CD_stat <- NA_real_
+  CD_p <- NA_real_
+  # Advanced tests (not shown in summary by default)
+  CDw_stat <- NA_real_
+  CDw_p <- NA_real_
+  CDw_plus_stat <- NA_real_
+  CDw_plus_p <- NA_real_
+  CDstar_stat <- NA_real_
+  CDstar_p <- NA_real_
+  CDstar_n_pc <- NA_integer_
 
-
-  # CD test (unchanged)
-  cd_stat <- NA_real_
-  cd_p_value <- NA_real_
   if (is.matrix(E) && nrow(E) >= 2L && ncol(E) >= 2L) {
-    cd <- tryCatch(
-      cd_test(E, min_overlap = as.integer(cd_min_overlap)),
+    # Compute classic CD
+    cd_classic <- tryCatch(
+      cd_test(E, type = "CD"),
+      error = function(e) NULL,
+      warning = function(w) NULL
+    )
+    if (!is.null(cd_classic) && !is.null(cd_classic$tests$CD)) {
+      CD_stat <- as.numeric(cd_classic$tests$CD$statistic)
+      CD_p <- as.numeric(cd_classic$tests$CD$p.value)
+    }
+
+    # Compute all tests for storage (user can access via cd_test later)
+    cd_all <- tryCatch(
+      suppressWarnings(cd_test(E, type = "all", n_pc = 4L)),
       error = function(e) NULL
     )
-    if (!is.null(cd)) {
-      cd_stat <- as.numeric(cd$statistic)
-      cd_p_value <- as.numeric(cd$p.value)
+    if (!is.null(cd_all) && !is.null(cd_all$tests)) {
+      if (!is.null(cd_all$tests$CDw)) {
+        CDw_stat <- as.numeric(cd_all$tests$CDw$statistic)
+        CDw_p <- as.numeric(cd_all$tests$CDw$p.value)
+      }
+      if (!is.null(cd_all$tests$CDw_plus)) {
+        CDw_plus_stat <- as.numeric(cd_all$tests$CDw_plus$statistic)
+        CDw_plus_p <- as.numeric(cd_all$tests$CDw_plus$p.value)
+      }
+      if (!is.null(cd_all$tests$CDstar)) {
+        CDstar_stat <- as.numeric(cd_all$tests$CDstar$statistic)
+        CDstar_p <- as.numeric(cd_all$tests$CDstar$p.value)
+        if (!is.null(cd_all$tests$CDstar$n_pc)) {
+          CDstar_n_pc <- as.integer(cd_all$tests$CDstar$n_pc)
+        }
+      }
     }
   }
 
   list(
     nobs = as.integer(nobs),
-    R2_i = R2_i,
-    R2_mg = as.numeric(R2_mg),
-    cd_stat = as.numeric(cd_stat),
-    cd_p_value = as.numeric(cd_p_value)
-  )
+    CD_stat = as.numeric(CD_stat),
+    CD_p = as.numeric(CD_p),
+    CDw_stat = as.numeric(CDw_stat),
+    CDw_p = as.numeric(CDw_p),
+    CDw_plus_stat = as.numeric(CDw_plus_stat),
+    CDw_plus_p = as.numeric(CDw_plus_p),
+    CDstar_stat = as.numeric(CDstar_stat),
+    CDstar_p = as.numeric(CDstar_p),
+    CDstar_n_pc = as.integer(CDstar_n_pc)  )
 }

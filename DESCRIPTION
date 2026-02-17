@@ -1,6 +1,6 @@
 Package: csdm
 Title: Cross Section Dependence Models
-Version: 0.0.0.9000
+Version: 1.0.0
 Depends: R (>= 3.5.0)
 Imports: MASS
 Suggests:
