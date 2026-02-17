@@ -38,7 +38,7 @@ $$\hat{\beta}_{MG} = \frac{1}{N} \sum_{i=1}^{N} \hat{\beta}_i$$
 
 ### 2. Pooled Mean Group (CCE) Estimator
 
-The Common Correlated Effects (CCE) estimator augments the model with cross-sectional averages of regressors $\bar{x}_t = N^{-1} \sum_{i=1}^{N} x_{it}$:
+The Common Correlated Effects (CCE) estimator augments the model with cross-sectional averages of regressors $\bar{x}_t = \frac{1}{N} \sum_{i=1}^{N} x_{it}$:
 
 $$y_{it} = \alpha_i + \beta_i x_{it} + \gamma_i \bar{x}_t + \gamma_i \bar{y}_t + v_{it}$$
 
