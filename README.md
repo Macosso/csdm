@@ -218,7 +218,7 @@ where $\tau_T$ is a variance adjustment. FLY-type tests are designed for large p
 
 The `cd_test()` function accepts the fitted model and computes all test variants. Tests use a **random seed** to initialize pseudo-random computations (for `cdw` and `cdw+`); setting a `seed` ensures reproducibility of numerical results across runs.
 
-```{r}
+```r
 # Test MG residuals for CSD
 cd_mg <- cd_test(fit_mg, type = "CD")
 print(cd_mg)
