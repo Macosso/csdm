@@ -69,6 +69,23 @@ test_that("cd_test type='all' returns all four tests", {
   expect_true(all(c("statistic", "p.value", "N", "T", "n_pc") %in% names(res_all$tests[['CDstar']])))
 })
 
+test_that("CDw+ statistic is properly normalized", {
+  set.seed(125)
+  N <- 10; T <- 30
+  E <- matrix(rnorm(N * T), nrow = N)
+  
+  res <- cd_test(E, type = "CDw+", seed = 104)
+  
+  expect_true(!is.null(res))
+  expect_s3_class(res, "cd_test")
+  expect_true(is.numeric(res$tests$CDw_plus[['statistic']]))
+  expect_true(is.finite(res$tests$CDw_plus[['statistic']]))
+  
+  # CDw+ should be on the same scale as CDw (both normalized)
+  # Test that the statistic is in a reasonable range for N(0,1) distribution
+  expect_true(abs(res$tests$CDw_plus[['statistic']]) < 10)
+})
+
 test_that("CD test handles missing data with pairwise complete", {
   set.seed(128)
   N <- 6; T <- 12

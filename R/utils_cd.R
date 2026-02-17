@@ -189,7 +189,8 @@ cd_test.default <- function(object,
       )
     }
 
-    cdw_plus_stat <- cdw_res$statistic + power_term
+    # Normalize power_term to match cdw_res$statistic scale
+    cdw_plus_stat <- cdw_res$statistic + sqrt(2 / (N * (N - 1))) * power_term
     cdw_plus_p <- 2 * (1 - stats::pnorm(abs(cdw_plus_stat)))
 
     out$CDw_plus <- list(
