@@ -192,19 +192,19 @@ where $\hat{\rho}_{ij}$ is the cross-sectional correlation between residuals of 
 
 #### 2. Pesaran CD Weighted (CDw)
 
-The CDw statistic applies observation-level weights to emphasize more informative pairs:
+The CDw statistic uses unit-level random sign flips to form a wild-type version of the CD test:
 
-$$CD_w = \sqrt{\frac{2}{N(N-1)}} \sum_{i=1}^{N-1} \sum_{j=i+1}^{N} w_{ij} \hat{\rho}_{ij} \sqrt{T}$$
+$$CD_w = \sqrt{\frac{2}{N(N-1)}} \sum_{i=1}^{N-1} \sum_{j=i+1}^{N} w_i w_j \, \hat{\rho}_{ij} \sqrt{T},$$
 
-where weights $w_{ij}$ depend on individual residual variances. CDw is more efficient when heteroskedasticity is present.
+where $(w_1,\ldots,w_N)$ are independent random weights with $w_i \in \{-1,1\}$ applied at the unit level. This statistic can be used in randomization-based or simulation-based inference procedures.
 
 #### 3. Pesaran CD Weighted Plus (CDw+)
 
-An alternative weighting scheme:
+CDw+ applies an alternative unit-level random sign-flip scheme:
 
-$$CD_w^+ = \sqrt{\frac{2}{N(N-1)}} \sum_{i=1}^{N-1} \sum_{j=i+1}^{N} w_{ij}^+ \hat{\rho}_{ij} \sqrt{T}$$
+$$CD_w^+ = \sqrt{\frac{2}{N(N-1)}} \sum_{i=1}^{N-1} \sum_{j=i+1}^{N} w_i^{(+)} w_j^{(+)} \, \hat{\rho}_{ij} \sqrt{T},$$
 
-CDw+ is robust to specific forms of heteroskedasticity in large panels.
+where $(w_1^{(+)},\ldots,w_N^{(+)})$ are again independent random weights with $w_i^{(+)} \in \{-1,1\}$ (typically a separate draw from that used for $CD_w$).
 
 #### 4. Pesaran CD*, Fan-Liao-Yao (FLY)
 
