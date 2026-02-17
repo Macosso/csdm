@@ -83,7 +83,7 @@ cross-sectional averages, dynamic structure, and robust inference.
 }
 }
 
-\subsection{Estimation, identification, and assumptions:}{
+\subsection{Estimation, identification, and assumptions}{
 
 \describe{
 \item{MG}{Unit-by-unit estimation with heterogeneous slopes. The reported

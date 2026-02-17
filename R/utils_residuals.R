@@ -1,14 +1,14 @@
 # utils_residuals.R
 
-#' Extract residual matrices from model objects
+#' Extract residual matrices for panel diagnostics
 #'
 #' @description
-#' Unified accessor that returns an \eqn{N \times T} residual matrix suitable for
-#' cross-sectional dependence testing.
+#' Unified accessor that returns an \eqn{N x T} residual matrix suitable for
+#' cross-sectional dependence diagnostics and post-estimation analysis.
 #'
 #' @param object A fitted model object supported by this package (e.g., class
 #'   \code{csdm_fit}), or directly a numeric matrix of residuals shaped as
-#'   \eqn{N \times T}.
+#'   \eqn{N x T}.
 #' @param type Character string selecting which residuals to return when available:
 #'   one of \code{"auto"}, \code{"cce"}, \code{"pca"}, or \code{"pca_std"}.
 #'   \itemize{
@@ -22,9 +22,44 @@
 #' @param strict Logical; if \code{TRUE}, error on unsupported objects. If \code{FALSE},
 #'   return \code{NULL} when residuals cannot be found.
 #'
-#' @returns A numeric matrix of residuals with rows = units and columns = time,
+#' @return A numeric matrix of residuals with rows = units and columns = time,
 #'   preserving \code{rownames} and \code{colnames} when available; or \code{NULL}
 #'   if nothing suitable is found and \code{strict = FALSE}.
+#'
+#' @details
+#' ## Residual types
+#'
+#' \describe{
+#'   \item{cce}{Residuals from the cross-sectionally augmented unit regressions.}
+#'   \item{pca}{Residuals after principal-component factor removal.}
+#'   \item{pca_std}{PCA residuals standardized by unit-specific scale.}
+#'   \item{auto}{Priority rule: \code{pca_std} -> \code{pca} -> \code{cce} ->
+#'   generic residual slots.}
+#' }
+#'
+#' ## Assumptions and usage
+#'
+#' The returned matrix is intended for diagnostics that operate on unit-time panels,
+#' including [cd_test()]. Missing values are preserved unless downstream routines
+#' explicitly filter or balance the panel.
+#'
+#' @examples
+#' data(PWT_60_07, package = "csdm")
+#' df <- PWT_60_07
+#' ids <- unique(df$id)[1:10]
+#' df_small <- df[df$id %in% ids & df$year >= 1970, ]
+#'
+#' fit <- csdm(
+#'   log_rgdpo ~ log_hc + log_ck + log_ngd,
+#'   data = df_small,
+#'   id = "id",
+#'   time = "year",
+#'   model = "cce",
+#'   csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"))
+#' )
+#'
+#' E <- get_residuals(fit, type = "auto")
+#' dim(E)
 #'
 #' @keywords internal
 #' @export
@@ -87,10 +122,10 @@ get_residuals <- function(object,
 }
 
 
-#' Prepare residuals for CD / CD* tests
+#' Prepare residual matrices for CD and CD* diagnostics
 #'
 #' @description
-#' Cleans and transforms an \eqn{N \times T} residual matrix for cross-sectional
+#' Cleans and transforms an \eqn{N x T} residual matrix for cross-sectional
 #' dependence testing. Operations include:
 #' \enumerate{
 #'   \item Dropping time periods with fewer than \code{min_per_time} finite observations.
@@ -98,7 +133,7 @@ get_residuals <- function(object,
 #'   \item Optional demeaning across units at each time (recommended for CD).
 #' }
 #'
-#' @param E A numeric matrix of residuals (\eqn{N \times T}); rows are units,
+#' @param E A numeric matrix of residuals (\eqn{N x T}); rows are units,
 #'   columns are time; may be unbalanced (contain \code{NA}).
 #' @param standardize One of \code{"row"}, \code{"none"}.
 #'   If \code{"row"}, scale each row by its observed standard deviation.
@@ -107,12 +142,44 @@ get_residuals <- function(object,
 #' @param min_per_time Integer; drop time columns with fewer than this many finite
 #'   observations.
 #'
-#' @returns A list with:
-#' \item{Z}{Processed residual matrix (\eqn{N \times T^*}) after filtering/standardizing/demeaning.}
+#' @return A list with:
+#' \item{Z}{Processed residual matrix (\eqn{N x T^*}) after filtering/standardizing/demeaning.}
 #' \item{kept_t}{Integer indices of kept time columns (relative to the original \code{E}).}
 #' \item{m_t}{Integer vector of cross-sectional counts per kept time (number of finite rows).}
 #' \item{row_sds}{Numeric vector of row standard deviations used (invisibly \code{NA} if \code{standardize="none"}).}
 #' \item{col_means}{Numeric vector of time means subtracted when \code{demean_time=TRUE}.}
+#'
+#' @details
+#' ## Transformation steps
+#'
+#' \enumerate{
+#'   \item Time periods with fewer than \code{min_per_time} finite observations are removed.
+#'   \item If \code{standardize = "row"}, each unit is scaled by its observed standard deviation.
+#'   \item If \code{demean_time = TRUE}, each time slice is demeaned across available units.
+#' }
+#'
+#' ## Why this preprocessing matters
+#'
+#' CD-type tests are sensitive to scale heterogeneity and sparse columns in
+#' unbalanced panels. This helper creates a better-conditioned input matrix while
+#' preserving as much usable information as possible.
+#'
+#' @examples
+#' data(PWT_60_07, package = "csdm")
+#' df <- PWT_60_07
+#' ids <- unique(df$id)[1:10]
+#' df_small <- df[df$id %in% ids & df$year >= 1970, ]
+#' fit <- csdm(
+#'   log_rgdpo ~ log_hc + log_ck + log_ngd,
+#'   data = df_small,
+#'   id = "id",
+#'   time = "year",
+#'   model = "cce",
+#'   csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"))
+#' )
+#' E <- get_residuals(fit)
+#' prep <- prepare_cd_input(E, standardize = "row", demean_time = TRUE, min_per_time = 3)
+#' dim(prep$Z)
 #'
 #' @keywords internal
 #' @export

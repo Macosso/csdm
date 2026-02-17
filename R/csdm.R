@@ -34,6 +34,7 @@
 #'
 #' @details
 #' ## Model equations
+#'
 #' \describe{
 #'   \item{MG (Pesaran and Smith, 1995)}{
 #'     \deqn{y_{it} = x_{it}^\top \beta_i + u_{it}}
@@ -49,7 +50,8 @@
 #'   }
 #' }
 #'
-#' ## Estimation, identification, and assumptions:
+#' ## Estimation, identification, and assumptions
+#'
 #' \describe{
 #'   \item{MG}{Unit-by-unit estimation with heterogeneous slopes. The reported
 #'   coefficients are cross-sectional averages of unit estimates. Requires

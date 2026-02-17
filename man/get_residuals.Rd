@@ -2,14 +2,14 @@
 % Please edit documentation in R/utils_residuals.R
 \name{get_residuals}
 \alias{get_residuals}
-\title{Extract residual matrices from model objects}
+\title{Extract residual matrices for panel diagnostics}
 \usage{
 get_residuals(object, type = c("auto", "cce", "pca", "pca_std"), strict = TRUE)
 }
 \arguments{
 \item{object}{A fitted model object supported by this package (e.g., class
 \code{csdm_fit}), or directly a numeric matrix of residuals shaped as
-\eqn{N \times T}.}
+\eqn{N x T}.}
 
 \item{type}{Character string selecting which residuals to return when available:
 one of \code{"auto"}, \code{"cce"}, \code{"pca"}, or \code{"pca_std"}.
@@ -31,7 +31,45 @@ preserving \code{rownames} and \code{colnames} when available; or \code{NULL}
 if nothing suitable is found and \code{strict = FALSE}.
 }
 \description{
-Unified accessor that returns an \eqn{N \times T} residual matrix suitable for
-cross-sectional dependence testing.
+Unified accessor that returns an \eqn{N x T} residual matrix suitable for
+cross-sectional dependence diagnostics and post-estimation analysis.
+}
+\details{
+\subsection{Residual types}{
+
+\describe{
+\item{cce}{Residuals from the cross-sectionally augmented unit regressions.}
+\item{pca}{Residuals after principal-component factor removal.}
+\item{pca_std}{PCA residuals standardized by unit-specific scale.}
+\item{auto}{Priority rule: \code{pca_std} -> \code{pca} -> \code{cce} ->
+generic residual slots.}
+}
+}
+
+\subsection{Assumptions and usage}{
+
+The returned matrix is intended for diagnostics that operate on unit-time panels,
+including \code{\link[=cd_test]{cd_test()}}. Missing values are preserved unless downstream routines
+explicitly filter or balance the panel.
+}
+}
+\examples{
+data(PWT_60_07, package = "csdm")
+df <- PWT_60_07
+ids <- unique(df$id)[1:10]
+df_small <- df[df$id \%in\% ids & df$year >= 1970, ]
+
+fit <- csdm(
+  log_rgdpo ~ log_hc + log_ck + log_ngd,
+  data = df_small,
+  id = "id",
+  time = "year",
+  model = "cce",
+  csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"))
+)
+
+E <- get_residuals(fit, type = "auto")
+dim(E)
+
 }
 \keyword{internal}

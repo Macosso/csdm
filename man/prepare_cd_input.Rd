@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_residuals.R
 \name{prepare_cd_input}
 \alias{prepare_cd_input}
-\title{Prepare residuals for CD / CD* tests}
+\title{Prepare residual matrices for CD and CD* diagnostics}
 \usage{
 prepare_cd_input(
   E,
@@ -12,7 +12,7 @@ prepare_cd_input(
 )
 }
 \arguments{
-\item{E}{A numeric matrix of residuals (\eqn{N \times T}); rows are units,
+\item{E}{A numeric matrix of residuals (\eqn{N x T}); rows are units,
 columns are time; may be unbalanced (contain \code{NA}).}
 
 \item{standardize}{One of \code{"row"}, \code{"none"}.
@@ -26,19 +26,54 @@ observations.}
 }
 \value{
 A list with:
-\item{Z}{Processed residual matrix (\eqn{N \times T^*}) after filtering/standardizing/demeaning.}
+\item{Z}{Processed residual matrix (\eqn{N x T^*}) after filtering/standardizing/demeaning.}
 \item{kept_t}{Integer indices of kept time columns (relative to the original \code{E}).}
 \item{m_t}{Integer vector of cross-sectional counts per kept time (number of finite rows).}
 \item{row_sds}{Numeric vector of row standard deviations used (invisibly \code{NA} if \code{standardize="none"}).}
 \item{col_means}{Numeric vector of time means subtracted when \code{demean_time=TRUE}.}
 }
 \description{
-Cleans and transforms an \eqn{N \times T} residual matrix for cross-sectional
+Cleans and transforms an \eqn{N x T} residual matrix for cross-sectional
 dependence testing. Operations include:
 \enumerate{
 \item Dropping time periods with fewer than \code{min_per_time} finite observations.
 \item Optional row-wise standardization to unit variance over available times.
 \item Optional demeaning across units at each time (recommended for CD).
 }
+}
+\details{
+\subsection{Transformation steps}{
+
+\enumerate{
+\item Time periods with fewer than \code{min_per_time} finite observations are removed.
+\item If \code{standardize = "row"}, each unit is scaled by its observed standard deviation.
+\item If \code{demean_time = TRUE}, each time slice is demeaned across available units.
+}
+}
+
+\subsection{Why this preprocessing matters}{
+
+CD-type tests are sensitive to scale heterogeneity and sparse columns in
+unbalanced panels. This helper creates a better-conditioned input matrix while
+preserving as much usable information as possible.
+}
+}
+\examples{
+data(PWT_60_07, package = "csdm")
+df <- PWT_60_07
+ids <- unique(df$id)[1:10]
+df_small <- df[df$id \%in\% ids & df$year >= 1970, ]
+fit <- csdm(
+  log_rgdpo ~ log_hc + log_ck + log_ngd,
+  data = df_small,
+  id = "id",
+  time = "year",
+  model = "cce",
+  csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"))
+)
+E <- get_residuals(fit)
+prep <- prepare_cd_input(E, standardize = "row", demean_time = TRUE, min_per_time = 3)
+dim(prep$Z)
+
 }
 \keyword{internal}
