@@ -110,7 +110,8 @@ str(PWT_60_07)
 
 # For computational speed in this vignette, use a subset: 
 # first 15 countries, 1970-2007
-df <- PWT_60_07
+first_15_ids <- unique(PWT_60_07$id)[1:15]
+df <- subset(PWT_60_07, id %in% first_15_ids & year >= 1970 & year <= 2007)
 ```
 
 The panel is relatively balanced. We will use growth regressions: modeling log-GDP (`log_rgdpo`) as a function of human capital (`log_hc`), capital stock (`log_ck`), and government debt (`log_ngd`), and test cross-sectional dependence in residuals.
