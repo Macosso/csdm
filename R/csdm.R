@@ -124,6 +124,7 @@
 #'   lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 0)
 #' )
 #' summary(cs_ardl)
+#' @export
 csdm <- function(
   formula, data, id, time,
   model = c("mg", "cce", "dcce", "cs_ardl", "cs_ecm", "cs_dl"),
