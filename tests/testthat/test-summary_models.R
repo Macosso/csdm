@@ -38,8 +38,26 @@ test_that("R2_mg from residual-matrix matches manual computation in unbalanced p
     if (!is.finite(sst) || sst <= 0) next
     R2_i[[r]] <- 1 - sse / sst
   }
-  # Compare to fit$stats
+  # New R2_mg uses an xtdcce2-style pooled R^2: 1 - s_mg^2 / s^2,
+  # i.e., one minus the ratio of pooled residual variance to pooled total variance.
+  ok_all <- is.finite(E) & is.finite(Y)
+  if (any(ok_all)) {
+    e_all <- E[ok_all]
+    y_all <- Y[ok_all]
+    sse_mg <- sum(e_all^2)
+    y_centered <- y_all - mean(y_all)
+    sst_tot <- sum(y_centered^2)
+    R2_mg <- 1 - sse_mg / sst_tot
+  } else {
+    R2_mg <- NA_real_
+  }
+  # Compare to fit$stats: R2_i (per unit) and pooled R2_mg.
   expect_equal(fit$stats$R2_i, R2_i, tolerance = 1e-12)
+  expect_equal(fit$stats$R2_mg, R2_mg, tolerance = 1e-12)
+  # For reference, the simple mean of R2_i corresponds to R2_ols_mg in the stats list.
+  if ("R2_ols_mg" %in% names(fit$stats)) {
+    expect_equal(fit$stats$R2_ols_mg, mean(R2_i, na.rm = TRUE), tolerance = 1e-12)
+  }
 })
 test_that("mg summary includes stats, table columns, and footer lists", {
   df <- data.frame(

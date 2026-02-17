@@ -388,11 +388,11 @@ print.cd_test <- function(x, digits = 3, ...) {
   cd_defac <- sqrt(2 / (N * (N - 1))) * sum(upper_defac * sqrt(Tt))
 
   # Bias correction (Pesaran & Xie 2021)
-  betai <- beta[-1, , drop = FALSE]  # remove intercept
-  betaij <- (betai %*% t(betai)) / N
-  betasum <- sqrt(diag(betaij))
+  betai <- beta[-1, , drop = FALSE]  # remove intercept: n_pc × N (factors × units)
+  betaij <- (t(betai) %*% betai) / N  # N × N: inner products across units
+  betasum <- sqrt(diag(betaij))       # length N: unit-specific loading norms
   betasum[betasum == 0] <- 1  # avoid division by zero
-  gamma <- sweep(betai, 1, betasum, `/`)
+  gamma <- sweep(betai, 2, betasum, `/`)  # normalize columns (units) by their norms
   sgm <- sqrt(mean(res_defac^2))
   if (sgm == 0) sgm <- 1
   phi <- rowMeans(gamma / sgm)
