@@ -2,68 +2,252 @@
 [![R-CMD-check](https://github.com/Macosso/csdm/workflows/R-CMD-check/badge.svg)](https://github.com/Macosso/csdm/actions)
 <!-- badges: end -->
 
-# csdm
+## Overview
 
-`csdm` provides Mean Group (MG), Common Correlated Effects (CCE), and Dynamic CCE (DCCE) estimators via `csdm()`.
+The `csdm` package implements econometric methods for panel data with cross-sectional dependence (CSD). In many applications, observations across units (e.g., countries, firms, regions) are not independent—macroeconomic shocks, trade relationships, or spillovers create correlation across cross-sectional units. The `csdm` package provides robust estimators that account for this dependence structure, plus diagnostic tests to detect and characterize it.
 
-This package does **not** execute Stata code and does **not** claim numerical equivalence to `xtdcce2`. The goal of the mapping below is to provide a conceptual translation and runnable R usage.
+This vignette demonstrates four core estimation methods and related inference tools on real panel data from the Penn World Table (PWT).
 
-## Replicating xtdcce2 syntax (Stata) in csdm (R)
+## Methodology: Four Estimators
 
-### Quick mapping
 
-| Stata concept / xtdcce2 option (descriptive) | `csdm` syntax |
-|---|---|
-| Dynamic dependent-variable lag (e.g., `L.y`) | `lr = csdm_lr(type="ardl", ylags=1)` |
-| Cross-sectional averages controls | `csa = csdm_csa(vars=c(...), lags=...)` |
-| CSA lags (e.g., 3) | `csa = csdm_csa(..., lags=3)` |
-| Scalar distributed lags for all RHS regressors | `lr = csdm_lr(type="ardl", xdlags=K)` |
-| Pesaran CD test | `cd_test(fit)` |
+### Model Specification
 
-### Worked end-to-end example (DCCE + CSA + y-lag)
+Consider a panel model with $T$ time periods and $N$ cross-sectional units (e.g., countries):
 
-```r
-library(csdm)
-data(PWT_60_07, package="csdm")
-df <- PWT_60_07
+$$y_{it} = \alpha_i + \beta_i x_{it} + u_{it}, \quad i = 1, \ldots, N; \quad t = 1, \ldots, T$$
 
-fit <- csdm(
-  log_rgdpo ~ log_hc + log_ck + log_ngd,
-  data = df,
-  id = "id",
-  time = "year",
-  model = "dcce",
-  csa = csdm_csa(
-    vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"),
-    lags = 3
-  ),
-  lr = csdm_lr(type = "ardl", ylags = 1)
-)
+where:
+- $y_{it}$ is the outcome variable for unit $i$ at time $t$
+- $\alpha_i$ is a unit-specific intercept
+- $\beta_i$ is a unit-specific slope (heterogeneous across units)
+- $x_{it}$ is explanatory variable(s)
+- $u_{it}$ is the idiosyncratic error term
 
-summary(fit)
-cd_test(fit)
+The key feature is **heterogeneity in slopes** ($\beta_i$ varies by unit), which allows each unit to have its own relationship between $x$ and $y$. Four estimators are available to fit this model under different assumptions about cross-sectional dependence.
+
+### 1. Mean Group (MG) Estimator
+
+The Mean Group (MG) estimator fits unit-specific regressions separately and averages the results:
+
+$$\hat{\beta}_{MG} = \frac{1}{N} \sum_{i=1}^{N} \hat{\beta}_i$$
+
+**Interpretation**: The MG coefficient is the simple average of individual unit slopes. It is consistent under mild regularity conditions and allows arbitrary cross-sectional dependence in errors $u_{it}$.
+
+**Use case**: When dependence is present but you only care about average effects. MG is robust to forms of CSD that would break other methods.
+
+### 2. Pooled Mean Group (CCE) Estimator
+
+The Common Correlated Effects (CCE) estimator augments the model with cross-sectional averages of regressors $\bar{x}_t = N^{-1} \sum_{i=1}^{N} x_{it}$:
+
+$$y_{it} = \alpha_i + \beta_i x_{it} + \gamma_i \bar{x}_t + \gamma_i \bar{y}_t + v_{it}$$
+
+By including these cross-sectional mean terms, the estimator **controls for common factors** (unobserved shocks that affect all units similarly). The CCE approach is more efficient than MG when common factor structure is strong, while retaining robustness to CSD.
+
+**Interpretation**: After accounting for common shocks, the $\beta_i$ coefficients represent unit-specific sensitivities net of factor loadings $\gamma_i$.
+
+**Use case**: When cross-sectional dependence arises primarily from common shocks or latent factors.
+
+### 3. Dynamic CCE (DCCE) Estimator
+
+The Dynamic Common Correlated Effects (DCCE) estimator extends CCE to include lagged dependent variable:
+
+$$y_{it} = \alpha_i + \lambda_i y_{it-1} + \beta_i x_{it} + \gamma_i \bar{x}_t + \gamma_i \bar{y}_t + v_{it}$$
+
+where $\lambda_i$ is the unit-specific autoregressive coefficient. DCCE is ideal for dynamic panel models (e.g., when studying persistence of outcomes over time).
+
+**Interpretation**: $\lambda_i$ captures dynamic adjustment within units, $\beta_i$ measures the long-run effect after accounting for dynamics, and $\gamma_i$ adjusts for common factors.
+
+**Use case**: When the outcome has substantial persistence (lagged effects) and cross-sectional dependence is suspected.
+
+### 4. Cross-Sectionally Augmented ARDL (CS-ARDL)
+
+The CS-ARDL model extends the ARDL framework with cross-sectional augmentation:
+
+$$\Delta y_{it} = \alpha_i + \lambda_i (y_{it-1} - \theta_i x_{it-1}) + \beta_i \Delta x_{it} + \hat{\gamma}_i \Delta \bar{x}_t + v_{it}$$
+
+This model combines **autoregressive and distributed lag** dynamics. It separates short-run effects ($\beta_i$) from long-run cointegrating relationships ($\theta_i$), all while controlling for common factors.
+
+**Interpretation**: 
+- $\theta_i$ is the long-run equilibrium relationship (cointegrating coefficient)
+- $\beta_i$ is the short-run adjustment to shocks
+- $\lambda_i$ governs speed of reversion to equilibrium
+
+**Use case**: When studying long-run relationships in non-stationary panels with complex short-run dynamics.
+
+## Package installation
+To install the `csdm` package from CRAN, run:
+```
+install.packages("csdm")
 ```
 
-### Distributed lags for RHS regressors (`xdlags`)
+To install the latest development version from GitHub, run:
+```
+install.packages("remotes")
+remotes::install_github("Macosso/csdm")
+```
 
-```r
-fit_dx <- csdm(
+
+
+
+## Model Estimation: Four Examples
+
+
+All models are fitted with `csdm()`, which automatically detects the input structure and applies the appropriate methodology. The key arguments are `id` and `time` to specify the cross-sectional and time-period identifiers, and `model` to choose the estimator. For CCE and DCCE, additional arguments (`csa` and `lr`) specify treatment of cross-sectional averages and dynamics.
+
+### Example 1: Mean Group (MG) Estimation
+
+```
+# MG: Separate regression per country, then average coefficients
+fit_mg <- csdm(
   log_rgdpo ~ log_hc + log_ck + log_ngd,
   data = df,
-  id = "id",
+  id = "id", 
+  time = "year",
+  model = "mg"
+)
+
+print(fit_mg)
+summary(fit_mg)
+```
+
+### Example 2: Common Correlated Effects (CCE)
+
+```
+# CCE: Add cross-sectional means to control for common shocks
+fit_cce <- csdm(
+  log_rgdpo ~ log_hc + log_ck + log_ngd,
+  data = df,
+  id = "id", 
+  time = "year",
+  model = "cce",
+  csa = csdm_csa(vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"))
+)
+
+print(fit_cce)
+summary(fit_cce)
+```
+
+### Example 3: Dynamic CCE (DCCE)
+
+```
+# DCCE: Include dynamics and cross-sectional means
+# Use lagged dependent variable to capture dynamic adjustment
+fit_dcce <- csdm(
+  log_rgdpo ~ log_hc + log_ck + log_ngd,
+  data = df,
+  id = "id", 
   time = "year",
   model = "dcce",
   csa = csdm_csa(
-    vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"),
+    vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), 
+    lags = 3
+  ),
+  lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 0)
+)
+
+print(fit_dcce)
+summary(fit_dcce)
+```
+
+### Example 4: Cross-Sectionally Augmented ARDL (CS-ARDL)
+
+```
+# CS-ARDL: Separate short-run and long-run dynamics
+# Includes lagged dependent and lagged regressors
+fit_csardl <- csdm(
+  log_rgdpo ~ log_hc + log_ck + log_ngd,
+  data = df,
+  id = "id", 
+  time = "year",
+  model = "cs_ardl",
+  csa = csdm_csa(
+    vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), 
     lags = 3
   ),
   lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 1)
 )
 
-names(coef(fit_dx))
+print(fit_csardl)
+summary(fit_csardl)
 ```
 
-### Notes
+## Cross-Sectional Dependence Testing
 
-- `xdlags` currently supports only **simple RHS variable names** (no transformations or interactions like `log(x)` or `x1:x2`).
-- Generated lag columns follow the naming convention `lag1_<varname>`, `lag2_<varname>`, ...
+After fitting a model, we can test whether residuals exhibit cross-sectional dependence using the Pesaran CD test and related variants. CSD tests detect whether residuals $u_{it}$ are correlated across units—a key assumption violation that can bias standard errors.
+
+### Four CD Test Types
+
+All CD tests have null hypothesis: **residuals are cross-sectionally independent**.
+
+#### 1. Pesaran CD Test
+
+The Pesaran CD statistic is:
+
+$$CD = \sqrt{\frac{2}{N(N-1)}} \sum_{i=1}^{N-1} \sum_{j=i+1}^{N} \hat{\rho}_{ij} \sqrt{T}$$
+
+where $\hat{\rho}_{ij}$ is the cross-sectional correlation between residuals of units $i$ and $j$. The test statistic is approximately standard normal under the null.
+
+**Interpretation**: Large $|CD|$ rejects independence; both positive and negative correlations are flagged. This is the most general CD test and works even when $N$ is fixed and $T \to \infty$.
+
+#### 2. Pesaran CD Weighted (CDw)
+
+The CDw statistic applies observation-level weights to emphasize more informative pairs:
+
+$$CD_w = \sqrt{\frac{2}{N(N-1)}} \sum_{i=1}^{N-1} \sum_{j=i+1}^{N} w_{ij} \hat{\rho}_{ij} \sqrt{T}$$
+
+where weights $w_{ij}$ depend on individual residual variances. CDw is more efficient when heteroskedasticity is present.
+
+#### 3. Pesaran CD Weighted Plus (CDw+)
+
+An alternative weighting scheme:
+
+$$CD_w^+ = \sqrt{\frac{2}{N(N-1)}} \sum_{i=1}^{N-1} \sum_{j=i+1}^{N} w_{ij}^+ \hat{\rho}_{ij} \sqrt{T}$$
+
+CDw+ is robust to specific forms of heteroskedasticity in large panels.
+
+#### 4. Pesaran CD*, Fan-Liao-Yao (FLY)
+
+The CD* statistic is a semiparametric refinement for large $N$ and $T$:
+
+$$CD^* = \frac{1}{\sqrt{N(N-1)}} \sum_{i=1}^{N-1} \sum_{j=i+1}^{N} (\hat{\rho}_{ij}^2 - \tau_T)$$
+
+where $\tau_T$ is a variance adjustment. FLY-type tests are designed for large panel dimensions and provide robustness against certain forms of weak cross-sectional dependence.
+
+### Running CD Tests with Seed Selection
+
+The `cd_test()` function accepts the fitted model and computes all test variants. Tests use a **random seed** to initialize pseudo-random computations (for `cdw` and `cdw+`); setting a `seed` ensures reproducibility of numerical results across runs.
+
+```{r}
+# Test MG residuals for CSD
+cd_mg <- cd_test(fit_mg, type = "CD")
+print(cd_mg)
+
+# Test CCE residuals for CSD
+set.seed(1234)
+cd_cce <- cd_test(fit_cce, type = "all")
+print(cd_cce)
+```
+
+**Interpreting Results**: 
+
+- **CD statistic p-value < 0.05**: Reject null of CSD independence; residuals are correlated across units.
+- **CDw, CDw+, CD* variants**: Provide robustness checks; if all reject the null, CSD is strongly evidenced.
+- **Magnitude**: Large $|CD|$ statistics (e.g., $|CD| > 3$) indicate substantial and economically meaningful dependence.
+
+In practice, models that do not account for cross-sectional dependence (like MG without augmentation) typically show significant CD test rejections, justifying the use of CSD-robust methods like CCE and DCCE.
+
+## References
+
+Chudik, A., & Pesaran, M. H. (2013). Common correlated effects estimation of heterogeneous dynamic panel data models with weakly exogenous regressors. *Journal of Business and Economic Statistics*, 33(2), 232–247.
+
+Ditzen, J. (2021). Estimating dynamic common-correlated effects in Stata. *The Stata Journal*, 21(1), 39–59.
+
+Fan, J., Liao, Y., & Yao, J. (2015). Power-enhanced simultaneous test for high-dimensional covariance matrix. *Journal of the American Statistical Association*, 110(510), 325–337.
+
+Juodis, A., & Reese, S. (2022). The role of the *N/T* ratio in large N, large T panel time-series models. *Econometric Reviews*, 41(2), 221–261.
+
+Pesaran, M. H. (2007). A simple unit root test in the presence of cross-section dependence. *Journal of Applied Econometrics*, 22(2), 265–312.
+
+Pesaran, M. H., & Xie, Y. (2021). A bias-adjusted LM test of error cross-section independence. *Econometric Reviews*, 40(1), 7–24.
+
