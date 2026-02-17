@@ -116,6 +116,12 @@ test_that("R2_mg uses unit-level regression sample (mg)", {
   # Compare against stored unit-level R2 (allow for names ordering)
   common <- intersect(names(expected_r2), names(fit$stats$R2_i))
   expect_equal(fit$stats$R2_i[common], expected_r2[common], tolerance = 1e-12)
+
+  # Note: We intentionally do not assert that R2_mg equals mean(R2_i, na.rm = TRUE)
+  # here. The implementation now computes R2_mg using an xtdcce2-style formula,
+  # so R2_mg is no longer just the simple average of the unit-level R2_i values.
+  # This test is limited to verifying that the stored R2_i match the per-unit
+  # regression samples used in the mg estimation.
 })
 
 
