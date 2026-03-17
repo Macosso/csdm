@@ -69,19 +69,13 @@
 #' }
 #'
 #' @references
-#' Pesaran, M.H. and Smith, R. (1995). "Estimating long-run relationships from
-#' dynamic heterogeneous panels." Journal of Econometrics, 68(1), 79-113.
+#' \insertRef{PesaranSmith1995}{csdm}
 #'
-#' Pesaran, M.H. (2006). "Estimation and inference in large heterogeneous panels
-#' with multifactor error structure." Econometrica, 74(4), 967-1012.
+#' \insertRef{Pesaran2006}{csdm}
 #'
-#' Chudik, A. and Pesaran, M.H. (2015). "Common correlated effects estimation of
-#' heterogeneous dynamic panel data models with weakly exogenous regressors."
-#' Journal of Econometrics, 188(2), 393-420.
+#' \insertRef{ChudikPesaran2015a}{csdm}
 #'
-#' Chudik, A. and Pesaran, M.H. (2015). "Large panel data models with
-#' cross-sectional dependence: A survey." Annals of Economics and Finance, 16(1),
-#' 53-78.
+#' \insertRef{ChudikPesaran2015b}{csdm}
 #'
 #' @examples
 #' library(csdm)
