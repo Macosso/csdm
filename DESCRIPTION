@@ -2,7 +2,9 @@ Package: csdm
 Title: Cross-Sectional Dependence Models
 Version: 1.0.1
 Depends: R (>= 4.0.0)
-Imports: MASS
+Imports: MASS,
+    Rdpack
+RdMacros: Rdpack
 Suggests:
     testthat (>= 3.0.0),
     knitr,

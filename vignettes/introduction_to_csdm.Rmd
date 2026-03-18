@@ -3,7 +3,9 @@ title: "Introduction to csdm: Panel Data Models with Cross-Sectional Dependence"
 author: "Joao Claudio Macosso"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
-bibliography: "../references.bib"
+bibliography: "`r system.file('REFERENCES.bib', package = 'csdm')`"
+nocite: |
+  @*
 vignette: >
   %\VignetteIndexEntry{Introduction to csdm}
   %\VignetteEngine{knitr::rmarkdown}

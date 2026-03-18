@@ -29,8 +29,8 @@
 #'
 #' @return An object of class \code{csdm_fit} containing estimated coefficients,
 #'   residuals, variance-covariance estimates, model metadata, and diagnostics.
-#'   Use \code{summary()}, \code{coef()}, \code{residuals()}, \code{vcov()}, and
-#'   \code{cd_test()} to access standard outputs.
+#'   Use [summary()], [coef()], [residuals()], [vcov()], and
+#'   [cd_test()] to access standard outputs.
 #'
 #' @details
 #' ## Model equations
@@ -74,8 +74,6 @@
 #' \insertRef{Pesaran2006}{csdm}
 #'
 #' \insertRef{ChudikPesaran2015a}{csdm}
-#'
-#' \insertRef{ChudikPesaran2015b}{csdm}
 #'
 #' @examples
 #' library(csdm)
