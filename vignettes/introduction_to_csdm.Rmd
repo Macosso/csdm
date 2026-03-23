@@ -107,7 +107,7 @@ $$
 **Interpretation**:
 
 - \(\beta_i\) measures the unit-specific effect conditional on the included cross-sectional averages
-- \(\gamma_i\) captures unit-specific exposure to the common components proxied by \(\bar{z}_t\)
+- \(\gamma_i\) captures unit-specific exposure to the common components with \(\bar{z}_t\) as a proxy.
 
 **Properties**:
 

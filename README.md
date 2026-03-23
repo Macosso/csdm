@@ -77,8 +77,8 @@ $$
 
 **Interpretation**:
 
-- $\beta_i$ measures the unit-specific effect conditional on the included cross-sectional averages
-- $\gamma_i$ captures unit-specific exposure to the common components proxied by \(\bar{z}_t\)
+- $\beta_i$ measures the unit-specific effect conditional on the included cross-sectional averages.
+- $\gamma_i$ captures unit-specific exposure to the common components with \(\bar{z}_t\) as a proxy.
 
 **Properties**:
 
@@ -341,7 +341,7 @@ Chudik, A., & Pesaran, M. H. (2013). Large panel data models with cross-sectiona
 
 Chudik, A., & Pesaran, M. H. (2015). Common correlated effects estimation of heterogeneous dynamic panel data models with weakly exogenous regressors. Journal of Econometrics, 188(2), 393–420.
 
-Ditzen, J. (2018). Estimating dynamic common-correlated effects in stata. The Stata Journal, 18(3), 585–617. https://doi.org/10.1177/1536867X1801800306
+Ditzen, J. (2018). Estimating dynamic common-correlated effects in STATA. The STATA Journal, 18(3), 585–617. https://doi.org/10.1177/1536867X1801800306
 
 Fan, J., Liao, Y., & Yao, J. (2015). Power enhancement in high-dimensional cross-section tests. Econometrica, 83(4), 1497–1541.
 
