@@ -1,0 +1,13 @@
+url: ~
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left:  [home, reference, articles]
+    right: [github]
+
+home:
+  title: "csdm"
+  tagline: "Cross-sectional dependence modelling"
+
