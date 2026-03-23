@@ -1,12 +1,13 @@
 # csdm.R
 
-#' Panel Model Estimation with Cross Section Dependence
+#' Panel Model Estimation with Cross-Sectional Dependence
 #'
-#' Estimate panel data models that allow for cross-sectional dependence and
-#' heterogeneous slopes. The interface supports Mean Group (MG), Common
-#' Correlated Effects (CCE), Dynamic CCE (DCCE), and Cross-Sectionally
-#' Augmented ARDL (CS-ARDL) estimators with consistent handling of
-#' cross-sectional averages, dynamic structure, and robust inference.
+#' Estimate heterogeneous panel data models with optional cross-sectional
+#' augmentation and dynamic structure. The interface supports Mean Group (MG),
+#' Common Correlated Effects (CCE), Dynamic CCE (DCCE), and
+#' Cross-Sectionally Augmented ARDL (CS-ARDL) estimators with a consistent
+#' specification workflow for cross-sectional averages, lag structure, and
+#' variance-covariance estimation.
 #'
 #' @param formula Model formula of the form \code{y ~ x1 + x2}.
 #' @param data A \code{data.frame} (or \code{plm::pdata.frame}) containing the
@@ -33,39 +34,118 @@
 #'   [cd_test()] to access standard outputs.
 #'
 #' @details
-#' ## Model equations
+#' Let \eqn{i = 1, \ldots, N} index cross-sectional units and
+#' \eqn{t = 1, \ldots, T} index time. A baseline heterogeneous panel model is
+#'
+#' \deqn{
+#' y_{it} = \alpha_i + x_{it}^{\top}\beta_i + u_{it},
+#' }
+#'
+#' where \eqn{\alpha_i} is a unit-specific intercept, \eqn{x_{it}} is a vector
+#' of regressors, \eqn{\beta_i} is a vector of unit-specific slopes, and
+#' \eqn{u_{it}} is an error term that may exhibit cross-sectional dependence.
+#' The inner product \eqn{x_{it}^{\top}\beta_i} is scalar-valued. The estimators
+#' implemented in \code{csdm()} differ in how they handle slope heterogeneity,
+#' common factors, and dynamic adjustment.
+#'
+#' \strong{Cross-sectional averages and dynamic structure}
+#'
+#' Cross-sectional averages are specified through [csdm_csa()] and dynamic or
+#' long-run structure is specified through [csdm_lr()]. This keeps the model
+#' interface consistent across estimators while allowing the degree of
+#' cross-sectional augmentation and lag structure to vary by application.
+#'
+#' \strong{Implemented estimators}
 #'
 #' \describe{
 #'   \item{MG (Pesaran and Smith, 1995)}{
-#'     \deqn{y_{it} = x_{it}^\top \beta_i + u_{it}}
+#'     Unit-by-unit estimation with heterogeneous slopes:
+#'
+#'     \deqn{
+#'     y_{it} = \alpha_i + x_{it}^{\top}\beta_i + u_{it}.
+#'     }
+#'
+#'     The reported coefficients are cross-sectional averages of the
+#'     unit-specific estimates:
+#'
+#'     \deqn{
+#'     \hat{\beta}_{MG} = \frac{1}{N}\sum_{i=1}^N \hat{\beta}_i.
+#'     }
+#'
+#'     This estimator accommodates slope heterogeneity but does not explicitly
+#'     model cross-sectional dependence.
 #'   }
 #'   \item{CCE (Pesaran, 2006)}{
-#'     \deqn{y_{it} = x_{it}^\top \beta_i + \lambda_i^\top F_t + u_{it}}
+#'     Regressions are augmented with cross-sectional averages to proxy
+#'     unobserved common factors:
+#'
+#'     \deqn{
+#'     y_{it} = \alpha_i + x_{it}^{\top}\beta_i + \bar{z}_{t}^{\top}\gamma_i + v_{it},
+#'     }
+#'
+#'     where \eqn{\bar{z}_t} collects the cross-sectional averages specified in
+#'     \code{csa}, for example averages of the dependent variable and
+#'     regressors. This estimator is suitable when cross-sectional dependence is
+#'     driven by latent common factors.
 #'   }
 #'   \item{DCCE (Chudik and Pesaran, 2015)}{
-#'     \deqn{\Delta y_{it} = \Delta x_{it}^\top \beta_i + \lambda_i^\top \Delta F_t + u_{it}}
+#'     Dynamic CCE extends CCE by allowing lagged dependent variables and lagged
+#'     cross-sectional averages:
+#'
+#'     \deqn{
+#'     y_{it} =
+#'     \alpha_i
+#'     + \sum_{p=1}^{P} \phi_{ip} y_{i,t-p}
+#'     + x_{it}^{\top}\beta_i
+#'     + \sum_{q=0}^{Q} \bar{z}_{t-q}^{\top}\delta_{iq}
+#'     + e_{it}.
+#'     }
+#'
+#'     The lag structure is controlled through \code{lr} and \code{csa}. This
+#'     estimator is designed for dynamic panels with persistent outcomes and
+#'     common factor dependence.
 #'   }
 #'   \item{CS-ARDL (Chudik and Pesaran, 2015)}{
-#'     \deqn{y_{it} = \phi_i y_{it-1} + x_{it}^\top \theta_i + \lambda_i^\top F_t + u_{it}}
+#'     Cross-sectionally augmented ARDL combines distributed-lag dynamics with
+#'     cross-sectional augmentation. A convenient error-correction
+#'     representation is
+#'
+#'     \deqn{
+#'     \Delta y_{it}
+#'     =
+#'     \alpha_i
+#'     + \phi_i \left( y_{i,t-1} - \theta_i^{\top} x_{i,t-1} \right)
+#'     + \sum_{j=1}^{P-1} \lambda_{ij} \Delta y_{i,t-j}
+#'     + \sum_{j=0}^{Q-1} \psi_{ij}^{\top} \Delta x_{i,t-j}
+#'     + \sum_{s=0}^{S} \bar{z}_{t-s}^{\top} \omega_{is}
+#'     + e_{it}.
+#'     }
+#'
+#'     Here \eqn{\theta_i} denotes the unit-specific long-run relationship,
+#'     \eqn{\phi_i} is the speed of adjustment, and the remaining terms capture
+#'     short-run dynamics and common cross-sectional components. The lag
+#'     structure is controlled through \code{lr} and \code{csa}.
 #'   }
 #' }
 #'
-#' ## Estimation, identification, and assumptions
+#' \strong{Identification and assumptions}
 #'
 #' \describe{
-#'   \item{MG}{Unit-by-unit estimation with heterogeneous slopes. The reported
-#'   coefficients are cross-sectional averages of unit estimates. Requires
-#'   sufficient time series per unit and weak serial dependence in errors.}
-#'   \item{CCE}{Augments regressions with cross-sectional averages (CSA) to proxy
-#'   unobserved common factors. Identification relies on large N and T, weak
-#'   dependence in idiosyncratic errors after CSA, and weak exogeneity of
-#'   regressors.}
-#'   \item{DCCE}{Extends CCE to dynamic settings with lagged dependent variables
-#'   and CSA lags. Identification relies on weak exogeneity, adequate time length
-#'   for dynamic lags, and a stable factor structure.}
-#'   \item{CS-ARDL}{Specifies dynamic distributed lags with CSA terms. Estimation
-#'   follows ARDL-style dynamics in each unit and aggregates to panel averages.
-#'   Assumes weak exogeneity and sufficient time length for lag structure.}
+#'   \item{MG}{
+#'   Requires sufficient time-series variation within each unit. Consistency is
+#'   based on unit-by-unit estimation and averaging across units.}
+#'   \item{CCE}{
+#'   Identification relies on cross-sectional averages acting as proxies for
+#'   latent common factors, together with adequate cross-sectional and time
+#'   dimensions and weak dependence in the remaining idiosyncratic component.}
+#'   \item{DCCE}{
+#'   In addition to the CCE assumptions, dynamic identification requires enough
+#'   time periods to support lagged dependent variables and lagged
+#'   cross-sectional averages.}
+#'   \item{CS-ARDL}{
+#'   Requires sufficient time length for the distributed-lag structure and is
+#'   intended for applications where both short-run dynamics and long-run
+#'   relationships are of interest in the presence of common factors.}
 #' }
 #'
 #' @references
