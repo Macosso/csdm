@@ -1,13 +1,126 @@
-url: ~
 template:
   bootstrap: 5
-
-navbar:
-  structure:
-    left:  [home, reference, articles]
-    right: [github]
+  bootswatch: flatly
+  bslib:
+    primary: "#0b1f3b"
+    secondary: "#1f3c88"
+    success: "#2c7fb8"
+    info: "#d0d8e8"
+    base_font:
+      google: "Inter"
+    heading_font:
+      google: "Inter"
+    code_font:
+      google: "Fira Code"
 
 home:
   title: "csdm"
+  description: >
+    Cross-sectional dependence modelling for heterogeneous panel data in R.
   tagline: "Cross-sectional dependence modelling"
 
+url: https://macosso.github.io/csdm/
+
+development:
+  mode: auto
+
+authors:
+  footer:
+    roles: [aut, cre]
+  sidebar:
+    roles: [aut, cre]
+
+navbar:
+  bg: primary
+  type: dark
+  structure:
+    left: [home, reference, articles, news]
+    right: [search, github]
+  components:
+    home:
+      text: "Home"
+      href: index.html
+    reference:
+      text: "Reference"
+      href: reference/index.html
+    articles:
+      text: "Articles"
+      menu:
+        - text: "Introduction to csdm"
+          href: articles/introduction_to_csdm.html
+    news:
+      text: "News"
+      href: news/index.html
+    github:
+      icon: fab fa-github
+      href: https://github.com/Macosso/csdm
+      aria-label: "GitHub repository"
+
+footer:
+  structure:
+    left: developed_by
+    right: built_with
+  components:
+    developed_by: "Developed by Joao Claudio Macosso"
+    built_with: "Built with pkgdown"
+
+reference:
+  - title: "Main modelling interface"
+    desc: >
+      Core user-facing functions for estimating heterogeneous panel models.
+    contents:
+      - csdm
+      - summary.csdm_fit
+      - print.summary.csdm_fit
+      - coef.csdm_fit
+      - fitted.csdm_fit
+      - residuals.csdm_fit
+      - vcov.csdm_fit
+
+  - title: "Estimators"
+    desc: >
+      Estimation methods implemented in the package.
+    contents:
+      - cce_mean_group
+      - dynamic_cce
+      - dcce
+      - cs_ardl
+      - mg_estimator
+      - pmg_estimator
+
+  - title: "Diagnostics and testing"
+    desc: >
+      Tools for cross-sectional dependence and related diagnostics.
+    contents:
+      - cd_test
+      - get_residuals
+      - starts_with("test_")
+      - starts_with("check_")
+
+  - title: "Utilities"
+    desc: >
+      Supporting functions for extraction, formatting, and internal workflows.
+    contents:
+      - starts_with("get_")
+      - starts_with("as_")
+      - starts_with("plot_")
+      - starts_with("tidy_")
+
+articles:
+  - title: "Get started"
+    navbar: "Articles"
+    contents:
+      - introduction_to_csdm
+
+news:
+  one_page: true
+
+toc:
+  depth: 3
+
+figures:
+  dev: ragg_png
+  dpi: 150
+  fig.width: 7
+  fig.height: 5
+  fig.retina: 2

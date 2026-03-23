@@ -142,7 +142,7 @@ cd_test(fit, type = "all")
 
 \insertRef{JuodisReese2021}{csdm}
 
-\insertRef{FanLiaoYao2015b}{csdm}
+\insertRef{FanLiaoYao2015}{csdm}
 
-\insertRef{PesaranXie2021b}{csdm}
+\insertRef{PesaranXie2021}{csdm}
 }

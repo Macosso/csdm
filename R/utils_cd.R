@@ -59,9 +59,9 @@
 #'
 #' \insertRef{JuodisReese2021}{csdm}
 #'
-#' \insertRef{FanLiaoYao2015b}{csdm}
+#' \insertRef{FanLiaoYao2015}{csdm}
 #'
-#' \insertRef{PesaranXie2021b}{csdm}
+#' \insertRef{PesaranXie2021}{csdm}
 #'
 #' @examples
 #' # Simulate independent and dependent panels

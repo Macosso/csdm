@@ -7,8 +7,6 @@
 
 The `csdm` package implements econometric methods for panel data with cross-sectional dependence (CSD). In many applications, observations across units (e.g., countries, firms, regions) are not independent—macroeconomic shocks, trade relationships, or spillovers create correlation across cross-sectional units. The `csdm` package provides robust estimators that account for this dependence structure, plus diagnostic tests to detect and characterize it.
 
-This vignette demonstrates four core estimation methods and related inference tools on real panel data from the Penn World Table (PWT).
-
 ## Methodology: Four Estimators
 
 ### Model Specification
