@@ -13,22 +13,22 @@ This vignette demonstrates four core estimation methods and related inference to
 
 ### Model Specification
 
-The `csdm()` interface estimates heterogeneous panel data models with optional cross-sectional augmentation and dynamic structure. Let \(i = 1, \ldots, N\) index cross-sectional units and \(t = 1, \ldots, T\) index time. A baseline heterogeneous panel model is
+The `csdm()` interface estimates heterogeneous panel data models with optional cross-sectional augmentation and dynamic structure. A baseline heterogeneous panel model is:
 
 $$
 y_{it} = \alpha_i + \beta_i' x_{it} + u_{it},
-\qquad i = 1, \ldots, N,\; t = 1, \ldots, T
+\qquad i = 1, \ldots, N\; t = 1, \ldots, T
 $$
 
 where:
 
-- \(y_{it}\) is the outcome variable for unit \(i\) at time \(t\)
-- \(\alpha_i\) is a unit-specific intercept
-- \(\beta_i\) is a \((k \times 1)\) vector of unit-specific slopes
-- \(x_{it}\) is a \((k \times 1)\) vector of explanatory variables
-- \(u_{it}\) is the error term, which may exhibit cross-sectional dependence
+- $y_{it}$ is the outcome variable for unit \(i\) at time \(t\)
+- $\alpha_i$ is a unit-specific intercept
+- $\beta_i$ is a \((k \times 1)\) vector of unit-specific slopes
+- $x_{it}$ is a \((k \times 1)\) vector of explanatory variables
+- $u_{it}$ is the error term, which may exhibit cross-sectional dependence
 
-The inner product \(\beta_i' x_{it}\) is scalar-valued. Heterogeneous slopes allow each unit to respond differently to the regressors. In many applications, cross-sectional dependence arises because the error term contains unobserved common factors. The estimators implemented in `csdm()` differ in how they handle this dependence and whether they allow for dynamic adjustment.
+The inner product $\beta_i' x_{it}$ is scalar-valued. Heterogeneous slopes allow each unit to respond differently to the regressors. In many applications, cross-sectional dependence arises because the error term contains unobserved common factors. The estimators implemented in `csdm()` differ in how they handle this dependence and whether they allow for dynamic adjustment.
 
 ---
 
@@ -44,7 +44,7 @@ $$
 
 **Interpretation**:
 
-- \(\hat{\beta}_{MG}\) is the cross-sectional average of the unit-specific estimates
+- $\hat{\beta}_{MG}$ is the cross-sectional average of the unit-specific estimates
 - all slope coefficients are allowed to differ across units
 
 **Properties**:
@@ -79,8 +79,8 @@ $$
 
 **Interpretation**:
 
-- \(\beta_i\) measures the unit-specific effect conditional on the included cross-sectional averages
-- \(\gamma_i\) captures unit-specific exposure to the common components proxied by \(\bar{z}_t\)
+- $\beta_i$ measures the unit-specific effect conditional on the included cross-sectional averages
+- $\gamma_i$ captures unit-specific exposure to the common components proxied by \(\bar{z}_t\)
 
 **Properties**:
 
@@ -96,15 +96,7 @@ $$
 
 The DCCE estimator extends CCE to dynamic settings by including lagged dependent variables, optional distributed lags of regressors, and lagged cross-sectional averages:
 
-$$
-y_{it}
-=
-\alpha_i
-+ \sum_{p=1}^{P} \phi_{ip} y_{i,t-p}
-+ \sum_{q=0}^{Q} \beta_{iq}' x_{i,t-q}
-+ \sum_{s=0}^{S} \delta_{is}' \bar{z}_{t-s}
-+ e_{it}
-$$
+$$ y_{it} = \alpha_i + \sum_{p=1}^{P} \phi_{ip} y_{i,t-p} + \sum_{q=0}^{Q} \beta_{iq}' x_{i,t-q} + \sum_{s=0}^{S} \delta_{is}' \bar{z}_{t-s} + e_{it} $$
 
 where the dynamic structure is controlled through `csdm_lr()` and the cross-sectional averages and their lags are controlled through `csdm_csa()`.
 
@@ -112,9 +104,9 @@ where the dynamic structure is controlled through `csdm_lr()` and the cross-sect
 
 **Interpretation**:
 
-- \(\phi_{ip}\) captures unit-specific persistence
-- \(\beta_{iq}\) captures contemporaneous and lagged effects of regressors
-- \(\delta_{is}\) captures the effect of contemporaneous and lagged common components
+- $\phi_{ip}$ captures unit-specific persistence
+- $\beta_{iq}$ captures contemporaneous and lagged effects of regressors
+- $\delta_{is}$ captures the effect of contemporaneous and lagged common components
 
 **Properties**:
 
@@ -133,26 +125,13 @@ In the current `csdm()` implementation, `model = "cs_ardl"` is obtained by first
 The underlying unit-level regression is
 
 $$
-y_{it}
-=
-\alpha_i
-+ \sum_{p=1}^{P} \phi_{ip} y_{i,t-p}
-+ \sum_{q=0}^{Q} \beta_{iq}' x_{i,t-q}
-+ \sum_{s=0}^{S} \omega_{is}' \bar{z}_{t-s}
-+ e_{it}
+y_{it} = \alpha_i + \sum_{p=1}^{P} \phi_{ip} y_{i,t-p} + \sum_{q=0}^{Q} \beta_{iq}' x_{i,t-q} + \sum_{s=0}^{S} \omega_{is}' \bar{z}_{t-s} + e_{it}
 $$
 
 From this dynamic specification, the implied error-correction form is
 
 $$
-\Delta y_{it}
-=
-\alpha_i
-+ \varphi_i \left( y_{i,t-1} - \theta_i' x_{i,t-1} \right)
-+ \sum_{j=1}^{P-1} \lambda_{ij} \Delta y_{i,t-j}
-+ \sum_{j=0}^{Q-1} \psi_{ij}' \Delta x_{i,t-j}
-+ \sum_{s=0}^{S} \tilde{\omega}_{is}' \bar{z}_{t-s}
-+ e_{it}
+\Delta y_{it} = \alpha_i + \varphi_i \left( y_{i,t-1} - \theta_i' x_{i,t-1} \right) + \sum_{j=1}^{P-1} \lambda_{ij} \Delta y_{i,t-j} + \sum_{j=0}^{Q-1} \psi_{ij}' \Delta x_{i,t-j} + \sum_{s=0}^{S} \tilde{\omega}_{is}' \bar{z}_{t-s} + e_{it}
 $$
 
 where the dynamic structure is controlled through `csdm_lr()` and the cross-sectional averages are supplied through `csdm_csa()`.
@@ -161,10 +140,10 @@ where the dynamic structure is controlled through `csdm_lr()` and the cross-sect
 
 **Interpretation**:
 
-- \(\theta_i\) is the unit-specific long-run relationship
-- \(\varphi_i\) is the implied speed of adjustment back toward equilibrium
-- \(\psi_{ij}\) captures short-run effects of changes in regressors
-- \(\tilde{\omega}_{is}\) captures the role of common cross-sectional components
+- $\theta_i$ is the unit-specific long-run relationship
+- $\varphi_i$ is the implied speed of adjustment back toward equilibrium
+- $\psi_{ij}$ captures short-run effects of changes in regressors
+- $\tilde{\omega}_{is}$ captures the role of common cross-sectional components
 
 **Properties**:
 
