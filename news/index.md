@@ -20,6 +20,8 @@ CRAN release: 2026-02-20
 
 ## csdm 1.0.1
 
+CRAN release: 2026-03-23
+
 ### Documentation and References enhancement
 
 #### References
