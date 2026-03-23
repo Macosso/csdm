@@ -28,6 +28,7 @@ library(csdm)
 The `csdm` package implements econometric methods for panel data with cross-sectional dependence (CSD). In many applications, observations across units (e.g., countries, firms, regions) are not independent—macroeconomic shocks, trade relationships, or spillovers create correlation across cross-sectional units. The `csdm` package provides robust estimators that account for this dependence structure, plus diagnostic tests to detect and characterize it.
 
 This vignette demonstrates four core estimation methods and related inference tools on real panel data from the Penn World Table (PWT).
+
 ## Methodology: Four Estimators
 
 ### Model Specification
@@ -36,7 +37,7 @@ The `csdm()` interface estimates heterogeneous panel data models with optional c
 
 $$
 y_{it} = \alpha_i + \beta_i' x_{it} + u_{it},
-\quad i = 1, \ldots, N,\; t = 1, \ldots, T
+\qquad i = 1, \ldots, N,\; t = 1, \ldots, T
 $$
 
 where:
@@ -113,32 +114,32 @@ $$
 
 ### 3. Dynamic CCE (DCCE) Estimator
 
-The DCCE estimator extends CCE to dynamic settings by including lagged dependent variables and lagged cross-sectional averages:
+The DCCE estimator extends CCE to dynamic settings by including lagged dependent variables, optional distributed lags of regressors, and lagged cross-sectional averages:
 
 $$
 y_{it}
 =
 \alpha_i
 + \sum_{p=1}^{P} \phi_{ip} y_{i,t-p}
-+ \beta_i' x_{it}
-+ \sum_{q=0}^{Q} \delta_{iq}' \bar{z}_{t-q}
++ \sum_{q=0}^{Q} \beta_{iq}' x_{i,t-q}
++ \sum_{s=0}^{S} \delta_{is}' \bar{z}_{t-s}
 + e_{it}
 $$
 
-where the lag structure is controlled through `csdm_lr()` and the cross-sectional averages and their lags are controlled through `csdm_csa()`.
+where the dynamic structure is controlled through `csdm_lr()` and the cross-sectional averages and their lags are controlled through `csdm_csa()`.
 
-**Key idea**: Dynamics are introduced directly in the unit equation, while lagged cross-sectional averages help absorb dynamic common factor dependence.
+**Key idea**: Dynamics are introduced directly in the unit equation, while lagged cross-sectional averages help absorb common factor dependence over time.
 
 **Interpretation**:
 
 - \(\phi_{ip}\) captures unit-specific persistence
-- \(\beta_i\) measures the effect of contemporaneous regressors
-- \(\delta_{iq}\) captures the effect of contemporaneous and lagged common components
+- \(\beta_{iq}\) captures contemporaneous and lagged effects of regressors
+- \(\delta_{is}\) captures the effect of contemporaneous and lagged common components
 
 **Properties**:
 
 - allows heterogeneous dynamic adjustment across units
-- combines lagged dependent variables with cross-sectional augmentation
+- combines lagged dependent variables, optional distributed lags, and cross-sectional augmentation
 - requires enough time periods to support the chosen lag structure
 
 **Use case**: When the outcome is persistent over time and cross-sectional dependence remains important.
@@ -147,35 +148,49 @@ where the lag structure is controlled through `csdm_lr()` and the cross-sectiona
 
 ### 4. Cross-Sectionally Augmented ARDL (CS-ARDL)
 
-The CS-ARDL estimator combines distributed-lag dynamics with cross-sectional augmentation. A convenient error-correction representation is
+In the current `csdm()` implementation, `model = "cs_ardl"` is obtained by first estimating a cross-sectionally augmented ARDL-style regression in levels, using the same dynamic specification as `model = "dcce"`, and then transforming the estimated unit-specific coefficients into adjustment and long-run parameters.
+
+The underlying unit-level regression is
+
+$$
+y_{it}
+=
+\alpha_i
++ \sum_{p=1}^{P} \phi_{ip} y_{i,t-p}
++ \sum_{q=0}^{Q} \beta_{iq}' x_{i,t-q}
++ \sum_{s=0}^{S} \omega_{is}' \bar{z}_{t-s}
++ e_{it}
+$$
+
+From this dynamic specification, the implied error-correction form is
 
 $$
 \Delta y_{it}
 =
 \alpha_i
-+ \phi_i \left( y_{i,t-1} - \theta_i' x_{i,t-1} \right)
++ \varphi_i \left( y_{i,t-1} - \theta_i' x_{i,t-1} \right)
 + \sum_{j=1}^{P-1} \lambda_{ij} \Delta y_{i,t-j}
 + \sum_{j=0}^{Q-1} \psi_{ij}' \Delta x_{i,t-j}
-+ \sum_{s=0}^{S} \omega_{is}' \bar{z}_{t-s}
++ \sum_{s=0}^{S} \tilde{\omega}_{is}' \bar{z}_{t-s}
 + e_{it}
 $$
 
 where the dynamic structure is controlled through `csdm_lr()` and the cross-sectional averages are supplied through `csdm_csa()`.
 
-**Key idea**: CS-ARDL separates short-run dynamics from long-run relationships while accounting for common cross-sectional components.
+**Key idea**: `cs_ardl` reports the implied short-run and long-run quantities from a cross-sectionally augmented ARDL fit.
 
 **Interpretation**:
 
 - \(\theta_i\) is the unit-specific long-run relationship
-- \(\phi_i\) is the speed of adjustment back toward equilibrium
+- \(\varphi_i\) is the implied speed of adjustment back toward equilibrium
 - \(\psi_{ij}\) captures short-run effects of changes in regressors
-- \(\omega_{is}\) captures the role of common cross-sectional components
+- \(\tilde{\omega}_{is}\) captures the role of common cross-sectional components
 
 **Properties**:
 
 - supports heterogeneous short-run and long-run dynamics
 - combines ARDL-style dynamics with cross-sectional augmentation
-- useful when long-run relationships and common shocks are both relevant
+- recovers adjustment and long-run coefficients from estimated lag polynomials rather than fitting a separate ECM directly
 
 **Use case**: When the objective is to study long-run relationships together with heterogeneous short-run adjustment in panels affected by common factors.
 
@@ -196,8 +211,8 @@ This design keeps the estimation interface consistent across the four estimators
 
 | Estimator | Heterogeneous Slopes | Cross-Sectional Averages | Dynamics | Long-Run Structure |
 |-----------|----------------------|--------------------------|----------|--------------------|
-| MG        | Yes                  | No                       | Optional via `lr` if specified | No |
-| CCE       | Yes                  | Yes                      | Optional via `lr` if specified | No |
+| MG        | Yes                  | No                       | No       | No |
+| CCE       | Yes                  | Yes                      | No       | No |
 | DCCE      | Yes                  | Yes                      | Yes      | No |
 | CS-ARDL   | Yes                  | Yes                      | Yes      | Yes |
 

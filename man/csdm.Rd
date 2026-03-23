@@ -2,7 +2,7 @@
 % Please edit documentation in R/csdm.R
 \name{csdm}
 \alias{csdm}
-\title{Panel Model Estimation with Cross Section Dependence}
+\title{Panel Model Estimation with Cross-Sectional Dependence}
 \usage{
 csdm(
   formula,
@@ -58,49 +58,117 @@ Use \code{\link[=summary]{summary()}}, \code{\link[=coef]{coef()}}, \code{\link[
 \code{\link[=cd_test]{cd_test()}} to access standard outputs.
 }
 \description{
-Estimate panel data models that allow for cross-sectional dependence and
-heterogeneous slopes. The interface supports Mean Group (MG), Common
-Correlated Effects (CCE), Dynamic CCE (DCCE), and Cross-Sectionally
-Augmented ARDL (CS-ARDL) estimators with consistent handling of
-cross-sectional averages, dynamic structure, and robust inference.
+Estimate heterogeneous panel data models with optional cross-sectional
+augmentation and dynamic structure. The interface supports Mean Group (MG),
+Common Correlated Effects (CCE), Dynamic CCE (DCCE), and
+Cross-Sectionally Augmented ARDL (CS-ARDL) estimators with a consistent
+specification workflow for cross-sectional averages, lag structure, and
+variance-covariance estimation.
 }
 \details{
-\subsection{Model equations}{
+Let \eqn{i = 1, \ldots, N} index cross-sectional units and
+\eqn{t = 1, \ldots, T} index time. A baseline heterogeneous panel model is
 
-\describe{
-\item{MG (Pesaran and Smith, 1995)}{
-\deqn{y_{it} = x_{it}^\top \beta_i + u_{it}}
-}
-\item{CCE (Pesaran, 2006)}{
-\deqn{y_{it} = x_{it}^\top \beta_i + \lambda_i^\top F_t + u_{it}}
-}
-\item{DCCE (Chudik and Pesaran, 2015)}{
-\deqn{\Delta y_{it} = \Delta x_{it}^\top \beta_i + \lambda_i^\top \Delta F_t + u_{it}}
-}
-\item{CS-ARDL (Chudik and Pesaran, 2015)}{
-\deqn{y_{it} = \phi_i y_{it-1} + x_{it}^\top \theta_i + \lambda_i^\top F_t + u_{it}}
-}
-}
-}
+\deqn{y_{it} = \alpha_i + \beta_i^T x_{it} + u_{it}.}
 
-\subsection{Estimation, identification, and assumptions}{
+Here \eqn{\alpha_i} is a unit-specific intercept, \eqn{x_{it}} is a vector
+of regressors, \eqn{\beta_i} is a vector of unit-specific slopes, and
+\eqn{u_{it}} is an error term that may exhibit cross-sectional dependence.
 
-\describe{
-\item{MG}{Unit-by-unit estimation with heterogeneous slopes. The reported
-coefficients are cross-sectional averages of unit estimates. Requires
-sufficient time series per unit and weak serial dependence in errors.}
-\item{CCE}{Augments regressions with cross-sectional averages (CSA) to proxy
-unobserved common factors. Identification relies on large N and T, weak
-dependence in idiosyncratic errors after CSA, and weak exogeneity of
-regressors.}
-\item{DCCE}{Extends CCE to dynamic settings with lagged dependent variables
-and CSA lags. Identification relies on weak exogeneity, adequate time length
-for dynamic lags, and a stable factor structure.}
-\item{CS-ARDL}{Specifies dynamic distributed lags with CSA terms. Estimation
-follows ARDL-style dynamics in each unit and aggregates to panel averages.
-Assumes weak exogeneity and sufficient time length for lag structure.}
-}
-}
+Cross-sectional averages are specified through \code{\link[=csdm_csa]{csdm_csa()}} and dynamic or
+long-run structure is specified through \code{\link[=csdm_lr]{csdm_lr()}}. This keeps the model
+interface consistent across estimators while allowing the degree of
+cross-sectional augmentation and lag structure to vary by application.
+
+\strong{Implemented estimators}
+
+\strong{MG (Pesaran and Smith, 1995)}
+
+The Mean Group estimator fits separate regressions for each unit and averages
+the resulting coefficients:
+
+\deqn{\hat{\beta}_{MG} = \frac{1}{N}\sum_{i=1}^N \hat{\beta}_i.}
+
+This estimator accommodates slope heterogeneity but does not explicitly model
+cross-sectional dependence.
+
+\strong{CCE (Pesaran, 2006)}
+
+Regressions are augmented with cross-sectional averages to proxy unobserved
+common factors:
+
+\deqn{y_{it} = \alpha_i + \beta_i^T x_{it} + \gamma_i^T \bar{z}_{t} + v_{it}.}
+
+A common choice is
+
+\deqn{\bar{z}_t = (\bar{y}_t, \bar{x}_t),}
+
+with
+
+\deqn{\bar{x}_t = \frac{1}{N}\sum_{i=1}^N x_{it}, \qquad
+\bar{y}_t = \frac{1}{N}\sum_{i=1}^N y_{it}.}
+
+More generally, \eqn{\bar{z}_t} collects the cross-sectional averages
+specified in \code{csa}.
+
+\strong{DCCE (Chudik and Pesaran, 2015)}
+
+Dynamic CCE extends CCE by allowing lagged dependent variables and lagged
+cross-sectional averages:
+
+\deqn{y_{it} = \alpha_i + \sum_{p=1}^{P} \phi_{ip} y_{i,t-p}
++ \beta_i^T x_{it}
++ \sum_{q=0}^{Q} \delta_{iq}^T \bar{z}_{t-q}
++ e_{it}.}
+
+In the package implementation, lagged dependent variables and distributed
+lags of regressors are controlled through \code{lr}, while contemporaneous
+and lagged cross-sectional averages are controlled through \code{csa}.
+
+\strong{CS-ARDL (Chudik and Pesaran, 2015)}
+
+In the package implementation, \code{model = "cs_ardl"} is obtained by first
+estimating a cross-sectionally augmented ARDL-style regression in levels,
+using the same dynamic specification as \code{model = "dcce"}, and then
+transforming the unit-specific coefficients into adjustment and long-run
+parameters.
+
+The underlying unit-level regression is of the form
+
+\deqn{y_{it} = \alpha_i + \sum_{p=1}^{P} \phi_{ip} y_{i,t-p}
++ \sum_{q=0}^{Q} \beta_{iq}^T x_{i,t-q}
++ \sum_{s=0}^{S} \omega_{is}^T \bar{z}_{t-s}
++ e_{it}.}
+
+From this dynamic specification, the package recovers the implied
+error-correction form
+
+\deqn{\Delta y_{it} =
+\alpha_i +
+\varphi_i \left(y_{i,t-1} - \theta_i^T x_{i,t-1}\right)
++ \sum_{j=1}^{P-1} \lambda_{ij} \Delta y_{i,t-j}
++ \sum_{j=0}^{Q-1} \psi_{ij}^T \Delta x_{i,t-j}
++ \sum_{s=0}^{S} \tilde{\omega}_{is}^T \bar{z}_{t-s}
++ e_{it},}
+
+where \eqn{\varphi_i} is the adjustment coefficient and \eqn{\theta_i} is
+the implied long-run relationship. In the current implementation, these
+quantities are computed from the estimated lag polynomials rather than from a
+direct ECM regression.
+
+\strong{Identification and assumptions}
+
+MG requires sufficient time-series variation within each unit.
+
+CCE relies on cross-sectional averages acting as proxies for latent common
+factors, together with adequate cross-sectional and time dimensions.
+
+DCCE additionally requires enough time periods to support lagged dependent
+variables, distributed lags, and lagged cross-sectional averages.
+
+CS-ARDL requires sufficient time length for the distributed-lag structure and
+is intended for applications where both short-run dynamics and long-run
+relationships are of interest in the presence of common factors.
 }
 \examples{
 library(csdm)
