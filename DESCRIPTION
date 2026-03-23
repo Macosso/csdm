@@ -16,7 +16,8 @@ Authors@R:
     person(given = c("Joao", "Claudio"), 
           family = "Macosso",
           email = "joaoclaudiomacosso@gmail.com",
-          role = c("aut", "cre"))
+          role = c("aut", "cre"),
+          comment = c(ORCID = "0009-0006-5051-9312"))
 URL: https://github.com/Macosso/csdm
 BugReports: https://github.com/Macosso/csdm/issues
 Description: Provides estimators and utilities for large panel-data models with cross-sectional dependence, including mean group (MG), common correlated effects (CCE) and dynamic CCE (DCCE) estimators, and cross-sectionally augmented ARDL (CS-ARDL) specifications, plus related inference and diagnostics.

@@ -4,6 +4,7 @@ author: "Joao Claudio Macosso"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 bibliography: "`r system.file('REFERENCES.bib', package = 'csdm')`"
+csl:  "`r system.file('apa.csl', package = 'csdm')`"
 nocite: |
   @*
 vignette: >
