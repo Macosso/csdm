@@ -1,0 +1,22 @@
+template:
+  bootstrap: 5
+  bootswatch: flatly
+  bslib:
+    primary: "#0b1f3b"
+    secondary: "#1f3c88"
+    success: "#2c7fb8"
+    info: "#d0d8e8"
+    base_font:
+      google: "Inter"
+    heading_font:
+      google: "Inter"
+    code_font:
+      google: "Fira Code"
+
+footer:
+  structure:
+    left: developed_by
+    right: built_with
+  components:
+    developed_by: "Developed by <a href='https://www.linkedin.com/in/jo%C3%A3o-cl%C3%A1udio-macosso-b99155a6/'>Joao Claudio Macosso</a>"
+    built_with: "Built with <a href='https://pkgdown.r-lib.org/'>pkgdown</a>"

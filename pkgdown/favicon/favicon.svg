@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="240" height="236"><svg width="240" height="236" viewBox="0 0 800 800">
+
+  <!-- Background Hexagon -->
+  <polygon points="400,50 700,225 700,575 400,750 100,575 100,225" fill="#0b1f3b" stroke="#0b1f3b" stroke-width="5"></polygon>
+
+  <!-- Background method labels kept inside polygon -->
+  <g opacity="0.13" font-family="Helvetica, Arial, sans-serif" font-weight="bold" fill="#dbe6ff">
+    <text x="180" y="175" font-size="34" transform="rotate(-16 180 175)">cs-ardl</text>
+    <text x="520" y="185" font-size="34" transform="rotate(14 520 185)">cce</text>
+    <text x="165" y="500" font-size="34" transform="rotate(-10 165 500)">dcce</text>
+    <text x="505" y="500" font-size="34" transform="rotate(12 505 500)">ccemg</text>
+    <text x="355" y="550" font-size="34" transform="rotate(12 505 500)">cs-ardl</text>
+    <text x="100" y="320" font-size="34" transform="rotate(12 505 500)">ccemg</text>
+    <text x="375" y="700" font-size="34" transform="rotate(12 505 500)">dcce</text>
+  </g>
+
+  <!-- Subtle network edges -->
+  <g opacity="0.10" stroke="#dbe6ff" stroke-width="2" fill="none">
+    <line x1="220" y1="200" x2="320" y2="320"></line>
+    <line x1="320" y1="320" x2="560" y2="200"></line>
+    <line x1="220" y1="500" x2="360" y2="430"></line>
+    <line x1="360" y1="430" x2="540" y2="490"></line>
+    <line x1="260" y1="230" x2="520" y2="455"></line>
+  </g>
+
+  <!-- Subtle network nodes -->
+  <g opacity="0.14" fill="#dbe6ff">
+    <circle cx="220" cy="200" r="7"></circle>
+    <circle cx="320" cy="320" r="7"></circle>
+    <circle cx="560" cy="200" r="7"></circle>
+    <circle cx="220" cy="500" r="7"></circle>
+    <circle cx="360" cy="430" r="7"></circle>
+    <circle cx="540" cy="490" r="7"></circle>
+    <circle cx="260" cy="230" r="7"></circle>
+    <circle cx="520" cy="455" r="7"></circle>
+  </g>
+
+  <!-- Package Name -->
+  <text x="400" y="220" font-family="Helvetica, Arial, sans-serif" font-size="90" fill="#ffffff" text-anchor="middle" font-weight="bold">csdm</text>
+
+  <!-- Panel Data Table -->
+  <g transform="translate(180,270)">
+    <!-- Outer box -->
+    <rect x="0" y="0" width="440" height="210" rx="6" fill="none" stroke="#ffffff" stroke-width="3"></rect>
+
+    <!-- Header background -->
+    <rect x="0" y="0" width="440" height="42" fill="#1f3c88" opacity="0.85"></rect>
+
+    <!-- Vertical lines -->
+    <line x1="70" y1="0" x2="70" y2="210" stroke="#ffffff" stroke-width="2"></line>
+    <line x1="150" y1="0" x2="150" y2="210" stroke="#ffffff" stroke-width="2"></line>
+    <line x1="295" y1="0" x2="295" y2="210" stroke="#ffffff" stroke-width="2"></line>
+
+    <!-- Horizontal lines -->
+    <line x1="0" y1="42" x2="440" y2="42" stroke="#ffffff" stroke-width="2"></line>
+    <line x1="0" y1="84" x2="440" y2="84" stroke="#ffffff" stroke-width="1.8"></line>
+    <line x1="0" y1="126" x2="440" y2="126" stroke="#ffffff" stroke-width="1.8"></line>
+    <line x1="0" y1="168" x2="440" y2="168" stroke="#ffffff" stroke-width="1.8"></line>
+
+    <!-- Header text -->
+    <text x="35" y="28" font-family="Helvetica, Arial, sans-serif" font-size="20" fill="#ffffff" text-anchor="middle" font-weight="bold">id</text>
+    <text x="110" y="28" font-family="Helvetica, Arial, sans-serif" font-size="20" fill="#ffffff" text-anchor="middle" font-weight="bold">t</text>
+    <text x="222" y="28" font-family="Helvetica, Arial, sans-serif" font-size="20" fill="#ffffff" text-anchor="middle" font-weight="bold">y</text>
+    <text x="367" y="28" font-family="Helvetica, Arial, sans-serif" font-size="20" fill="#ffffff" text-anchor="middle" font-weight="bold">x</text>
+
+    <!-- Row 1 -->
+    <text x="35" y="70" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">1</text>
+    <text x="110" y="70" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">1960</text>
+    <text x="222" y="70" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#d0d8e8" text-anchor="middle">
+      y<tspan baseline-shift="sub" font-size="11">(1,1960)</tspan>
+    </text>
+    <text x="367" y="70" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#d0d8e8" text-anchor="middle">
+      x<tspan baseline-shift="sub" font-size="11">(1,1960)</tspan>
+    </text>
+
+    <!-- Row 2 -->
+    <text x="35" y="112" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">2</text>
+    <text x="110" y="112" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">1980</text>
+    <text x="222" y="112" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#d0d8e8" text-anchor="middle">
+      y<tspan baseline-shift="sub" font-size="11">(2,1980)</tspan>
+    </text>
+    <text x="367" y="112" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#d0d8e8" text-anchor="middle">
+      x<tspan baseline-shift="sub" font-size="11">(2,1980)</tspan>
+    </text>
+
+    <!-- Row 3 -->
+    <text x="35" y="154" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">...</text>
+    <text x="110" y="154" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">...</text>
+    <text x="222" y="154" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#d0d8e8" text-anchor="middle">...</text>
+    <text x="367" y="154" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#d0d8e8" text-anchor="middle">...</text>
+
+    <!-- Row 4 -->
+    <text x="35" y="196" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">N</text>
+    <text x="110" y="196" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">T</text>
+    <text x="222" y="196" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#d0d8e8" text-anchor="middle">
+      y<tspan baseline-shift="sub" font-size="11">(N,T)</tspan>
+    </text>
+    <text x="367" y="196" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#d0d8e8" text-anchor="middle">
+      x<tspan baseline-shift="sub" font-size="11">(N,T)</tspan>
+    </text>
+  </g>
+
+  <!-- Subtitle -->
+  <text x="400" y="580" font-style="italic" font-family="Helvetica, Arial, sans-serif" font-size="30" fill="#d0d8e8" text-anchor="middle">
+    cross-sectional dependence modelling
+  </text>
+
+</svg></svg>

@@ -2,12 +2,18 @@
 title: "Introduction to csdm: Panel Data Models with Cross-Sectional Dependence"
 author: "Joao Claudio Macosso"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output: 
+  rmarkdown::html_vignette
+bibliography: "`r system.file('REFERENCES.bib', package = 'csdm')`"
+csl:  "`r system.file('apa.csl', package = 'csdm')`"
+nocite: |
+  @*
 vignette: >
   %\VignetteIndexEntry{Introduction to csdm}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
+
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
@@ -16,8 +22,13 @@ knitr::opts_chunk$set(
   warning = FALSE,
   message = FALSE
 )
+
 library(csdm)
 ```
+
+<img src="../man/figures/logo.svg" align="right" width="160"/>
+
+---
 
 ## Overview
 
@@ -27,70 +38,190 @@ This vignette demonstrates four core estimation methods and related inference to
 
 ## Methodology: Four Estimators
 
-
 ### Model Specification
 
-Consider a panel model with $T$ time periods and $N$ cross-sectional units (e.g., countries):
+The `csdm()` interface estimates heterogeneous panel data models with optional cross-sectional augmentation and dynamic structure. Let \(i = 1, \ldots, N\) index cross-sectional units and \(t = 1, \ldots, T\) index time. A baseline heterogeneous panel model is
 
-$$y_{it} = \alpha_i + \beta_i x_{it} + u_{it}, \quad i = 1, \ldots, N; \quad t = 1, \ldots, T$$
+$$
+y_{it} = \alpha_i + \beta_i' x_{it} + u_{it},
+\qquad i = 1, \ldots, N,\; t = 1, \ldots, T
+$$
 
 where:
-- $y_{it}$ is the outcome variable for unit $i$ at time $t$
-- $\alpha_i$ is a unit-specific intercept
-- $\beta_i$ is a unit-specific slope (heterogeneous across units)
-- $x_{it}$ is explanatory variable(s)
-- $u_{it}$ is the idiosyncratic error term
 
-The key feature is **heterogeneity in slopes** ($\beta_i$ varies by unit), which allows each unit to have its own relationship between $x$ and $y$. Four estimators are available to fit this model under different assumptions about cross-sectional dependence.
+- \(y_{it}\) is the outcome variable for unit \(i\) at time \(t\)
+- \(\alpha_i\) is a unit-specific intercept
+- \(\beta_i\) is a \((k \times 1)\) vector of unit-specific slopes
+- \(x_{it}\) is a \((k \times 1)\) vector of explanatory variables
+- \(u_{it}\) is the error term, which may exhibit cross-sectional dependence
+
+The inner product \(\beta_i' x_{it}\) is scalar-valued. Heterogeneous slopes allow each unit to respond differently to the regressors. In many applications, cross-sectional dependence arises because the error term contains unobserved common factors. The estimators implemented in `csdm()` differ in how they handle this dependence and whether they allow for dynamic adjustment.
+
+---
 
 ### 1. Mean Group (MG) Estimator
 
-The Mean Group (MG) estimator fits unit-specific regressions separately and averages the results:
+The Mean Group estimator fits separate regressions for each unit and averages the resulting coefficients:
 
-$$\hat{\beta}_{MG} = \frac{1}{N} \sum_{i=1}^{N} \hat{\beta}_i$$
+$$
+\hat{\beta}_{MG} = \frac{1}{N}\sum_{i=1}^N \hat{\beta}_i
+$$
 
-**Interpretation**: The MG coefficient is the simple average of individual unit slopes. It is consistent under mild regularity conditions and allows arbitrary cross-sectional dependence in errors $u_{it}$.
+**Key idea**: Estimation is performed unit by unit, with no pooling of slope coefficients across cross-sectional units.
 
-**Use case**: When dependence is present but you only care about average effects. MG is robust to forms of CSD that would break other methods.
+**Interpretation**:
+
+- \(\hat{\beta}_{MG}\) is the cross-sectional average of the unit-specific estimates
+- all slope coefficients are allowed to differ across units
+
+**Properties**:
+
+- accommodates slope heterogeneity
+- requires sufficient time-series information within each unit
+- does not explicitly model cross-sectional dependence
+
+**Use case**: A natural benchmark when the main concern is heterogeneous slopes and no explicit factor structure is imposed.
+
+---
 
 ### 2. Common Correlated Effects (CCE) Estimator
 
-The Common Correlated Effects (CCE) estimator augments the model with cross-sectional averages of regressors $\bar{x}_t = N^{-1} \sum_{i=1}^{N} x_{it}$:
+The CCE estimator augments each unit regression with cross-sectional averages to proxy unobserved common factors:
 
-$$y_{it} = \alpha_i + \beta_i x_{it} + \gamma_i \bar{x}_t + \gamma_i \bar{y}_t + v_{it}$$
+$$
+y_{it} = \alpha_i + \beta_i' x_{it} + \gamma_i' \bar{z}_t + v_{it}
+$$
 
-By including these cross-sectional mean terms, the estimator **controls for common factors** (unobserved shocks that affect all units similarly). The CCE approach is more efficient than MG when common factor structure is strong, while retaining robustness to CSD.
+where \(\bar{z}_t\) collects the cross-sectional averages specified through `csdm_csa()`, for example
 
-**Interpretation**: After accounting for common shocks, the $\beta_i$ coefficients represent unit-specific sensitivities net of factor loadings $\gamma_i$.
+$$
+\bar{z}_t = (\bar{y}_t, \bar{x}_t),
+\qquad
+\bar{x}_t = \frac{1}{N}\sum_{i=1}^N x_{it},
+\qquad
+\bar{y}_t = \frac{1}{N}\sum_{i=1}^N y_{it}.
+$$
 
-**Use case**: When cross-sectional dependence arises primarily from common shocks or latent factors.
+**Key idea**: Cross-sectional averages serve as proxies for latent common factors that induce dependence across units.
+
+**Interpretation**:
+
+- \(\beta_i\) measures the unit-specific effect conditional on the included cross-sectional averages
+- \(\gamma_i\) captures unit-specific exposure to the common components with \(\bar{z}_t\) as a proxy.
+
+**Properties**:
+
+- allows heterogeneous slopes
+- augments the regression with cross-sectional averages supplied through `csa`
+- suitable when cross-sectional dependence is driven by latent common shocks
+
+**Use case**: When dependence across units is believed to reflect common unobserved factors.
+
+---
 
 ### 3. Dynamic CCE (DCCE) Estimator
 
-The Dynamic Common Correlated Effects (DCCE) estimator extends CCE to include lagged dependent variable:
+The DCCE estimator extends CCE to dynamic settings by including lagged dependent variables, optional distributed lags of regressors, and lagged cross-sectional averages:
 
-$$y_{it} = \alpha_i + \lambda_i y_{it-1} + \beta_i x_{it} + \gamma_i \bar{x}_t + \gamma_i \bar{y}_t + v_{it}$$
+$$
+y_{it}
+=
+\alpha_i
++ \sum_{p=1}^{P} \phi_{ip} y_{i,t-p}
++ \sum_{q=0}^{Q} \beta_{iq}' x_{i,t-q}
++ \sum_{s=0}^{S} \delta_{is}' \bar{z}_{t-s}
++ e_{it}
+$$
 
-where $\lambda_i$ is the unit-specific autoregressive coefficient. DCCE is ideal for dynamic panel models (e.g., when studying persistence of outcomes over time).
+where the dynamic structure is controlled through `csdm_lr()` and the cross-sectional averages and their lags are controlled through `csdm_csa()`.
 
-**Interpretation**: $\lambda_i$ captures dynamic adjustment within units, $\beta_i$ measures the long-run effect after accounting for dynamics, and $\gamma_i$ adjusts for common factors.
+**Key idea**: Dynamics are introduced directly in the unit equation, while lagged cross-sectional averages help absorb common factor dependence over time.
 
-**Use case**: When the outcome has substantial persistence (lagged effects) and cross-sectional dependence is suspected.
+**Interpretation**:
+
+- \(\phi_{ip}\) captures unit-specific persistence
+- \(\beta_{iq}\) captures contemporaneous and lagged effects of regressors
+- \(\delta_{is}\) captures the effect of contemporaneous and lagged common components
+
+**Properties**:
+
+- allows heterogeneous dynamic adjustment across units
+- combines lagged dependent variables, optional distributed lags, and cross-sectional augmentation
+- requires enough time periods to support the chosen lag structure
+
+**Use case**: When the outcome is persistent over time and cross-sectional dependence remains important.
+
+---
 
 ### 4. Cross-Sectionally Augmented ARDL (CS-ARDL)
 
-The CS-ARDL model extends the ARDL framework with cross-sectional augmentation:
+In the current `csdm()` implementation, `model = "cs_ardl"` is obtained by first estimating a cross-sectionally augmented ARDL-style regression in levels, using the same dynamic specification as `model = "dcce"`, and then transforming the estimated unit-specific coefficients into adjustment and long-run parameters.
 
-$$\Delta y_{it} = \alpha_i + \lambda_i (y_{it-1} - \theta_i x_{it-1}) + \beta_i \Delta x_{it} + \hat{\gamma}_i \Delta \bar{x}_t + v_{it}$$
+The underlying unit-level regression is
 
-This model combines **autoregressive and distributed lag** dynamics. It separates short-run effects ($\beta_i$) from long-run cointegrating relationships ($\theta_i$), all while controlling for common factors.
+$$
+y_{it}
+=
+\alpha_i
++ \sum_{p=1}^{P} \phi_{ip} y_{i,t-p}
++ \sum_{q=0}^{Q} \beta_{iq}' x_{i,t-q}
++ \sum_{s=0}^{S} \omega_{is}' \bar{z}_{t-s}
++ e_{it}
+$$
 
-**Interpretation**: 
-- $\theta_i$ is the long-run equilibrium relationship (cointegrating coefficient)
-- $\beta_i$ is the short-run adjustment to shocks
-- $\lambda_i$ governs speed of reversion to equilibrium
+From this dynamic specification, the implied error-correction form is
 
-**Use case**: When studying long-run relationships in non-stationary panels with complex short-run dynamics.
+$$
+\Delta y_{it}
+=
+\alpha_i
++ \varphi_i \left( y_{i,t-1} - \theta_i' x_{i,t-1} \right)
++ \sum_{j=1}^{P-1} \lambda_{ij} \Delta y_{i,t-j}
++ \sum_{j=0}^{Q-1} \psi_{ij}' \Delta x_{i,t-j}
++ \sum_{s=0}^{S} \tilde{\omega}_{is}' \bar{z}_{t-s}
++ e_{it}
+$$
+
+where the dynamic structure is controlled through `csdm_lr()` and the cross-sectional averages are supplied through `csdm_csa()`.
+
+**Key idea**: `cs_ardl` reports the implied short-run and long-run quantities from a cross-sectionally augmented ARDL fit.
+
+**Interpretation**:
+
+- \(\theta_i\) is the unit-specific long-run relationship
+- \(\varphi_i\) is the implied speed of adjustment back toward equilibrium
+- \(\psi_{ij}\) captures short-run effects of changes in regressors
+- \(\tilde{\omega}_{is}\) captures the role of common cross-sectional components
+
+**Properties**:
+
+- supports heterogeneous short-run and long-run dynamics
+- combines ARDL-style dynamics with cross-sectional augmentation
+- recovers adjustment and long-run coefficients from estimated lag polynomials rather than fitting a separate ECM directly
+
+**Use case**: When the objective is to study long-run relationships together with heterogeneous short-run adjustment in panels affected by common factors.
+
+---
+
+### Cross-Sectional Averages and Dynamic Structure
+
+Two helper specifications control the main extensions in `csdm()`:
+
+- `csdm_csa()` defines which variables enter as cross-sectional averages and how many lags of those averages are included
+- `csdm_lr()` defines the dynamic or long-run structure, such as lagged dependent variables and distributed lags
+
+This design keeps the estimation interface consistent across the four estimators while allowing the model specification to vary by application.
+
+---
+
+### Summary
+
+| Estimator | Heterogeneous Slopes | Cross-Sectional Averages | Dynamics | Long-Run Structure |
+|-----------|----------------------|--------------------------|----------|--------------------|
+| MG        | Yes                  | No                       | No       | No |
+| CCE       | Yes                  | Yes                      | No       | No |
+| DCCE      | Yes                  | Yes                      | Yes      | No |
+| CS-ARDL   | Yes                  | Yes                      | Yes      | Yes |
 
 ## Data: Penn World Table Subset
 
@@ -209,7 +340,7 @@ fit_csardl <- csdm(
     vars = c("log_rgdpo", "log_hc", "log_ck", "log_ngd"), 
     lags = 3
   ),
-  lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 1)
+  lr = csdm_lr(type = "ardl", ylags = 1, xdlags = 0)
 )
 
 print(fit_csardl)
@@ -295,17 +426,8 @@ In practice, models that do not account for cross-sectional dependence (like MG 
 
 ## References
 
-Chudik, A., & Pesaran, M. H. (2013). Common correlated effects estimation of heterogeneous dynamic panel data models with weakly exogenous regressors. *Journal of Business and Economic Statistics*, 33(2), 232–247.
-
-Ditzen, J. (2021). Estimating dynamic common-correlated effects in Stata. *The Stata Journal*, 21(1), 39–59.
-
-Fan, J., Liao, Y., & Yao, J. (2015). Power-enhanced simultaneous test for high-dimensional covariance matrix. *Journal of the American Statistical Association*, 110(510), 325–337.
-
-Juodis, A., & Reese, S. (2022). The role of the *N/T* ratio in large N, large T panel time-series models. *Econometric Reviews*, 41(2), 221–261.
-
-Pesaran, M. H. (2007). A simple unit root test in the presence of cross-section dependence. *Journal of Applied Econometrics*, 22(2), 265–312.
-
-Pesaran, M. H., & Xie, Y. (2021). A bias-adjusted LM test of error cross-section independence. *Econometric Reviews*, 40(1), 7–24.
+::: {#refs}
+:::
 
 ---
 

@@ -136,19 +136,13 @@ cd_test(fit, type = "all")
 
 }
 \references{
-Pesaran, M.H. (2015). "Testing weak cross-sectional dependence in large panels."
-\emph{Econometric Reviews}, 34(6-10), 1089-1117.
+\insertRef{Pesaran2015}{csdm}
 
-Pesaran, M.H. (2021). "General diagnostic tests for cross-sectional dependence
-in panels." \emph{Empirical Economics}, 60, 13-50.
+\insertRef{Pesaran2021}{csdm}
 
-Juodis, A., & Reese, S. (2021). "The incidental parameters problem in testing for
-remaining cross-sectional correlation." \emph{Journal of Business and Economic Statistics},
-40(3), 1193-1203.
+\insertRef{JuodisReese2021}{csdm}
 
-Fan, J., Liao, Y., & Yao, J. (2015). "Power Enhancement in High-Dimensional
-Cross-Sectional Tests." \emph{Econometric Reviews}, 34(6-10), 742-779.
+\insertRef{FanLiaoYao2015}{csdm}
 
-Pesaran, M.H., & Xie, Y. (2021). "A bias-corrected CD test for error cross-sectional
-dependence in panel models." \emph{Econometric Reviews}, 41(6), 649-677.
+\insertRef{PesaranXie2021}{csdm}
 }
