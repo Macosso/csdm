@@ -1,6 +1,11 @@
-# csdm <a><img src="man/figures/logo.svg" align="right" height="138"/></a>
+<a><img src="man/figures/logo.svg" align="right" height="138"/></a>
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/Macosso/csdm/workflows/R-CMD-check/badge.svg)](https://github.com/Macosso/csdm/actions)
+[![CRAN status](https://www.r-pkg.org/badges/version/csdm)](https://CRAN.R-project.org/package=csdm)
+[![R-CMD-check](https://github.com/Macosso/csdm/workflows/R-CMD-check/badge.svg)](https://github.com/Macosso/csdm/actions) 
+[![CRAN Downloads](https://cranlogs.r-pkg.org/badges/csdm)]
+[![csdm status badge](https://macosso.r-universe.dev/csdm/badges/version)](https://macosso.r-universe.dev/csdm)
+[![name status badge](https://macosso.r-universe.dev/badges/:name)](https://macosso.r-universe.dev/)
+
 <!-- badges: end -->
 
 ## Overview
