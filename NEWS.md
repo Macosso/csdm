@@ -1,5 +1,7 @@
 # Development
 
+- Model updates retain evaluated subset, time spacing, missing-value policy, and pdata.frame time indexes.
+
 - Add tidy, glance, and augment methods with inference and row-alignment checks.
 
 - Add explicit R model accessors, original-row outputs, and stored-data updates.
@@ -61,5 +63,3 @@
 - Improved documentation for all functions, including detailed descriptions of the estimators, their assumptions, and
 - Ensured consistency in the documentation style across different documents
 - Added link for reporting bugs
-
-- Model updates retain evaluated subset, time spacing, missing-value policy, and pdata.frame time indexes.

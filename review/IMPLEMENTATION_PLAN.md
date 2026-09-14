@@ -1,6 +1,6 @@
 # csdm correctness and R interface implementation plan
 
-Status: proposed, awaiting user review. No package implementation changes are authorized until this plan is approved.
+Status: approved by the user; implementation and validation are recorded in IMPLEMENTATION_STATUS.md.
 
 Branch: `codex/correctness-and-r-interface`.
 Baseline: `78e661e18bc3ea0a3942d543b9cc71c4713c2942`, version 1.0.1.
@@ -26,7 +26,7 @@ New estimators (CS-DL, pooled/partially pooled CCE, PMG, IV-CCE), bias correctio
 
 ## Decisions to approve with the plan
 
-These are proposals, not assumptions. They determine implementation and tests.
+The user approved these decisions before implementation.
 
 1. **Missing/aliased economic coefficients:** default to a common set of units that identify every requested economic coefficient, with warnings and recorded reasons for exclusions. Reject a fit with fewer than two eligible units. Keep `mgmissing=TRUE` explicitly unsupported until a separately justified coefficient-specific covariance design is agreed. Distinguish redundant nuisance columns from unidentified economic coefficients.
 2. **Time semantics:** introduce an explicit numeric time-step argument, proposed name `time_step`, with default 1 for annual/integer-step panels. Validate that indexes lie on that grid and build lags by time-key matching. Non-unit grids require an explicit value. This milestone supports numeric time and numeric-like `pdata.frame` indexes; Date/year-quarter/year-month support requires a later explicit frequency design. Never compress gaps or silently infer a frequency.

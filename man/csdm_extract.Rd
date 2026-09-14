@@ -23,7 +23,7 @@
 \method{df.residual}{csdm_fit}(object, ...)
 }
 \arguments{
-\item{object, x}{A csdm_fit object.}
+\item{object, x, formula}{A csdm_fit object.}
 
 \item{...}{Further arguments.}
 }

@@ -48,7 +48,7 @@ pair to be included in CD/CDw/CDw+ (default 2).}
 
 \item{na.action}{How to handle missing data: \code{"drop.incomplete.times"}
 removes time periods with any missing observations to create a balanced panel for CD*;
-\code{"pairwise"} (default) uses pairwise correlations for CD/CDw/CDw+ and warns for CD*.}
+\code{"pairwise"} (default) uses pairwise correlations for CD; unbalanced CDw/CDw+ requests error and CD* warns.}
 
 \item{x}{An object of class \code{cd_test}.}
 
@@ -93,6 +93,11 @@ CD is computed on residuals after removing \code{n_pc} principal components
 from \eqn{E}. This provides a bias-corrected test under multifactor errors.
 }
 }
+
+CD* requires a nondegenerate bias-correction denominator. Near-zero
+denominators can produce severe size distortions, including proportional
+loading/error-scale designs after standardization. Numerical rank checks
+do not establish the validity of the asymptotic approximation.
 }
 
 \subsection{Missing data and balance}{
@@ -101,7 +106,7 @@ from \eqn{E}. This provides a bias-corrected test under multifactor errors.
 \item{CD}{Uses pairwise-complete observations by default. Each pairwise
 correlation uses available overlaps.}
 \item{CDw, CDw+}{Require a balanced sample; explicitly select complete times if desired.}
-\item{CD*}{Requires a balanced panel. By default, \code{na.action = "drop.incomplete.times"}
+\item{CD*}{Requires a balanced panel. Explicitly setting \code{na.action = "drop.incomplete.times"}
 removes any time period with missing observations. With \code{na.action = "pairwise"},
 CD* returns \code{NA} and a warning when missing values are present.}
 }

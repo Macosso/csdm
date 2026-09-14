@@ -19,7 +19,7 @@ PCA residuals, otherwise CCE residuals, otherwise \code{object} if it is a matri
 \item \code{"cce"}: residuals from the CCE-augmented per-unit regressions.
 \item \code{"pca"}: residuals after removing estimated factors from \eqn{\hat v_{it}}.
 \item \code{"pca_std"}: \code{"pca"} residuals standardized by unit-specific
-scale (recommended for CD).
+scale (changes the tested residuals).
 }}
 
 \item{strict}{Logical; if \code{TRUE}, error on unsupported objects. If \code{FALSE},

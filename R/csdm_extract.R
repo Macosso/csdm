@@ -4,7 +4,7 @@
 #' in panel order. formula() and terms() include constructed economic lags.
 #' nobs() counts estimated observations. df.residual() returns Inf for asymptotic
 #' normal MG inference; individual regression degrees of freedom are in object$units.
-#' @param object,x A csdm_fit object.
+#' @param object,x,formula A csdm_fit object.
 #' @param ... Further arguments.
 #' @name csdm_extract
 NULL

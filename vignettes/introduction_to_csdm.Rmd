@@ -184,7 +184,7 @@ $$
 
 where the dynamic structure is controlled through `csdm_lr()` and the cross-sectional averages are supplied through `csdm_csa()`.
 
-**Key idea**: `cs_ardl` reports the implied short-run and long-run quantities from a cross-sectionally augmented ARDL fit.
+**Key idea**: `cs_ardl` reports levels coefficients, adjustment, and long-run ratios from a cross-sectionally augmented ARDL fit.
 
 **Interpretation**:
 
@@ -328,7 +328,7 @@ summary(fit_dcce)
 ### Example 4: Cross-Sectionally Augmented ARDL (CS-ARDL)
 
 ```{r csardl-fit}
-# CS-ARDL: Separate short-run and long-run dynamics
+# CS-ARDL: Levels, adjustment, and long-run parameters
 # Includes lagged dependent and lagged regressors
 fit_csardl <- csdm(
   log_rgdpo ~ log_hc + log_ck + log_ngd,
@@ -347,7 +347,7 @@ print(fit_csardl)
 summary(fit_csardl)
 ```
 
-**Interpretation**: The CS-ARDL model returns both short-run coefficients (immediate response to shocks) and long-run coefficients (equilibrium effect after full adjustment). The long-run elasticities are often larger than short-run responses, consistent with gradual accumulation effects in capital and human capital.
+**Interpretation**: CS-ARDL returns levels ARDL coefficients, adjustment, and long-run ratios. It does not return the complete transformed ECM short-run parameterization. A long-run interpretation requires appropriate stability and economic assumptions; inspect the stored unit diagnostics and component sample counts.
 
 ## Cross-Sectional Dependence Testing
 
@@ -402,17 +402,17 @@ print(cd_mg)
 
 # Test CCE residuals for CSD
 set.seed(1234)
-cd_cce <- cd_test(fit_cce, type = "all")
+cd_cce <- cd_test(fit_cce, type = "all", na.action = "drop.incomplete.times", seed = 42)
 print(cd_cce)
 
 # Test DCCE residuals for CSD
 set.seed(1234)
-cd_dcce <- cd_test(fit_dcce, type = "CDw")
+cd_dcce <- cd_test(fit_dcce, type = "CDw", na.action = "drop.incomplete.times", seed = 42)
 print(cd_dcce)
 
 # Test CS-ARDL residuals for CSD
 set.seed(1234)
-cd_csardl <- cd_test(fit_csardl, type = "all")
+cd_csardl <- cd_test(fit_csardl, type = "all", na.action = "drop.incomplete.times", seed = 42)
 print(cd_csardl)
 ```
 
@@ -432,3 +432,58 @@ In practice, models that do not account for cross-sectional dependence (like MG 
 ---
 
 *For further details on the theoretical foundations and implementation of CSD-robust methods, see the documentation for `?csdm`, `?cd_test`, and `?summary.csdm_fit`.*
+
+## Development compatibility notes
+
+This development branch repairs estimation and inference defects. Refit saved
+models after upgrading; corrected samples and covariance calculations can change
+results. It is not yet a claim of full parity with Stata `xtdcce2`.
+
+- Panel keys must be unique and nonmissing. Numeric time indexes use
+  `time_step = 1` by default; specify another spacing explicitly. Lags preserve
+  missing periods. Numeric-like `pdata.frame` time indexes are supported.
+- `subset` is evaluated before estimation. `na.omit` and `na.exclude` remove
+  incomplete design rows; `na.fail` errors. Original-row vector and long outputs
+  pad all unestimated observations with missing values.
+- `csa = csdm_csa("_all")` averages the evaluated response and economic model
+  matrix columns, excluding intercepts and trends. This includes transformed
+  terms, factor contrasts, and interactions. CSA source rows have finite base
+  response and regressors after subsetting, before dynamic lag trimming and
+  unit identification checks. Means therefore need not use only final fitted
+  observations. Explicit CSA variable lists refer to numeric data columns.
+- Every economic coefficient must be identified after projecting out the CSA
+  space, with positive residual degrees of freedom. Redundant CSA columns are
+  removed; unidentified units are excluded with reasons in `fit$units`.
+  At least two eligible units are required. MG estimates and covariance use
+  the same units: covariance is the cross-unit sample covariance divided by N.
+- `coef(fit, component = "levels")`, `"adjustment"`, `"long_run"`, and `"all"`
+  select CS-ARDL parameters and matching `vcov()` blocks. Each component uses
+  its own common eligible unit sample. Combined output uses the intersection.
+  Undefined long-run ratios are excluded from ratio components. AR-root
+  diagnostics are retained; unstable roots are not automatically excluded.
+  Levels ARDL coefficients are not the full transformed short-run ECM coefficients.
+  Exact parameter relationships can make the combined covariance singular.
+- Inference uses large-N normal approximations; `df.residual(fit)` is `Inf`.
+  This does not remove short-T dynamic bias or establish cointegration.
+  Individual unit regression degrees of freedom are retained in `fit$units`.
+  Reported ordinary mean R-squared averages unit R-squared; the adjusted
+  statistic also accounts for unit residual degrees of freedom. Neither is a
+  pooled regression goodness-of-fit measure.
+- Fitting computes only classical pairwise CD. Request CDw, CDw+, or CD-star
+  explicitly with `cd_test()`. Weighted diagnostics require a balanced sample;
+  selecting complete times is explicit. Seeded calls restore the caller's RNG.
+  CDw uses pooled residual variance; CDw+ adds absolute correlations exceeding
+  `2 * sqrt(log(N) / T)`. These changes intentionally replace earlier formulas.
+  Large-N/T diagnostic approximations need suitable error assumptions; a small
+  sample or a passed test does not establish residual independence. CD-star is
+  unreliable when its bias-correction denominator approaches zero, including
+  proportional factor-loading/error-scale designs after standardization.
+- `nobs()`, `model.frame()`, `model.matrix()`, `terms()`, `formula()`,
+  `update()`, and `fitted()` now expose stored estimation metadata.
+  Matrix residual/fitted defaults are preserved; use `format = "vector"` or
+  `"long"` for original-row outputs. `tidy()`, `glance()`, and `augment()`
+  integrate with `broom` and `modelsummary`.
+- Pooling, alternative fit-level covariance specifications, estimation weights,
+  nondefault CSA scope/fullsample, CS-DL, CS-ECM, and new-data forecasting remain
+  unsupported and are rejected. Utility HC/cluster covariance functions do not
+  supply a justified replacement for MG inference automatically.

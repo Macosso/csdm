@@ -42,13 +42,18 @@
 #'   }
 #' }
 #'
+#' CD* requires a nondegenerate bias-correction denominator. Near-zero
+#' denominators can produce severe size distortions, including proportional
+#' loading/error-scale designs after standardization. Numerical rank checks
+#' do not establish the validity of the asymptotic approximation.
+#'
 #' ## Missing data and balance
 #'
 #' \describe{
 #'   \item{CD}{Uses pairwise-complete observations by default. Each pairwise
 #'   correlation uses available overlaps.}
 #'   \item{CDw, CDw+}{Require a balanced sample; explicitly select complete times if desired.}
-#'   \item{CD*}{Requires a balanced panel. By default, \code{na.action = "drop.incomplete.times"}
+#'   \item{CD*}{Requires a balanced panel. Explicitly setting \code{na.action = "drop.incomplete.times"}
 #'   removes any time period with missing observations. With \code{na.action = "pairwise"},
 #'   CD* returns \code{NA} and a warning when missing values are present.}
 #' }
@@ -106,7 +111,7 @@ cd_test <- function(object, ...) {
 #'   pair to be included in CD/CDw/CDw+ (default 2).
 #' @param na.action How to handle missing data: \code{"drop.incomplete.times"}
 #'   removes time periods with any missing observations to create a balanced panel for CD*;
-#'   \code{"pairwise"} (default) uses pairwise correlations for CD/CDw/CDw+ and warns for CD*.
+#'   \code{"pairwise"} (default) uses pairwise correlations for CD; unbalanced CDw/CDw+ requests error and CD* warns.
 #' @export
 #' @method cd_test default
 cd_test.default <- function(object,
