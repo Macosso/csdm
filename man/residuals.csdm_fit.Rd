@@ -4,12 +4,19 @@
 \alias{residuals.csdm_fit}
 \title{Extract residual matrix from a fitted csdm model}
 \usage{
-\method{residuals}{csdm_fit}(object, type = c("e", "u"), ...)
+\method{residuals}{csdm_fit}(
+  object,
+  type = c("e", "u"),
+  format = c("matrix", "vector", "long"),
+  ...
+)
 }
 \arguments{
 \item{object}{A fitted object of class \code{csdm_fit}.}
 
 \item{type}{Residual type. Currently only \code{"e"} is implemented.}
+
+\item{format}{Matrix, original-row vector, or long data (with NA padding).}
 
 \item{...}{Currently unused.}
 }

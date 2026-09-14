@@ -390,16 +390,17 @@ vcov.csdm_fit <- function(object, component = c("all", "levels", "adjustment", "
 #' [cd_test()].
 #'
 #' @param object A fitted object of class \code{csdm_fit}.
+#' @param format Matrix, original-row vector, or long data (with NA padding).
 #' @param type Residual type. Currently only \code{"e"} is implemented.
 #' @param ... Currently unused.
 #'
 #' @return A numeric matrix of residuals with dimensions \eqn{N x T}.
 #' @seealso [get_residuals()], [cd_test()], [predict.csdm_fit()]
 #' @export
-residuals.csdm_fit <- function(object, type = c("e", "u"), ...) {
+residuals.csdm_fit <- function(object, type = c("e", "u"), format = c("matrix", "vector", "long"), ...) {
   type <- match.arg(type)
   if (type == "u") stop("residuals(type='u') not implemented yet")
-  object$residuals_e
+  .csdm_observation_output(object, "residual", match.arg(format))
 }
 
 

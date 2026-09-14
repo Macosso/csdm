@@ -266,6 +266,7 @@ csdm <- function(
   fit$model <- model
   fit$id <- id
   fit$time <- time
+  fit$meta$requested_csa <- csa
   fit$meta$trend <- trend
   fit$meta$fullsample <- isTRUE(fullsample)
   fit$meta$mgmissing <- isTRUE(mgmissing)

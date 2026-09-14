@@ -1,5 +1,7 @@
 # Development
 
+- Add explicit R model accessors, original-row outputs, and stored-data updates.
+
 - Validate clustered covariance inputs and make residual transformations explicit.
 
 - Implement paper-defined pooled-variance CDw and correlation-scale CDw+ screening for balanced samples.
