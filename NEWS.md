@@ -1,5 +1,7 @@
 # Development
 
+- Construct model and CSA lags by explicit time-grid matching.
+
 - Validate panel keys and retain original observation identity when sorting.
 
 - Preserve named CSA lag specifications and reject invalid lag orders.

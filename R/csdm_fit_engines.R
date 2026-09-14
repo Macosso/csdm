@@ -396,11 +396,7 @@
         idxo <- idx[o]
         yv <- panel_work[[y_name]][idxo]
         for (k in seq_len(lr_ylags)) {
-          if (length(yv) <= k) {
-            lagv <- rep(NA_real_, length(yv))
-          } else {
-            lagv <- c(rep(NA_real_, k), yv[seq_len(length(yv) - k)])
-          }
+          lagv <- .csdm_lag(yv, panel_work[[time]][idxo], k, attr(panel_df, "csdm_time_step"))
           panel_work[[paste0("lag", k, "_", y_name)]][idxo] <- lagv
         }
       }
@@ -417,11 +413,7 @@
         for (xn in xnames) {
           xv <- panel_work[[xn]][idxo]
           for (k in seq_len(lr_xdlags)) {
-            if (length(xv) <= k) {
-              lagv <- rep(NA_real_, length(xv))
-            } else {
-              lagv <- c(rep(NA_real_, k), xv[seq_len(length(xv) - k)])
-            }
+            lagv <- .csdm_lag(xv, panel_work[[time]][idxo], k, attr(panel_df, "csdm_time_step"))
             panel_work[[paste0("lag", k, "_", xn)]][idxo] <- lagv
           }
         }
@@ -465,11 +457,7 @@
     if (L <= 0L) return(NULL)
     out <- vector("list", L)
     for (l in seq_len(L)) {
-      if (length(x) <= l) {
-        out[[l]] <- rep(NA_real_, length(x))
-      } else {
-        out[[l]] <- c(rep(NA_real_, l), x[seq_len(length(x) - l)])
-      }
+      out[[l]] <- .csdm_lag(x, csa_time[[time]], l, attr(panel_df, "csdm_time_step"))
     }
     out
   }

@@ -17,6 +17,7 @@ csdm(
   fullsample = FALSE,
   mgmissing = FALSE,
   vcov = csdm_vcov(),
+  time_step = 1,
   ...
 )
 }
@@ -48,6 +49,8 @@ provided values are ignored.}
 \item{mgmissing}{Logical; reserved for future extensions.}
 
 \item{vcov}{Variance-covariance specification, created by \code{\link[=csdm_vcov]{csdm_vcov()}}.}
+
+\item{time_step}{Positive numeric spacing of the time grid (default 1). Missing periods are preserved in lags.}
 
 \item{...}{Reserved for future extensions.}
 }

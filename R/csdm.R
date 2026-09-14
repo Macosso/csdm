@@ -26,6 +26,7 @@
 #' @param fullsample Logical; reserved for future extensions.
 #' @param mgmissing Logical; reserved for future extensions.
 #' @param vcov Variance-covariance specification, created by [csdm_vcov()].
+#' @param time_step Positive numeric spacing of the time grid (default 1). Missing periods are preserved in lags.
 #' @param ... Reserved for future extensions.
 #'
 #' @return An object of class \code{csdm_fit} containing estimated coefficients,
@@ -197,6 +198,7 @@ csdm <- function(
   fullsample = FALSE,
   mgmissing = FALSE,
   vcov = csdm_vcov(),
+  time_step = 1,
   ...
 ) {
   model <- match.arg(model)
@@ -212,13 +214,13 @@ csdm <- function(
     }
   }
 
-  panel_df <- .csdm_prepare_panel_df(data = data, id = id, time = time)
+  panel_df <- .csdm_prepare_panel_df(data = data, id = id, time = time, time_step = time_step)
 
   if (trend == "pooled") {
     stop("trend='pooled' is not implemented yet")
   }
   if (trend == "unit") {
-    panel_df$.csdm_trend__ <- .csdm_time_index(panel_df[[time]])
+    panel_df$.csdm_trend__ <- .csdm_time_index(panel_df[[time]], time_step)
     formula <- stats::update(formula, . ~ . + .csdm_trend__)
   }
 

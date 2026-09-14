@@ -1,6 +1,6 @@
 # csdm_internal_panel.R
 
-.csdm_prepare_panel_df <- function(data, id, time) {
+.csdm_prepare_panel_df <- function(data, id, time, time_step = 1) {
   if (inherits(data, "pdata.frame")) {
     df <- as.data.frame(data)
     idx <- attr(data, "index")
@@ -34,6 +34,10 @@
   }
   if (anyDuplicated(df[c(id, time)])) stop("Duplicate id/time cells are not allowed.")
 
+  if (!is.numeric(time_step) || length(time_step) != 1L ||
+      !is.finite(time_step) || time_step <= 0) stop("'time_step' must be finite and positive.")
+  grid <- (df[[time]] - min(df[[time]])) / time_step
+  if (any(abs(grid - round(grid)) > 1e-7)) stop("Time values do not lie on the specified time_step grid.")
   df[[id]] <- as.character(df[[id]])
   df$.csdm_rowid__ <- seq_len(nrow(df))
 
@@ -44,6 +48,7 @@
   rownames(df) <- as.character(df$.csdm_rowid__)
 
   # stable levels for downstream matrix shaping
+  attr(df, "csdm_time_step") <- time_step
   attr(df, "csdm_time_levels") <- sort(unique(df[[time]]))
   attr(df, "csdm_id_levels") <- sort(unique(df[[id]]))
 
@@ -51,7 +56,11 @@
 }
 
 
-.csdm_time_index <- function(time_vec) {
-  tt <- sort(unique(time_vec))
-  match(time_vec, tt)
+.csdm_time_index <- function(time_vec, time_step = 1) {
+  (time_vec - min(time_vec)) / time_step + 1
+}
+
+.csdm_lag <- function(x, time, lag, time_step = 1) {
+  grid <- round((time - min(time)) / time_step)
+  x[match(grid - lag, grid)]
 }
