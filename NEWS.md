@@ -1,5 +1,7 @@
 # Development
 
+- Validate panel keys and retain original observation identity when sorting.
+
 - Preserve named CSA lag specifications and reject invalid lag orders.
 - Reject unsupported estimation options instead of silently ignoring them.
 
