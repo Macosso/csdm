@@ -221,88 +221,12 @@
 
 
 
-# Compute fit statistics for csdm models, including robust R² (mg)
-#
-# R² (mg) is computed for the *model-predicted values on exactly the sample present in the final residual matrix*,
-# ensuring robustness to index/panel alignment and NA-handling issues. This matches the definition used in xtdcce2.
-# See .csdm_residual_matrix_r2 for the main logic.
 .csdm_compute_fit_stats <- function(panel_df, id, time, yname, residuals_e, cd_min_overlap = 2L) {
-  E <- residuals_e
-  nobs <- if (is.matrix(E)) sum(is.finite(E)) else NA_integer_
-
-  # R2 (mg) and R2_i are now computed in .csdm_residual_matrix_r2 and attached by the fit engine.
-  # This fallback block is retained for legacy or edge cases only.
-  R2_i <- NULL
-  R2_mg <- NA_real_
-  if (is.matrix(E) && is.character(yname) && length(yname) == 1L && yname %in% names(panel_df)) {
-    ids_levels <- rownames(E)
-    time_levels <- colnames(E)
-    Y <- matrix(NA_real_, nrow = length(ids_levels), ncol = length(time_levels),
-                dimnames = list(ids_levels, time_levels))
-    ii <- match(as.character(panel_df[[id]]), ids_levels)
-    tt <- match(as.character(panel_df[[time]]), time_levels)
-    keep <- is.finite(ii) & is.finite(tt)
-    if (any(keep)) {
-      Y[cbind(ii[keep], tt[keep])] <- as.numeric(panel_df[[yname]][keep])
-    }
-  }
-  # Classic CD test only (for model summary)
-  CD_stat <- NA_real_
-  CD_p <- NA_real_
-  # Advanced tests (not shown in summary by default)
-  CDw_stat <- NA_real_
-  CDw_p <- NA_real_
-  CDw_plus_stat <- NA_real_
-  CDw_plus_p <- NA_real_
-  CDstar_stat <- NA_real_
-  CDstar_p <- NA_real_
-  CDstar_n_pc <- NA_integer_
-
-  if (is.matrix(E) && nrow(E) >= 2L && ncol(E) >= 2L) {
-    # Compute classic CD
-    cd_classic <- tryCatch(
-      cd_test(E, type = "CD"),
-      error = function(e) NULL,
-      warning = function(w) NULL
-    )
-    if (!is.null(cd_classic) && !is.null(cd_classic$tests$CD)) {
-      CD_stat <- as.numeric(cd_classic$tests$CD$statistic)
-      CD_p <- as.numeric(cd_classic$tests$CD$p.value)
-    }
-
-    # Compute all tests for storage (user can access via cd_test later)
-    cd_all <- tryCatch(
-      suppressWarnings(cd_test(E, type = "all", n_pc = 4L)),
-      error = function(e) NULL
-    )
-    if (!is.null(cd_all) && !is.null(cd_all$tests)) {
-      if (!is.null(cd_all$tests$CDw)) {
-        CDw_stat <- as.numeric(cd_all$tests$CDw$statistic)
-        CDw_p <- as.numeric(cd_all$tests$CDw$p.value)
-      }
-      if (!is.null(cd_all$tests$CDw_plus)) {
-        CDw_plus_stat <- as.numeric(cd_all$tests$CDw_plus$statistic)
-        CDw_plus_p <- as.numeric(cd_all$tests$CDw_plus$p.value)
-      }
-      if (!is.null(cd_all$tests$CDstar)) {
-        CDstar_stat <- as.numeric(cd_all$tests$CDstar$statistic)
-        CDstar_p <- as.numeric(cd_all$tests$CDstar$p.value)
-        if (!is.null(cd_all$tests$CDstar$n_pc)) {
-          CDstar_n_pc <- as.integer(cd_all$tests$CDstar$n_pc)
-        }
-      }
-    }
-  }
-
-  list(
-    nobs = as.integer(nobs),
-    CD_stat = as.numeric(CD_stat),
-    CD_p = as.numeric(CD_p),
-    CDw_stat = as.numeric(CDw_stat),
-    CDw_p = as.numeric(CDw_p),
-    CDw_plus_stat = as.numeric(CDw_plus_stat),
-    CDw_plus_p = as.numeric(CDw_plus_p),
-    CDstar_stat = as.numeric(CDstar_stat),
-    CDstar_p = as.numeric(CDstar_p),
-    CDstar_n_pc = as.integer(CDstar_n_pc)  )
+  diagnostic <- tryCatch(cd_test(residuals_e, type = "CD", na.action = "pairwise",
+    min_overlap = cd_min_overlap), error = function(e) list(reason = conditionMessage(e)))
+  cd <- diagnostic$tests$CD
+  list(nobs = sum(is.finite(residuals_e)),
+    CD_stat = if (is.null(cd)) NA_real_ else cd$statistic,
+    CD_p = if (is.null(cd)) NA_real_ else cd$p.value,
+    CD_sample = diagnostic, CD_reason = diagnostic$reason)
 }

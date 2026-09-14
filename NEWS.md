@@ -1,5 +1,7 @@
 # Development
 
+- Make randomized diagnostics opt-in, preserve seeded RNG state, and use pairwise classical CD samples.
+
 - Align CS-ARDL parameter components and covariance; expose AR stability and ratio eligibility.
 
 - Correct variance-of-mean scaling for fixed-weight MG covariance and document its assumptions.

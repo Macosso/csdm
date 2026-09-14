@@ -15,7 +15,7 @@ cd_test(object, ...)
   n_pc = 4L,
   seed = NULL,
   min_overlap = 2L,
-  na.action = c("drop.incomplete.times", "pairwise"),
+  na.action = c("pairwise", "drop.incomplete.times"),
   ...
 )
 
@@ -25,7 +25,7 @@ cd_test(object, ...)
   n_pc = 4L,
   seed = NULL,
   min_overlap = 2L,
-  na.action = c("drop.incomplete.times", "pairwise"),
+  na.action = c("pairwise", "drop.incomplete.times"),
   ...
 )
 
@@ -41,14 +41,14 @@ cd_test(object, ...)
 
 \item{n_pc}{Number of principal components for CD* (default 4).}
 
-\item{seed}{Integer seed for weight draws in CDw/CDw+ (default NULL = no seed set).}
+\item{seed}{Integer seed for weight draws. Seeded calls restore the caller's RNG state; NULL uses the current RNG stream.}
 
 \item{min_overlap}{Minimum number of overlapping time periods required for a unit
 pair to be included in CD/CDw/CDw+ (default 2).}
 
-\item{na.action}{How to handle missing data: \code{"drop.incomplete.times"} (default)
+\item{na.action}{How to handle missing data: \code{"drop.incomplete.times"}
 removes time periods with any missing observations to create a balanced panel for CD*;
-\code{"pairwise"} uses pairwise correlations for CD/CDw/CDw+ and warns for CD*.}
+\code{"pairwise"} (default) uses pairwise correlations for CD/CDw/CDw+ and warns for CD*.}
 
 \item{x}{An object of class \code{cd_test}.}
 

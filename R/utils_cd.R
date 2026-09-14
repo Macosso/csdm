@@ -100,12 +100,12 @@ cd_test <- function(object, ...) {
 #' @param type Which test(s) to compute: one of \code{"CD"}, \code{"CDw"}, \code{"CDw+"},
 #'   \code{"CDstar"}, or \code{"all"} (default: \code{"CD"}).
 #' @param n_pc Number of principal components for CD* (default 4).
-#' @param seed Integer seed for weight draws in CDw/CDw+ (default NULL = no seed set).
+#' @param seed Integer seed for weight draws. Seeded calls restore the caller's RNG state; NULL uses the current RNG stream.
 #' @param min_overlap Minimum number of overlapping time periods required for a unit
 #'   pair to be included in CD/CDw/CDw+ (default 2).
-#' @param na.action How to handle missing data: \code{"drop.incomplete.times"} (default)
+#' @param na.action How to handle missing data: \code{"drop.incomplete.times"}
 #'   removes time periods with any missing observations to create a balanced panel for CD*;
-#'   \code{"pairwise"} uses pairwise correlations for CD/CDw/CDw+ and warns for CD*.
+#'   \code{"pairwise"} (default) uses pairwise correlations for CD/CDw/CDw+ and warns for CD*.
 #' @export
 #' @method cd_test default
 cd_test.default <- function(object,
@@ -113,7 +113,7 @@ cd_test.default <- function(object,
                             n_pc = 4L,
                             seed = NULL,
                             min_overlap = 2L,
-                            na.action = c("drop.incomplete.times", "pairwise"),
+                            na.action = c("pairwise", "drop.incomplete.times"),
                             ...) {
   type <- match.arg(type)
   na.action <- match.arg(na.action)
@@ -126,7 +126,25 @@ cd_test.default <- function(object,
     stop("cd_test: At least 2 units and 2 time periods required.")
   }
 
-  E <- object  # N x T matrix
+  min_overlap <- .csdm_integer(min_overlap, "min_overlap")
+  if (min_overlap < 2L) stop("'min_overlap' must be at least two.")
+  if (any(is.infinite(object))) stop("Residuals may contain NA, but not infinite values.")
+  if (!is.null(seed)) {
+    seed <- .csdm_integer(seed, "seed")
+    had_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    if (had_seed) old_seed <- get(".Random.seed", envir = .GlobalEnv)
+    on.exit({
+      if (had_seed) assign(".Random.seed", old_seed, envir = .GlobalEnv)
+      else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(".Random.seed", envir = .GlobalEnv)
+    }, add = TRUE)
+  }
+  usable <- apply(object, 1L, function(x) {
+    x <- x[is.finite(x)]
+    length(x) >= min_overlap && stats::sd(x) > 0
+  })
+  if (sum(usable) < 2L) stop("At least two nonconstant units with sufficient observations are required.")
+  excluded_units <- which(!usable)
+  E <- object[usable, , drop = FALSE]
 
   # Handle missing data
   if (na.action == "drop.incomplete.times" && anyNA(E)) {
@@ -257,6 +275,8 @@ cd_test.default <- function(object,
     N = N,
     T = Tt,
     na.action = na.action,
+    excluded_units = excluded_units,
+    kept_times = colnames(E),
     call = match.call()
   )
   class(res) <- "cd_test"
@@ -271,7 +291,7 @@ cd_test.csdm_fit <- function(object,
                               n_pc = 4L,
                               seed = NULL,
                               min_overlap = 2L,
-                              na.action = c("drop.incomplete.times", "pairwise"),
+                              na.action = c("pairwise", "drop.incomplete.times"),
                               ...) {
   type <- match.arg(type)
   na.action <- match.arg(na.action)
@@ -378,9 +398,9 @@ print.cd_test <- function(x, digits = 3, ...) {
     return(list(statistic = NA_real_, p.value = NA_real_, pairs_used = 0L))
   }
 
-  # Normalize by number of pairs used (not total pairs)
+  # The Pesaran normalization uses the retained number of units.
   cd_stat <- sqrt(2 / (N * (N - 1))) * cd_sum
-  cd_p <- 2 * (1 - stats::pnorm(abs(cd_stat)))
+  cd_p <- 2 * stats::pnorm(abs(cd_stat), lower.tail = FALSE)
 
   list(statistic = cd_stat, p.value = cd_p, pairs_used = as.integer(pairs_used))
 }
