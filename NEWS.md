@@ -1,5 +1,7 @@
 # Development
 
+- Use one eligible unit sample for MG means and covariance; require at least two units.
+
 - Check structural identification after CSA projection and report excluded units.
 
 - Evaluate model formulas, transformed CSA variables, subset, and missing-value policies consistently.

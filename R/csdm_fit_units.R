@@ -39,6 +39,8 @@
   if (length(dropped)) warning("Excluded unit(s): ", paste(dropped, collapse = ", "),
     ". See fit$units for identification/sample reasons.", call. = FALSE)
   if (length(dropped) == length(ids)) stop("No identified units with positive residual degrees of freedom.")
+  included <- setdiff(ids, dropped)
+  if (length(included) < 2L) stop("At least two identified units are required for mean-group inference.")
   res <- panel_df[c(id, time)]; res$residual <- e
   fv <- panel_df[c(id, time)]; fv$xb <- xb
   E <- .csdm_residual_matrix(panel_df, id, time, res)
@@ -52,13 +54,14 @@
   stats$R2_mg <- r2$R2_mg
   stats$R2_ols_mg <- r2$R2_ols_mg
   used <- is.finite(e)
-  list(model = model, id = id, time = time, coef_mg = colMeans(B, na.rm = TRUE),
+  list(model = model, id = id, time = time, coef_mg = colMeans(B[included, , drop = FALSE]),
     se_mg = sqrt(diag(V)), vcov_mg = V, coef_i = B, residuals_e = E, fitted_xb = fitted,
     stats = stats, units = units, model_frame = economic$frame[used, , drop = FALSE],
     model_matrix = economic$X[used, , drop = FALSE], augmented_matrix = X[used, , drop = FALSE],
     terms = economic$terms, fitted_formula = econ_formula,
     contrasts = attr(economic$X, "contrasts"),
     sample = data.frame(row = panel_df$.csdm_rowid__, used = used, residual = e, fitted = xb),
-    meta = list(N = length(ids), T = ncol(E), csa = csa,
+    meta = list(N = length(included), N_observed = length(ids), N_used = length(included),
+      included_units = included, T = ncol(E), T_used = rowSums(is.finite(E)), csa = csa,
       dropped_units = dropped))
 }
