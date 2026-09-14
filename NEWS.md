@@ -1,5 +1,7 @@
 # Development
 
+- Correct HC0-HC3 sandwich meat and avoid dense hat matrices.
+
 - Use one eligible unit sample for MG means and covariance; require at least two units.
 
 - Check structural identification after CSA projection and report excluded units.

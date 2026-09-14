@@ -94,27 +94,17 @@ cluster_vcov <- function(X, u, cluster, df_correction = TRUE,
 #' @export
 sandwich_vcov <- function(X, u, type = c("HC0", "HC1", "HC2", "HC3")) {
   type <- match.arg(type)
-  X <- as.matrix(X)
-  u <- as.numeric(u)
+  design <- .csdm_ols_design(X, u)
+  X <- design$X; u <- design$u
   n <- nrow(X); k <- ncol(X)
-
-  XtX_inv <- tryCatch(solve(crossprod(X)), error = function(e) MASS::ginv(crossprod(X)))
-  # leverage h_ii
-  H <- X %*% XtX_inv %*% t(X)
-  h <- pmin(1, pmax(0, diag(H))) # clamp numerically
-
-  # scale residuals per HC type
-  w <- switch(
-    type,
-    HC0 = u,
-    HC1 = u * sqrt(n/(n - k)),
-    HC2 = u / sqrt(1 - h),
-    HC3 = u / (1 - h)
-  )
-
-  # meat = X' diag(w^2) X
-  meat <- crossprod(X, w * X)
-  vc <- XtX_inv %*% meat %*% XtX_inv
+  h <- rowSums(qr.Q(design$qr)^2)
+  if (type %in% c("HC2", "HC3") && any(1 - h <= .Machine$double.eps^0.5)) {
+    stop("HC2/HC3 are undefined for leverage-one observations.")
+  }
+  adjusted <- switch(type, HC0 = u, HC1 = u * sqrt(n / (n - k)),
+    HC2 = u / sqrt(1 - h), HC3 = u / (1 - h))
+  meat <- crossprod(X * adjusted)
+  vc <- design$bread %*% meat %*% design$bread
   dimnames(vc) <- list(colnames(X), colnames(X))
   vc
 }
@@ -195,4 +185,16 @@ pooled_vcov <- function(beta_i, weights = NULL, pairwise = TRUE) {
   # when using population covariance with weights normalized to 1.
   dimnames(V) <- list(cn, cn)
   V
+}
+
+
+.csdm_ols_design <- function(X, u) {
+  X <- as.matrix(X)
+  if (!is.numeric(X) || !ncol(X) || !is.numeric(u) || length(u) != nrow(X) ||
+      any(!is.finite(X)) || any(!is.finite(u))) stop("Supply a finite numeric design and aligned residual vector.")
+  q <- qr(X)
+  if (q$rank < ncol(X) || nrow(X) <= ncol(X)) stop("A full-rank design with positive residual degrees of freedom is required.")
+  inverse <- chol2inv(qr.R(q))
+  bread <- inverse[order(q$pivot), order(q$pivot), drop = FALSE]
+  list(X = X, u = as.numeric(u), qr = q, bread = bread)
 }
