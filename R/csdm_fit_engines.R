@@ -177,66 +177,47 @@
   denom_i <- 1 - alpha_sum
   adj_i <- -denom_i
 
-  eps <- 1e-8
-  ok_denom <- is.finite(denom_i) & (abs(denom_i) > eps)
-
-  lr_i <- matrix(NA_real_, nrow = nrow(coef_i), ncol = length(xnames))
-  colnames(lr_i) <- paste0("lr_", xnames)
-  rownames(lr_i) <- unit_ids
-
-  if (length(xnames)) {
-    for (j in seq_along(xnames)) {
-      xn <- xnames[[j]]
-      beta_terms <- c(xn, paste0("lag", seq_len(lr_xdlags), "_", xn))
-      beta_mat <- coef_i[, intersect(beta_terms, colnames(coef_i)), drop = FALSE]
-      beta_sum <- if (ncol(beta_mat)) rowSums(beta_mat) else rep(NA_real_, nrow(coef_i))
-      lr_i[, j] <- beta_sum / denom_i
-    }
+  ok_denom <- is.finite(denom_i) & abs(denom_i) > 1e-8
+  lr_i <- matrix(NA_real_, nrow(coef_i), length(xnames),
+    dimnames = list(unit_ids, if (length(xnames)) paste0("lr_", xnames) else character()))
+  for (j in seq_along(xnames)) {
+    beta_terms <- c(xnames[j], if (lr_xdlags > 0L) paste0("lag", seq_len(lr_xdlags), "_", xnames[j]))
+    if (!all(beta_terms %in% colnames(coef_i))) stop("Long-run effects require numeric scalar regressors.")
+    lr_i[ok_denom, j] <- rowSums(coef_i[ok_denom, beta_terms, drop = FALSE]) / denom_i[ok_denom]
   }
+  adjustment <- matrix(adj_i, ncol = 1L, dimnames = list(unit_ids, paste0("lr_", yname)))
+  combined <- cbind(coef_i, adjustment, lr_i)
+  if (anyDuplicated(colnames(combined))) stop("Long-run parameter names collide with economic terms.")
+  components <- lapply(list(all = combined, levels = coef_i, adjustment = adjustment, long_run = lr_i),
+    .csdm_parameter_component)
+  excluded_lr <- setdiff(fit$meta$included_units, components$all$units)
+  if (length(excluded_lr)) warning("Undefined long-run ratios for unit(s): ", paste(excluded_lr, collapse = ", "),
+    ". Component samples are recorded in fit$components.", call. = FALSE)
+  roots <- lapply(seq_len(nrow(alpha_mat)), function(i) {
+    a <- alpha_mat[i, ]
+    if (any(!is.finite(a))) return(NA_complex_)
+    polyroot(c(1, -a))
+  })
+  names(roots) <- unit_ids
+  stable <- vapply(roots, function(r) if (anyNA(r)) NA else all(Mod(r) > 1), logical(1))
+  fit$components <- components
+  default <- components$all
+  lr_terms <- colnames(lr_i)
+  fit$cs_ardl <- list(y = yname, x = xnames, ylags = lr_ylags, xdlags = lr_xdlags,
+    unit_ids = unit_ids, denom_i = stats::setNames(denom_i, unit_ids),
+    adj_i = stats::setNames(adj_i, unit_ids), lr_i = lr_i, ar_roots = roots, stable = stable,
+    mg = list(adj = c(estimate = default$coefficients[colnames(adjustment)],
+      se = sqrt(diag(default$vcov))[colnames(adjustment)]),
+      lr = data.frame(term = lr_terms, estimate = unname(default$coefficients[lr_terms]),
+        se = unname(sqrt(diag(default$vcov))[lr_terms]), n_used = rep(default$n_used, length(lr_terms)))))
+  names(fit$cs_ardl$mg$adj) <- c("estimate", "se")
+  fit
+}
 
-  if (any(!ok_denom)) {
-    warning("cs_ardl: excluding ", sum(!ok_denom), " unit(s) from adjustment/long-run reporting due to near-zero or missing (1 - sum(alpha_y_lags))")
-  }
-
-  used_adj <- ok_denom & is.finite(adj_i)
-  n_used_adj <- sum(used_adj)
-  adj_est <- if (n_used_adj) mean(adj_i[used_adj]) else NA_real_
-  adj_se <- if (n_used_adj >= 2L) stats::sd(adj_i[used_adj]) / sqrt(n_used_adj) else NA_real_
-
-  lr_terms <- paste0("lr_", xnames)
-  lr_est <- rep(NA_real_, length(xnames))
-  lr_se <- rep(NA_real_, length(xnames))
-  lr_n  <- rep(0L, length(xnames))
-  if (length(xnames)) {
-    for (j in seq_along(xnames)) {
-      v <- lr_i[, j]
-      used <- ok_denom & is.finite(v)
-      lr_n[[j]] <- sum(used)
-      lr_est[[j]] <- if (lr_n[[j]]) mean(v[used]) else NA_real_
-      lr_se[[j]] <- if (lr_n[[j]] >= 2L) stats::sd(v[used]) / sqrt(lr_n[[j]]) else NA_real_
-    }
-  }
-
-  fit$cs_ardl <- list(
-    y = yname,
-    x = xnames,
-    ylags = lr_ylags,
-    xdlags = lr_xdlags,
-    unit_ids = unit_ids,
-    denom_i = stats::setNames(as.numeric(denom_i), unit_ids),
-    adj_i = stats::setNames(as.numeric(adj_i), unit_ids),
-    lr_i = lr_i,
-    mg = list(
-      adj = c(estimate = adj_est, se = adj_se),
-      lr = data.frame(
-        term = lr_terms,
-        estimate = lr_est,
-        se = lr_se,
-        n_used = lr_n,
-        stringsAsFactors = FALSE
-      )
-    )
-  )
-
-  return(fit)
+.csdm_parameter_component <- function(B) {
+  keep <- rowSums(!is.finite(B)) == 0L
+  used <- B[keep, , drop = FALSE]
+  estimate <- if (nrow(used)) colMeans(used) else stats::setNames(rep(NA_real_, ncol(B)), colnames(B))
+  list(coefficients = estimate, vcov = .csdm_mg_vcov(used),
+    n_used = nrow(used), units = rownames(used), unit_coefficients = used)
 }

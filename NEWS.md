@@ -1,5 +1,7 @@
 # Development
 
+- Align CS-ARDL parameter components and covariance; expose AR stability and ratio eligibility.
+
 - Correct variance-of-mean scaling for fixed-weight MG covariance and document its assumptions.
 
 - Correct HC0-HC3 sandwich meat and avoid dense hat matrices.

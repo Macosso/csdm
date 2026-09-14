@@ -31,7 +31,7 @@ test_that("cs_ardl summary prints CS-ARDL blocks", {
   )
 
   out <- utils::capture.output(summary(fit))
-  expect_true(any(grepl("Short Run Est\\.", out)))
+  expect_true(any(grepl("Levels ARDL Est\\.", out)))
   expect_true(any(grepl("Adjust\\. Term", out)))
   expect_true(any(grepl("Long Run Est\\.", out)))
   expect_true(any(grepl("R-squared \\(mg\\)", out)))

@@ -21,8 +21,8 @@ print.csdm_fit <- function(x, digits = 4, ...) {
   }
 
   if (length(x$coef_mg)) {
-    est <- x$coef_mg
-    se  <- x$se_mg
+    est <- stats::coef(x)
+    se <- sqrt(diag(stats::vcov(x)))
     tab <- data.frame(
       Estimate = as.numeric(est),
       Std.Error = as.numeric(se[names(est)]),
@@ -79,8 +79,8 @@ print.csdm_fit <- function(x, digits = 4, ...) {
 #' s
 #' @export
 summary.csdm_fit <- function(object, digits = 4, ...) {
-  est <- object$coef_mg
-  se  <- object$se_mg
+  est <- stats::coef(object)[names(object$coef_mg)]
+  se <- sqrt(diag(stats::vcov(object)))[names(est)]
   z   <- est / se[names(est)]
   p   <- 2 * (1 - stats::pnorm(abs(z)))
 
@@ -280,7 +280,7 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     # Print CD test (classic only)
     .csdm_print_cd_tests(x$stats, digits, classic_only = TRUE)
 
-    cat("Short Run Est.\n")
+    cat("Levels ARDL Est.\n")
     tab <- x$tables$short_run
     tab[] <- lapply(tab, function(col) if (is.numeric(col)) round(col, digits) else col)
     print(tab)
@@ -352,24 +352,15 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
 #' @param object A fitted object of class \code{csdm_fit}.
 #' @param ... Currently unused.
 #'
+#' @param component Parameter block. For CS-ARDL, all uses one common sample
+#'   for the joint parameter vector; individual components may retain more units.
 #' @return A named numeric vector of estimated coefficients.
 #' @seealso [summary.csdm_fit()], [vcov.csdm_fit()]
 #' @export
-coef.csdm_fit <- function(object, ...) {
-  if (identical(object$model, "cs_ardl") && !is.null(object$cs_ardl) && !is.null(object$cs_ardl$mg)) {
-    lr_y <- setNames(
-      as.numeric(object$cs_ardl$mg$adj[["estimate"]]),
-      paste0("lr_", object$cs_ardl$y)
-    )
-    lr_x <- numeric(0)
-    if (!is.null(object$cs_ardl$mg$lr) && nrow(object$cs_ardl$mg$lr)) {
-      lr_x <- stats::setNames(
-        as.numeric(object$cs_ardl$mg$lr$estimate),
-        as.character(object$cs_ardl$mg$lr$term)
-      )
-    }
-    return(c(object$coef_mg, lr_y, lr_x))
-  }
+coef.csdm_fit <- function(object, component = c("all", "levels", "adjustment", "long_run"), ...) {
+  component <- match.arg(component)
+  if (!is.null(object$components)) return(object$components[[component]]$coefficients)
+  if (!component %in% c("all", "levels")) stop("This model has no long-run component.")
   object$coef_mg
 }
 
@@ -379,11 +370,15 @@ coef.csdm_fit <- function(object, ...) {
 #' @param object A fitted object of class \code{csdm_fit}.
 #' @param ... Currently unused.
 #'
+#' @param component Parameter block, matching coef().
 #' @return A numeric variance-covariance matrix aligned with \code{coef(object)}
 #'   for models where this is available.
 #' @seealso [coef.csdm_fit()], [summary.csdm_fit()]
 #' @export
-vcov.csdm_fit <- function(object, ...) {
+vcov.csdm_fit <- function(object, component = c("all", "levels", "adjustment", "long_run"), ...) {
+  component <- match.arg(component)
+  if (!is.null(object$components)) return(object$components[[component]]$vcov)
+  if (!component %in% c("all", "levels")) stop("This model has no long-run component.")
   object$vcov_mg
 }
 
