@@ -18,3 +18,11 @@ test_that("unsupported settings cannot silently succeed", {
   expect_error(csdm(y ~ x, d, "id", "time", lr = csdm_lr(type = "ardl", ylags = 1)), "Use model")
   expect_error(csdm(y ~ x, d, "id", "time", csa = list()), "construct")
 })
+
+test_that("inactive CSA requests cannot silently succeed", {
+  d <- panel_fixture()
+  expect_error(csdm(y ~ x, d, "id", "time", csa = csdm_csa("x")), "MG does not")
+  expect_error(csdm(y ~ x, d, "id", "time", csa = csdm_csa(lags = 1)), "MG does not")
+  expect_error(csdm(y ~ x, d, "id", "time", model = "dcce",
+    csa = csdm_csa("_none", lags = 1)), "CSA lags require")
+})

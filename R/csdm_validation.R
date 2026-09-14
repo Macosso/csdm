@@ -31,6 +31,12 @@
   if (!identical(csa$scope, "estimation") || !is.null(csa$cluster)) {
     stop("Only csa scope='estimation' without cluster is implemented.", call. = FALSE)
   }
+  if (model == "mg" && (length(csa$vars) != 1L || !csa$vars %in% c("_all", "_none") || any(csa$lags != 0L) || !is.null(names(csa$lags)))) {
+    stop("MG does not use cross-sectional averages; use model='cce' or 'dcce'.", call. = FALSE)
+  }
+  if (identical(csa$vars, "_none") && (any(csa$lags != 0L) || !is.null(names(csa$lags)))) {
+    stop("CSA lags require CSA variables.", call. = FALSE)
+  }
   if (!is.null(pooled$vars) || pooled$constant || pooled$trend) {
     stop("Pooled restrictions are not implemented.", call. = FALSE)
   }
