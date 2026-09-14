@@ -17,7 +17,7 @@
 #'     \item \code{"cce"}: residuals from the CCE-augmented per-unit regressions.
 #'     \item \code{"pca"}: residuals after removing estimated factors from \eqn{\hat v_{it}}.
 #'     \item \code{"pca_std"}: \code{"pca"} residuals standardized by unit-specific
-#'       scale (recommended for CD).
+#'       scale (changes the tested residuals).
 #'   }
 #' @param strict Logical; if \code{TRUE}, error on unsupported objects. If \code{FALSE},
 #'   return \code{NULL} when residuals cannot be found.
@@ -89,6 +89,10 @@ get_residuals <- function(object,
 
   # Handle supported class: csdm_fit
   if (inherits(object, "csdm_fit")) {
+    if (!type %in% c("auto", "cce")) {
+      if (strict) stop("This fit does not store PCA residuals.")
+      return(NULL)
+    }
     M <- as_mat(object$residuals_e)
     if (is.matrix(M) && is.numeric(M)) return(M)
   }
@@ -130,7 +134,7 @@ get_residuals <- function(object,
 #' \enumerate{
 #'   \item Dropping time periods with fewer than \code{min_per_time} finite observations.
 #'   \item Optional row-wise standardization to unit variance over available times.
-#'   \item Optional demeaning across units at each time (recommended for CD).
+#'   \item Optional demeaning across units at each time (changes the tested residuals).
 #' }
 #'
 #' @param E A numeric matrix of residuals (\eqn{N x T}); rows are units,
@@ -185,12 +189,15 @@ get_residuals <- function(object,
 #' @export
 prepare_cd_input <- function(E,
                              standardize = c("row", "none"),
-                             demean_time = TRUE,
+                             demean_time = FALSE,
                              min_per_time = 2L) {
   if (!is.matrix(E) || !is.numeric(E)) {
     stop("prepare_cd_input(): E must be a numeric matrix (N x T).")
   }
   standardize <- match.arg(standardize)
+  .csdm_flag(demean_time, "demean_time")
+  min_per_time <- .csdm_integer(min_per_time, "min_per_time")
+  if (min_per_time < 1L) stop("'min_per_time' must be positive.")
   N <- nrow(E)
   T_n <- ncol(E)
 
@@ -220,7 +227,7 @@ prepare_cd_input <- function(E,
     }
   }
 
-  # 3) Demean across units at each time (optional but recommended for CD)
+  # 3) Demean across units at each time (changes the tested residuals)
   col_means <- rep(0, ncol(Z))
   if (isTRUE(demean_time)) {
     for (j in seq_len(ncol(Z))) {

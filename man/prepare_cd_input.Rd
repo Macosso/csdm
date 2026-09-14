@@ -7,7 +7,7 @@
 prepare_cd_input(
   E,
   standardize = c("row", "none"),
-  demean_time = TRUE,
+  demean_time = FALSE,
   min_per_time = 2L
 )
 }
@@ -38,7 +38,7 @@ dependence testing. Operations include:
 \enumerate{
 \item Dropping time periods with fewer than \code{min_per_time} finite observations.
 \item Optional row-wise standardization to unit variance over available times.
-\item Optional demeaning across units at each time (recommended for CD).
+\item Optional demeaning across units at each time (changes the tested residuals).
 }
 }
 \details{

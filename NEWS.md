@@ -1,5 +1,7 @@
 # Development
 
+- Validate clustered covariance inputs and make residual transformations explicit.
+
 - Implement paper-defined pooled-variance CDw and correlation-scale CDw+ screening for balanced samples.
 
 - Correct CD-star unit-specific residual scales and validate PCA rank.

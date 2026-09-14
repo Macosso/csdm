@@ -22,61 +22,32 @@
 cluster_vcov <- function(X, u, cluster, df_correction = TRUE,
                          type = c("oneway", "twoway")) {
   type <- match.arg(type)
-  X <- as.matrix(X)
-  u <- as.numeric(u)
+  .csdm_flag(df_correction, "df_correction")
+  design <- .csdm_ols_design(X, u)
+  X <- design$X; u <- design$u
   n <- nrow(X); k <- ncol(X)
-
-  XtX_inv <- tryCatch(solve(crossprod(X)), error = function(e) MASS::ginv(crossprod(X)))
-
-  # helper: meat for one set of clusters
-  .meat_oneway <- function(gids) {
-    gids <- as.vector(gids)
-    # compute S_g = X_g' u_g, accumulate S_g S_g'
-    ug <- split(u, gids)
-    Xg <- split.data.frame(as.data.frame(X), gids)
-    # accumulate efficiently
-    acc <- matrix(0, k, k)
-    for (g in intersect(names(ug), names(Xg))) {
-      Xg_mat <- as.matrix(Xg[[g]])
-      ug_vec <- as.numeric(ug[[g]])
-      Sg <- crossprod(Xg_mat, ug_vec)      # k x 1
-      acc <- acc + tcrossprod(Sg)          # k x k
-    }
-    # small-sample correction (Liang-Zeger + Bell-McCaffrey style)
-    if (df_correction) {
-      G <- length(unique(gids))
-      if (G <= 1L) warning("Only one cluster found; cluster correction not meaningful.")
-      c1 <- G/(G - 1)
-      c2 <- (n - 1)/(n - k)
-      acc <- acc * (c1 * c2)
-    }
-    acc
+  groups <- if (is.list(cluster)) cluster else list(cluster)
+  expected <- if (type == "oneway") 1L else 2L
+  if (length(groups) != expected) stop("Supply exactly ", expected, " cluster vector(s).")
+  valid <- vapply(groups, function(g) is.atomic(g) && length(g) == n && !anyNA(g) &&
+    (!is.numeric(g) || all(is.finite(g))), logical(1))
+  if (!all(valid)) stop("Cluster vectors must be nonmissing and aligned with observations.")
+  meat_one <- function(g) {
+    G <- length(unique(g))
+    if (G < 2L) stop("At least two clusters are required.")
+    scores <- rowsum(X * u, as.character(g), reorder = FALSE)
+    meat <- crossprod(scores)
+    if (df_correction) meat <- meat * G / (G - 1) * (n - 1) / (n - k)
+    meat
   }
-
-  if (type == "oneway") {
-    if (is.data.frame(cluster) || is.list(cluster)) {
-      cluster <- unlist(cluster, use.names = FALSE)
-    }
-    meat <- .meat_oneway(cluster)
-  } else { # twoway
-    if (!(is.list(cluster) || is.data.frame(cluster)) || length(cluster) != 2L) {
-      stop("For type = 'twoway', 'cluster' must be a list/data.frame of two cluster vectors.")
-    }
-    g1 <- as.vector(cluster[[1]])
-    g2 <- as.vector(cluster[[2]])
-    g12 <- interaction(g1, g2, drop = TRUE)
-
-    meat1  <- .meat_oneway(g1)
-    meat2  <- .meat_oneway(g2)
-    meat12 <- .meat_oneway(g12)
-
-    # Inclusion-exclusion
-    meat <- meat1 + meat2 - meat12
+  meat <- meat_one(groups[[1L]])
+  if (type == "twoway") {
+    joint <- interaction(groups[[1L]], groups[[2L]], drop = TRUE, lex.order = TRUE)
+    meat <- meat + meat_one(groups[[2L]]) - meat_one(joint)
   }
-
-  vc <- XtX_inv %*% meat %*% XtX_inv
-  dimnames(vc) <- list(colnames(X), colnames(X))
-  vc
+  V <- design$bread %*% meat %*% design$bread
+  dimnames(V) <- list(colnames(X), colnames(X))
+  V
 }
 
 
