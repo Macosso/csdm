@@ -1,5 +1,7 @@
 # Development
 
+- Correct variance-of-mean scaling for fixed-weight MG covariance and document its assumptions.
+
 - Correct HC0-HC3 sandwich meat and avoid dense hat matrices.
 
 - Use one eligible unit sample for MG means and covariance; require at least two units.

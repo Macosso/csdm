@@ -25,8 +25,13 @@ using the cross-sectional covariance of unit-specific slopes and dividing by the
 effective sample sizes per coefficient (handles missing entries per unit).
 }
 \details{
-For equal weights, diagonal entries coincide with \eqn{\widehat{\mathrm{Var}}(\hat\beta_{ij}) / N_{\text{eff},j}}.
-Off-diagonals are scaled analogously using pairwise effective N. If \code{weights} are
-provided, computes \eqn{\mathrm{Var}(\sum_i w_i \hat\beta_i)} using a weighted covariance.
+Weights are fixed relative weights, normalized on the retained units.
+The calculation assumes independent unit estimates with a common covariance:
+the weighted sample covariance is divided by \eqn{1-\sum_i w_i^2}, then
+multiplied by \eqn{\sum_i w_i^2}. Equal weights give sample covariance divided by N.
+With missing coefficients, use pairwise=FALSE to select one complete-unit
+sample. Pairwise covariance with missing coefficients is not implemented.
+This is not an inverse-variance pooled estimator or a general covariance
+estimator for arbitrary unit-specific covariance matrices.
 }
 \keyword{internal}

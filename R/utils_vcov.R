@@ -126,64 +126,37 @@ sandwich_vcov <- function(X, u, type = c("HC0", "HC1", "HC2", "HC3")) {
 #' @returns A \code{K x K} covariance matrix for the MG mean, with
 #'   \code{dimnames} inherited from \code{colnames(beta_i)}.
 #' @details
-#' For equal weights, diagonal entries coincide with \eqn{\widehat{\mathrm{Var}}(\hat\beta_{ij}) / N_{\text{eff},j}}.
-#' Off-diagonals are scaled analogously using pairwise effective N. If \code{weights} are
-#' provided, computes \eqn{\mathrm{Var}(\sum_i w_i \hat\beta_i)} using a weighted covariance.
+#' Weights are fixed relative weights, normalized on the retained units.
+#' The calculation assumes independent unit estimates with a common covariance:
+#' the weighted sample covariance is divided by \eqn{1-\sum_i w_i^2}, then
+#' multiplied by \eqn{\sum_i w_i^2}. Equal weights give sample covariance divided by N.
+#' With missing coefficients, use pairwise=FALSE to select one complete-unit
+#' sample. Pairwise covariance with missing coefficients is not implemented.
+#' This is not an inverse-variance pooled estimator or a general covariance
+#' estimator for arbitrary unit-specific covariance matrices.
 #'
 #' @keywords internal
 #' @export
 pooled_vcov <- function(beta_i, weights = NULL, pairwise = TRUE) {
   B <- as.matrix(beta_i)
-  N <- nrow(B); K <- ncol(B)
-  cn <- colnames(B)
-
-  if (is.null(weights)) {
-    w <- rep(1/N, N)
-  } else {
-    w <- as.numeric(weights)
-    if (length(w) != N) stop("weights must have length equal to nrow(beta_i).")
-    if (any(w < 0)) stop("weights must be nonnegative.")
-    s <- sum(w)
-    if (!isTRUE(all.equal(s, 1))) w <- w / s
+  .csdm_flag(pairwise, "pairwise")
+  if (!is.numeric(B) || !ncol(B)) stop("'beta_i' must be a numeric matrix with columns.")
+  w <- if (is.null(weights)) rep(1, nrow(B)) else weights
+  if (!is.numeric(w) || length(w) != nrow(B) || any(!is.finite(w) | w < 0) || sum(w) <= 0) {
+    stop("Weights must be finite, nonnegative, aligned with units, and have positive sum.")
   }
-
-  # Weighted means per column (ignoring NAs)
-  wmean <- function(x, w) {
-    ok <- is.finite(x)
-    if (!any(ok)) return(NA_real_)
-    sum(w[ok] * x[ok]) / sum(w[ok])
-  }
-  mu <- vapply(seq_len(K), function(j) wmean(B[, j], w), numeric(1))
-
-  # Weighted covariance (pairwise if requested)
-  V <- matrix(NA_real_, K, K)
-  for (a in seq_len(K)) {
-    for (b in a:K) {
-      xa <- B[, a]; xb <- B[, b]
-      ok <- is.finite(xa) & is.finite(xb)
-      if (!any(ok)) {
-        V[a, b] <- V[b, a] <- NA_real_
-        next
-      }
-      wa <- w[ok]
-      xa <- xa[ok]; xb <- xb[ok]
-      # center
-      ma <- sum(wa * xa) / sum(wa)
-      mb <- sum(wa * xb) / sum(wa)
-      # weighted covariance (population vs sample): use population denom sum(w)
-      cov_ab <- sum(wa * (xa - ma) * (xb - mb)) / sum(wa)
-      # For equal weights, the variance of the mean divides by N_eff implicitly via sum(w)
-      # For unequal weights, this already yields Var(sum w_i beta_i) directly.
-      V[a, b] <- V[b, a] <- cov_ab
-    }
-  }
-
-  # For equal weights, above gives cov of beta across units.
-  # Convert to cov of the (weighted) mean: multiply by scaling factor:
-  # If weights are equal, Var(mean) = Cov / N_eff (done by sum(w) in pop cov).
-  # If weights unequal, the formula above already corresponds to Var(sum w_i beta_i)
-  # when using population covariance with weights normalized to 1.
-  dimnames(V) <- list(cn, cn)
+  complete <- rowSums(!is.finite(B)) == 0
+  if (pairwise && any(!complete & w > 0)) stop("Pairwise covariance with missing coefficients is not implemented; use pairwise=FALSE for a common complete-unit sample.")
+  keep <- complete & w > 0
+  B <- B[keep, , drop = FALSE]
+  w <- w[keep]
+  if (length(w) < 2L) stop("At least two complete units with positive weights are required.")
+  w <- w / sum(w)
+  concentration <- sum(w^2)
+  dev <- sweep(B, 2L, colSums(B * w), "-")
+  # Unbiased common-covariance estimate, then Var(sum(w_i * beta_i)).
+  V <- crossprod(dev * sqrt(w)) * concentration / (1 - concentration)
+  dimnames(V) <- list(colnames(B), colnames(B))
   V
 }
 
