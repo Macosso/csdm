@@ -262,6 +262,9 @@ csdm <- function(
     structure(setdiff(selected, fit$sample$row[fit$sample$used]), class = "exclude")
   } else structure(setdiff(selected, fit$sample$row[fit$sample$used]), class = "omit")
   fit$meta$selected_rows <- selected
+  fit$meta$na_action <- na_fun
+  fit$meta$time_step <- time_step
+  fit$meta$pdata <- inherits(data, "pdata.frame")
   fit$formula <- formula
   fit$model <- model
   fit$id <- id

@@ -32,3 +32,20 @@ test_that("formula exposes constructed economic lags", {
     lr = csdm_lr(type = "ardl", ylags = 1))
   expect_true("lag1_y" %in% all.vars(formula(a)))
 })
+
+test_that("update retains resolved local options and pdata time indexes", {
+  skip_if_not_installed("plm")
+  a <- local({
+    d <- plm::pdata.frame(panel_fixture(), index = c("id", "time"))
+    cutoff <- 5
+    spacing <- 1
+    action <- na.exclude
+    estimator <- "mg"
+    csdm(y ~ x, d, model = estimator, subset = as.numeric(as.character(time)) > cutoff,
+      na.action = action, time_step = spacing)
+  })
+  b <- update(a)
+  expect_equal(coef(b), coef(a))
+  expect_equal(nobs(b), nobs(a))
+  expect_equal(b$meta$selected_rows, a$meta$selected_rows)
+})

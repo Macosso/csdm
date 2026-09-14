@@ -67,6 +67,15 @@ update.csdm_fit <- function(object, formula., ..., evaluate = TRUE) {
   call <- object$call
   call[[1L]] <- quote(csdm::csdm)
   call$data <- object$data
+  if (isTRUE(object$meta$pdata)) {
+    call$data[[object$time]] <- as.numeric(as.character(call$data[[object$time]]))
+  }
+  call$subset <- seq_len(nrow(object$data)) %in% object$meta$selected_rows
+  call$na.action <- object$meta$na_action
+  call$time_step <- object$meta$time_step
+  call$model <- object$model
+  call$fullsample <- object$meta$fullsample
+  call$mgmissing <- object$meta$mgmissing
   call$formula <- object$formula
   call$id <- object$id
   call$time <- object$time
