@@ -1,5 +1,7 @@
 # Development
 
+- Share unit regression bookkeeping across MG, CCE, and DCCE engines.
+
 - Correct missing-value and leave-one-out cross-sectional averages.
 
 - Construct model and CSA lags by explicit time-grid matching.
