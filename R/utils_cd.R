@@ -258,7 +258,7 @@ cd_test.default <- function(object,
         n_pc = as.integer(n_pc)
       )
     } else {
-      cdstar_res <- .cd_compute_star(data_tn, N, Tt, as.integer(n_pc))
+      cdstar_res <- .cd_compute_star(data_tn, N, Tt, n_pc)
       out$CDstar <- list(
         statistic = cdstar_res$statistic,
         p.value = cdstar_res$p.value,
@@ -407,46 +407,26 @@ print.cd_test <- function(x, digits = 3, ...) {
 
 # Internal helper: compute CD* with PCA factor removal
 .cd_compute_star <- function(data_tn, N, Tt, n_pc) {
-  # data_tn: T x N matrix (must be complete/balanced)
-  # Returns: list(statistic, p.value)
-
-  # Standardize columns
-  col_means <- colMeans(data_tn)
-  col_sds <- apply(data_tn, 2, stats::sd)
-  col_sds[col_sds == 0 | !is.finite(col_sds)] <- 1
-  data_std <- sweep(sweep(data_tn, 2, col_means), 2, col_sds, `/`)
-
-  # PCA: Extract factors
-  S <- data_std %*% t(data_std)
-  eig <- eigen(S, symmetric = TRUE)
-  idx <- order(eig$values, decreasing = TRUE)[seq_len(n_pc)]
-  f <- eig$vectors[, idx, drop = FALSE]
-  fx <- cbind(1, f)  # intercept + factors
-
-  # Defactor residuals
-  beta <- solve(t(fx) %*% fx, t(fx) %*% data_std)
-  res_defac <- data_std - fx %*% beta
-
-  # CD on defactored residuals
-  corr_defac <- stats::cor(res_defac)
-  upper_defac <- corr_defac[upper.tri(corr_defac)]
-  cd_defac <- sqrt(2 / (N * (N - 1))) * sum(upper_defac * sqrt(Tt))
-
-  # Bias correction (Pesaran & Xie 2021)
-  betai <- beta[-1, , drop = FALSE]  # remove intercept
-  betaij <- (betai %*% t(betai)) / N
-  betasum <- sqrt(diag(betaij))
-  betasum[betasum == 0] <- 1  # avoid division by zero
-  gamma <- sweep(betai, 1, betasum, `/`)  # normalize columns (units) by their norms
-  sgm <- sqrt(mean(res_defac^2))
-  if (sgm == 0) sgm <- 1
-  phi <- rowMeans(gamma / sgm)
-  ai_vals <- as.numeric((1 - t(gamma * sgm) %*% phi) / sqrt(N))
-  theta <- sum(ai_vals^2)
-  if (theta == 0) theta <- 1  # avoid division by zero
-
-  cd_star_stat <- (cd_defac + sqrt(Tt / 2) * (1 - theta)) / theta
-  cd_star_p <- 2 * (1 - stats::pnorm(abs(cd_star_stat)))
-
-  list(statistic = cd_star_stat, p.value = cd_star_p)
+  n_pc <- .csdm_integer(n_pc, "n_pc")
+  if (n_pc >= min(N, Tt - 1L)) stop("'n_pc' must be below min(N, T - 1).")
+  scales <- apply(data_tn, 2L, stats::sd)
+  if (any(!is.finite(scales) | scales <= 0)) stop("CD* requires nonconstant complete unit series.")
+  data_std <- sweep(sweep(data_tn, 2L, colMeans(data_tn)), 2L, scales, "/")
+  if (n_pc == 0L) return(.cd_compute_classic(data_std, N, Tt))
+  decomposition <- svd(data_std, nu = n_pc, nv = 0L)
+  if (decomposition$d[n_pc] <= decomposition$d[1L] * 1e-7) stop("Requested factors exceed numerical rank.")
+  factors <- cbind(1, decomposition$u[, seq_len(n_pc), drop = FALSE])
+  beta <- qr.coef(qr(factors), data_std)
+  residual <- data_std - factors %*% beta
+  sigma <- sqrt(colMeans(residual^2))
+  if (any(!is.finite(sigma) | sigma <= sqrt(.Machine$double.eps))) stop("CD* residual scales are degenerate.")
+  loadings <- beta[-1L, , drop = FALSE]
+  gamma <- sweep(loadings, 1L, sqrt(rowMeans(loadings^2)), "/")
+  phi <- rowMeans(sweep(gamma, 2L, sigma, "/"))
+  a <- as.numeric(1 - t(sweep(gamma, 2L, sigma, "*")) %*% phi)
+  correction <- mean(a^2)
+  if (!is.finite(correction) || correction <= sqrt(.Machine$double.eps)) stop("CD* bias correction is degenerate.")
+  cd <- .cd_compute_classic(residual, N, Tt)$statistic
+  statistic <- (cd + sqrt(Tt / 2) * (1 - correction)) / correction
+  list(statistic = statistic, p.value = 2 * stats::pnorm(abs(statistic), lower.tail = FALSE))
 }

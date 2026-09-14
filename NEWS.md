@@ -1,5 +1,7 @@
 # Development
 
+- Correct CD-star unit-specific residual scales and validate PCA rank.
+
 - Make randomized diagnostics opt-in, preserve seeded RNG state, and use pairwise classical CD samples.
 
 - Align CS-ARDL parameter components and covariance; expose AR stability and ratio eligibility.
