@@ -80,12 +80,12 @@ overlapping time periods and \eqn{\rho_{ij}} the pairwise correlation.
 }
 \item{CDw (Juodis and Reese, 2021)}{
 Random sign flips \eqn{w_i \in \{-1,1\}} are applied to residuals before
-computing correlations. The statistic is CD applied to the sign-flipped data.
+summing weighted cross-products, normalized by pooled residual variance.
 }
 \item{CDw+ (Fan, Liao, and Yao, 2015)}{
 Power enhancement adds a sparse thresholding term to CDw. The threshold is
-\deqn{c_N = \sqrt{\frac{2 \log(N)}{T}}}
-and the power term sums \eqn{\sqrt{T_{ij}} |\rho_{ij}|} for pairs exceeding
+\deqn{c_N = 2 \sqrt{\frac{\log(N)}{T}}}
+and the power term sums \eqn{|\rho_{ij}|} for pairs exceeding
 the threshold.
 }
 \item{CD* (Pesaran and Xie, 2021)}{
@@ -98,8 +98,9 @@ from \eqn{E}. This provides a bias-corrected test under multifactor errors.
 \subsection{Missing data and balance}{
 
 \describe{
-\item{CD, CDw, CDw+}{Always use pairwise-complete observations. Each pairwise
+\item{CD}{Uses pairwise-complete observations by default. Each pairwise
 correlation uses available overlaps.}
+\item{CDw, CDw+}{Require a balanced sample; explicitly select complete times if desired.}
 \item{CD*}{Requires a balanced panel. By default, \code{na.action = "drop.incomplete.times"}
 removes any time period with missing observations. With \code{na.action = "pairwise"},
 CD* returns \code{NA} and a warning when missing values are present.}
@@ -114,7 +115,7 @@ E_dep <- matrix(rnorm(10), nrow = 10, ncol = 10, byrow = TRUE)
 
 # Compute all tests
 cd_test(E_indep, type = "all")
-cd_test(E_dep, type = "all")
+cd_test(E_dep, type = "CD")
 
 # Specific test with parameters
 cd_test(E_indep, type = "CDstar", n_pc = 2)

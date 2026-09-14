@@ -28,12 +28,12 @@
 #'   }
 #'   \item{CDw (Juodis and Reese, 2021)}{
 #'     Random sign flips \eqn{w_i \in \{-1,1\}} are applied to residuals before
-#'     computing correlations. The statistic is CD applied to the sign-flipped data.
+#'     summing weighted cross-products, normalized by pooled residual variance.
 #'   }
 #'   \item{CDw+ (Fan, Liao, and Yao, 2015)}{
 #'     Power enhancement adds a sparse thresholding term to CDw. The threshold is
-#'     \deqn{c_N = \sqrt{\frac{2 \log(N)}{T}}}
-#'     and the power term sums \eqn{\sqrt{T_{ij}} |\rho_{ij}|} for pairs exceeding
+#'     \deqn{c_N = 2 \sqrt{\frac{\log(N)}{T}}}
+#'     and the power term sums \eqn{|\rho_{ij}|} for pairs exceeding
 #'     the threshold.
 #'   }
 #'   \item{CD* (Pesaran and Xie, 2021)}{
@@ -45,8 +45,9 @@
 #' ## Missing data and balance
 #'
 #' \describe{
-#'   \item{CD, CDw, CDw+}{Always use pairwise-complete observations. Each pairwise
+#'   \item{CD}{Uses pairwise-complete observations by default. Each pairwise
 #'   correlation uses available overlaps.}
+#'   \item{CDw, CDw+}{Require a balanced sample; explicitly select complete times if desired.}
 #'   \item{CD*}{Requires a balanced panel. By default, \code{na.action = "drop.incomplete.times"}
 #'   removes any time period with missing observations. With \code{na.action = "pairwise"},
 #'   CD* returns \code{NA} and a warning when missing values are present.}
@@ -71,7 +72,7 @@
 #'
 #' # Compute all tests
 #' cd_test(E_indep, type = "all")
-#' cd_test(E_dep, type = "all")
+#' cd_test(E_dep, type = "CD")
 #'
 #' # Specific test with parameters
 #' cd_test(E_indep, type = "CDstar", n_pc = 2)
@@ -182,67 +183,29 @@ cd_test.default <- function(object,
     )
   }
 
-  # 2. Weighted CD (Juodis & Reese)
-  if (type %in% c("CDw", "all", "CDw+")) {
+  if (type %in% c("CDw", "CDw+", "all")) {
+    if (anyNA(E)) stop("CDw/CDw+ currently require a balanced sample; use explicit drop.incomplete.times or classical CD.")
     if (!is.null(seed)) set.seed(seed)
     w <- sample(c(-1, 1), N, replace = TRUE)
-    data_cdw <- sweep(data_tn, 2, w, FUN = "*")
-    cdw_res <- .cd_compute_classic(data_cdw, N, Tt, min_overlap)
-    out$CDw <- list(
-      statistic = cdw_res$statistic,
-      p.value = cdw_res$p.value,
-      N = N,
-      T = Tt,
-      pairs_used = cdw_res$pairs_used
-    )
-  }
-
-  # 3. Power-enhanced CDw+ (Fan et al.)
-  if (type %in% c("CDw+", "all")) {
-    # Need unweighted correlations for threshold
-    if (is.null(out$CD)) {
-      cd_res <- .cd_compute_classic(data_tn, N, Tt, min_overlap)
+    centered <- sweep(data_tn, 2L, colMeans(data_tn))
+    variance <- mean(centered^2)
+    weighted <- sweep(centered, 2L, w, "*")
+    pair_sum <- sum(rowSums(weighted)^2 - rowSums(weighted^2)) / 2
+    statistic <- sqrt(2 / (Tt * N * (N - 1))) * pair_sum / variance
+    out$CDw <- list(statistic = statistic,
+      p.value = 2 * stats::pnorm(abs(statistic), lower.tail = FALSE),
+      N = N, T = Tt, pairs_used = choose(N, 2))
+    if (type %in% c("CDw+", "all")) {
+      correlation <- stats::cor(centered)
+      rho <- abs(correlation[upper.tri(correlation)])
+      threshold <- 2 * sqrt(log(N) / Tt)
+      enhancement <- sum(rho[rho > threshold])
+      statistic <- statistic + enhancement
+      out$CDw_plus <- list(statistic = statistic,
+        p.value = 2 * stats::pnorm(abs(statistic), lower.tail = FALSE),
+        N = N, T = Tt, pairs_used = choose(N, 2),
+        threshold = threshold, enhancement = enhancement)
     }
-    # Compute threshold and power term
-    crit <- sqrt(2 * log(N) / Tt)
-    corr_mat <- stats::cor(data_tn, use = "pairwise.complete.obs")
-    upper_corr <- corr_mat[upper.tri(corr_mat)]
-    # Count overlaps for each pair
-    overlap_mat <- matrix(0, N, N)
-    for (i in seq_len(N - 1)) {
-      for (j in (i + 1):N) {
-        ok <- is.finite(data_tn[, i]) & is.finite(data_tn[, j])
-        overlap_mat[i, j] <- sum(ok)
-      }
-    }
-    upper_overlap <- overlap_mat[upper.tri(overlap_mat)]
-    # Power term: sum sqrt(T_ij) * |rho_ij| for correlations exceeding threshold
-    exceeds <- abs(upper_corr * sqrt(upper_overlap)) > crit & upper_overlap >= min_overlap
-    power_term <- sum(sqrt(upper_overlap[exceeds]) * abs(upper_corr[exceeds]))
-
-    if (is.null(out$CDw)) {
-      if (!is.null(seed)) set.seed(seed)
-      w <- sample(c(-1, 1), N, replace = TRUE)
-      data_cdw <- sweep(data_tn, 2, w, FUN = "*")
-      cdw_res <- .cd_compute_classic(data_cdw, N, Tt, min_overlap)
-    } else {
-      cdw_res <- list(
-        statistic = out$CDw$statistic,
-        pairs_used = out$CDw$pairs_used
-      )
-    }
-
-    # Normalize power_term to match the scale of cdw_res$statistic
-    cdw_plus_stat <- cdw_res$statistic + power_term
-    cdw_plus_p <- 2 * (1 - stats::pnorm(abs(cdw_plus_stat)))
-
-    out$CDw_plus <- list(
-      statistic = cdw_plus_stat,
-      p.value = cdw_plus_p,
-      N = N,
-      T = Tt,
-      pairs_used = cdw_res$pairs_used
-    )
   }
 
   # 4. CD* (bias-corrected with PCA factor removal)
