@@ -1,5 +1,7 @@
 # Development
 
+- Add tidy, glance, and augment methods with inference and row-alignment checks.
+
 - Add explicit R model accessors, original-row outputs, and stored-data updates.
 
 - Validate clustered covariance inputs and make residual transformations explicit.

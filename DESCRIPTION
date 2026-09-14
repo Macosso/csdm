@@ -3,7 +3,9 @@ Title: Cross-Sectional Dependence Models
 Version: 1.0.1
 Depends: R (>= 4.0.0)
 Imports: MASS,
-    Rdpack
+    Rdpack,
+    generics,
+    tibble
 RdMacros: Rdpack
 Suggests:
     testthat (>= 3.0.0),
@@ -11,7 +13,12 @@ Suggests:
     rmarkdown,
     kableExtra,
     xtsum,
-    spelling
+    spelling,
+    broom,
+    sandwich,
+    plm,
+    lmtest,
+    modelsummary
 Authors@R: 
     person(given = c("Joao", "Claudio"), 
           family = "Macosso",
