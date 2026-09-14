@@ -1,5 +1,7 @@
 # Development
 
+- Evaluate model formulas, transformed CSA variables, subset, and missing-value policies consistently.
+
 - Share unit regression bookkeeping across MG, CCE, and DCCE engines.
 
 - Correct missing-value and leave-one-out cross-sectional averages.

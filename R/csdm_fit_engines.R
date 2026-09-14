@@ -13,37 +13,8 @@
     stop("For model='cce', all csa$lags entries must be 0")
   }
 
-  if (identical(csa$vars, "_none")) {
-    csa_vars <- character(0)
-  } else if (identical(csa$vars, "_all")) {
-    csa_vars <- setdiff(unique(all.vars(formula)), ".csdm_trend__")
-  } else {
-    csa_vars <- as.character(csa$vars)
-  }
-
-  if (length(csa_vars)) {
-    csa_attached <- cross_sectional_avg(
-      data = panel_df,
-      id = id,
-      time = time,
-      vars = csa_vars,
-      leave_out = FALSE,
-      suffix = "csa",
-      return_mode = "attach",
-      na.rm = TRUE
-    )
-  } else {
-    csa_attached <- panel_df
-  }
-  attr(csa_attached, "csdm_time_levels") <- attr(panel_df, "csdm_time_levels")
-  attr(csa_attached, "csdm_id_levels") <- attr(panel_df, "csdm_id_levels")
-
-  econ_names <- .csdm_econ_names(formula, panel_df)
-
-  csa_terms <- if (length(csa_vars)) paste0("csa_", csa_vars) else character(0)
-  fml <- if (length(csa_terms)) stats::update(formula, paste0(". ~ . + ", paste(csa_terms, collapse = " + "))) else formula
-
-  .csdm_fit_units(csa_attached, fml, id, time, formula, "cce", csa)
+  augmented <- .csdm_augment(panel_df, formula, formula, id, time, csa)
+  .csdm_fit_units(augmented$data, augmented$formula, id, time, formula, "cce", augmented$csa)
 }
 
 
@@ -146,83 +117,8 @@
     }
   }
 
-  if (identical(csa$vars, "_none")) {
-    csa_vars <- character(0)
-  } else if (identical(csa$vars, "_all")) {
-    csa_vars <- setdiff(unique(all.vars(formula)), ".csdm_trend__")
-  } else {
-    csa_vars <- as.character(csa$vars)
-  }
-
-  if (length(csa_vars)) {
-    csa_time <- cross_sectional_avg(
-      data = panel_work,
-      id = id,
-      time = time,
-      vars = csa_vars,
-      leave_out = FALSE,
-      suffix = "csa",
-      return_mode = "time",
-      na.rm = TRUE
-    )
-  } else {
-    csa_time <- unique(panel_work[, time, drop = FALSE])
-  }
-
-  o <- order(csa_time[[time]])
-  csa_time <- csa_time[o, , drop = FALSE]
-
-  lag_spec <- .csdm_csa_lags(csa$lags, csa_vars)
-
-  add_lag <- function(x, L) {
-    if (L <= 0L) return(NULL)
-    out <- vector("list", L)
-    for (l in seq_len(L)) {
-      out[[l]] <- .csdm_lag(x, csa_time[[time]], l, attr(panel_df, "csdm_time_step"))
-    }
-    out
-  }
-
-  csa_term_names <- character(0)
-  if (length(csa_vars)) {
-    for (v in csa_vars) {
-      base_col <- paste0("csa_", v)
-      if (!base_col %in% names(csa_time)) next
-
-      maxL <- if (length(lag_spec) == 1L) as.integer(lag_spec) else as.integer(lag_spec[[v]])
-      maxL <- ifelse(is.na(maxL), 0L, maxL)
-      if (maxL < 0L) stop("csa$lags must be >= 0")
-
-      csa_term_names <- c(csa_term_names, base_col)
-
-      if (maxL > 0L) {
-        lag_list <- add_lag(csa_time[[base_col]], maxL)
-        for (l in seq_len(maxL)) {
-          nm <- paste0(base_col, "_lag", l)
-          csa_time[[nm]] <- lag_list[[l]]
-          csa_term_names <- c(csa_term_names, nm)
-        }
-      }
-    }
-  }
-
-  key <- match(panel_work[[time]], csa_time[[time]])
-  csa_attached <- panel_work
-  if (nrow(csa_time) && length(setdiff(names(csa_time), time))) {
-    for (nm in setdiff(names(csa_time), time)) {
-      csa_attached[[nm]] <- csa_time[[nm]][key]
-    }
-  }
-
-  econ_names <- .csdm_econ_names(econ_formula, panel_work)
-
-  fml <- if (length(csa_term_names)) {
-    stats::update(econ_formula, paste0(". ~ . + ", paste(unique(csa_term_names), collapse = " + ")))
-  } else {
-    econ_formula
-  }
-
-  .csdm_fit_units(csa_attached, fml, id, time, econ_formula, "dcce", csa)
+  augmented <- .csdm_augment(panel_work, formula, econ_formula, id, time, csa)
+  .csdm_fit_units(augmented$data, augmented$formula, id, time, econ_formula, "dcce", augmented$csa)
 }
 
 

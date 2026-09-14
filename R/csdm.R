@@ -26,6 +26,8 @@
 #' @param fullsample Logical; reserved for future extensions.
 #' @param mgmissing Logical; reserved for future extensions.
 #' @param vcov Variance-covariance specification, created by [csdm_vcov()].
+#' @param subset Logical expression selecting rows before estimation.
+#' @param na.action One of na.omit, na.exclude, or na.fail.
 #' @param time_step Positive numeric spacing of the time grid (default 1). Missing periods are preserved in lags.
 #' @param ... Reserved for future extensions.
 #'
@@ -199,6 +201,8 @@ csdm <- function(
   mgmissing = FALSE,
   vcov = csdm_vcov(),
   time_step = 1,
+  subset = NULL,
+  na.action = stats::na.omit,
   ...
 ) {
   model <- match.arg(model)
@@ -214,7 +218,25 @@ csdm <- function(
     }
   }
 
-  panel_df <- .csdm_prepare_panel_df(data = data, id = id, time = time, time_step = time_step)
+  original_data <- as.data.frame(data)
+  if (!inherits(formula, "formula") || length(formula) != 3L) stop("Supply a two-sided model formula.")
+  formula <- stats::formula(stats::terms(formula, data = original_data))
+  selected <- seq_len(nrow(original_data))
+  if (!missing(subset)) {
+    selection <- eval(substitute(subset), original_data, parent.frame())
+    if (!is.null(selection)) {
+      if (!is.logical(selection) || length(selection) != nrow(original_data)) stop("'subset' must evaluate to one logical value per row.")
+      selected <- which(!is.na(selection) & selection)
+    }
+  }
+  na_fun <- match.fun(na.action)
+  if (!any(vapply(list(stats::na.omit, stats::na.exclude, stats::na.fail), identical, logical(1), y = na_fun))) {
+    stop("Supported na.action values are na.omit, na.exclude, and na.fail.")
+  }
+  panel_df <- .csdm_prepare_panel_df(data = data[selected, , drop = FALSE], id = id, time = time, time_step = time_step)
+  panel_df$.csdm_rowid__ <- selected[panel_df$.csdm_rowid__]
+  rownames(panel_df) <- as.character(panel_df$.csdm_rowid__)
+  attr(panel_df, "csdm_na_action") <- na_fun
 
   if (trend == "pooled") {
     stop("trend='pooled' is not implemented yet")
@@ -235,6 +257,11 @@ csdm <- function(
   )
 
   fit$call <- match.call()
+  fit$data <- original_data
+  fit$na.action <- if (identical(na_fun, stats::na.exclude)) {
+    structure(setdiff(selected, fit$sample$row[fit$sample$used]), class = "exclude")
+  } else structure(setdiff(selected, fit$sample$row[fit$sample$used]), class = "omit")
+  fit$meta$selected_rows <- selected
   fit$formula <- formula
   fit$model <- model
   fit$id <- id

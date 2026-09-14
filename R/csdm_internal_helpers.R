@@ -14,7 +14,7 @@
 # wide residual matrix (residuals_e), with Y strictly aligned by id/time. This ensures R² reflects
 # the model's actual predictions and is robust to data alignment and NA-handling issues. Optionally
 # also returns the per-unit OLS R² for debugging.
-.csdm_residual_matrix_r2 <- function(residuals_e, panel_df, id, time, yname, df_e = NULL) {
+.csdm_residual_matrix_r2 <- function(residuals_e, panel_df, id, time, yname, df_e = NULL, intercept = TRUE) {
 
   E <- residuals_e
   ids_levels  <- rownames(E)
@@ -51,8 +51,8 @@
     SSE[r] <- sum(er[ok]^2)
 
     yc <- yr[ok]
-    SST[r] <- sum((yc - mean(yc))^2)
-    dfy[r] <- Ti[r] - 1L
+    SST[r] <- sum((yc - if (intercept) mean(yc) else 0)^2)
+    dfy[r] <- Ti[r] - as.integer(intercept)
 
     if (is.finite(SST[r]) && SST[r] > 0) {
       R2_i[r] <- 1 - SSE[r] / SST[r]   # plain per-unit R²

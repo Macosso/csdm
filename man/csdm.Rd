@@ -18,6 +18,8 @@ csdm(
   mgmissing = FALSE,
   vcov = csdm_vcov(),
   time_step = 1,
+  subset = NULL,
+  na.action = stats::na.omit,
   ...
 )
 }
@@ -51,6 +53,10 @@ provided values are ignored.}
 \item{vcov}{Variance-covariance specification, created by \code{\link[=csdm_vcov]{csdm_vcov()}}.}
 
 \item{time_step}{Positive numeric spacing of the time grid (default 1). Missing periods are preserved in lags.}
+
+\item{subset}{Logical expression selecting rows before estimation.}
+
+\item{na.action}{One of na.omit, na.exclude, or na.fail.}
 
 \item{...}{Reserved for future extensions.}
 }
