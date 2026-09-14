@@ -1,5 +1,7 @@
 # Development
 
+- Correct missing-value and leave-one-out cross-sectional averages.
+
 - Construct model and CSA lags by explicit time-grid matching.
 
 - Validate panel keys and retain original observation identity when sorting.
