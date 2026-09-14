@@ -27,6 +27,6 @@ test_that("default CSA averages transformed design variables", {
   b <- suppressMessages(csdm(y ~ xx, d, "id", "time", model = "cce"))
   expect_equal(unname(coef(a)), unname(coef(b)))
   expect_identical(a$meta$csa$resolved_vars, c("y", "I(x^2)"))
-  d$f <- factor(rep(c("a", "b", "c"), length.out = nrow(d)))
+  d$f <- factor(sample(c("a", "b", "c"), nrow(d), replace = TRUE))
   expect_no_error(suppressMessages(csdm(y ~ x * f, d, "id", "time", model = "cce")))
 })
