@@ -5,7 +5,8 @@
 #' @param vars Character. One of "_all", "_none", or a character vector of variable names.
 #' @param lags Integer. Either a scalar integer >= 0 applied to all CSA variables,
 #'   or a named integer vector giving per-variable maximum lags.
-#' @param scope Character vector. One or more of c("estimation","global","cluster").
+#'   Named specifications apply only to named variables; other CSA lags are zero.
+#' @param scope CSA sample scope. Currently only "estimation" is supported.
 #' @param cluster Reserved for future use.
 #'
 #' @return A spec object (list) used by csdm().
@@ -20,7 +21,7 @@
 csdm_csa <- function(
   vars = "_all",
   lags = 0,
-  scope = c("estimation", "global", "cluster"),
+  scope = "estimation",
   cluster = NULL
 ) {
   # vars
@@ -31,29 +32,20 @@ csdm_csa <- function(
     vars <- as.character(vars)
   } else {
     if (!is.character(vars)) stop("'vars' must be a character vector.")
-    if (any(!nzchar(vars))) stop("'vars' contains empty strings.")
+    if (anyNA(vars) || any(!nzchar(vars))) stop("'vars' contains missing or empty strings.")
     vars <- unique(as.character(vars))
   }
 
-  # lags
-  if (length(lags) == 1L) {
-    if (!is.numeric(lags) || !is.finite(lags)) stop("'lags' must be a finite integer >= 0.")
-    lags <- as.integer(lags)
-    if (lags < 0L) stop("'lags' must be >= 0.")
-  } else {
-    if (is.null(names(lags)) || any(!nzchar(names(lags)))) {
-      stop("If 'lags' is not scalar, it must be a *named* integer vector.")
-    }
-    if (!is.numeric(lags) || any(!is.finite(lags))) stop("'lags' must be finite integers.")
-    lags <- as.integer(lags)
-    if (any(lags < 0L)) stop("All entries of 'lags' must be >= 0.")
-    lags <- lags[unique(names(lags))]
+  lags <- .csdm_integer(lags, "lags", scalar = FALSE)
+  if (length(lags) > 1L && is.null(names(lags))) stop("Multiple CSA lags must be named.")
+  if (!is.null(names(lags)) && (anyNA(names(lags)) || any(!nzchar(names(lags))) || anyDuplicated(names(lags)))) {
+    stop("CSA lag names must be nonempty, unique, and nonmissing.")
   }
 
   # scope
   allowed <- c("estimation", "global", "cluster")
   if (!is.character(scope) || length(scope) == 0L) stop("'scope' must be a character vector.")
-  if (any(!scope %in% allowed)) {
+  if (anyNA(scope) || any(!scope %in% allowed)) {
     bad <- setdiff(unique(scope), allowed)
     stop("Invalid 'scope': ", paste(bad, collapse = ", "), ". Allowed: ", paste(allowed, collapse = ", "))
   }
@@ -109,17 +101,8 @@ csdm_lr <- function(vars = NULL,
                     options = list()) {
   type <- match.arg(type)
 
-  if (!is.numeric(ylags) || length(ylags) != 1L || !is.finite(ylags)) {
-    stop("'ylags' must be a finite integer >= 0.")
-  }
-  ylags <- as.integer(ylags)
-  if (ylags < 0L) stop("'ylags' must be >= 0.")
-
-  if (!is.numeric(xdlags) || length(xdlags) != 1L || !is.finite(xdlags)) {
-    stop("'xdlags' must be a finite integer >= 0.")
-  }
-  xdlags <- as.integer(xdlags)
-  if (xdlags < 0L) stop("'xdlags' must be >= 0.")
+  ylags <- .csdm_integer(ylags, "ylags")
+  xdlags <- .csdm_integer(xdlags, "xdlags")
 
   spec <- list(vars = vars, type = type, ylags = ylags, xdlags = xdlags, options = options)
   class(spec) <- "csdm_lr_spec"
@@ -136,7 +119,7 @@ csdm_lr <- function(vars = NULL,
 #' @return A spec object (list) used by csdm().
 #' @export
 csdm_pooled <- function(vars = NULL, constant = FALSE, trend = FALSE) {
-  spec <- list(vars = vars, constant = isTRUE(constant), trend = isTRUE(trend))
+  spec <- list(vars = vars, constant = .csdm_flag(constant, "constant"), trend = .csdm_flag(trend, "trend"))
   class(spec) <- "csdm_pooled_spec"
   spec
 }

@@ -201,6 +201,8 @@ csdm <- function(
 ) {
   model <- match.arg(model)
   trend <- match.arg(trend)
+  if (...length()) stop("Unused arguments in '...'; estimation weights and additional options are not implemented.", call. = FALSE)
+  .csdm_validate_specs(model, csa, lr, pooled, vcov, fullsample, mgmissing)
 
   if (inherits(data, "pdata.frame")) {
     idx <- attr(data, "index")

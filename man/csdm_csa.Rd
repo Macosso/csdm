@@ -4,20 +4,16 @@
 \alias{csdm_csa}
 \title{Specification: Cross-sectional averages (CSA)}
 \usage{
-csdm_csa(
-  vars = "_all",
-  lags = 0,
-  scope = c("estimation", "global", "cluster"),
-  cluster = NULL
-)
+csdm_csa(vars = "_all", lags = 0, scope = "estimation", cluster = NULL)
 }
 \arguments{
 \item{vars}{Character. One of "_all", "_none", or a character vector of variable names.}
 
 \item{lags}{Integer. Either a scalar integer >= 0 applied to all CSA variables,
-or a named integer vector giving per-variable maximum lags.}
+or a named integer vector giving per-variable maximum lags.
+Named specifications apply only to named variables; other CSA lags are zero.}
 
-\item{scope}{Character vector. One or more of c("estimation","global","cluster").}
+\item{scope}{CSA sample scope. Currently only "estimation" is supported.}
 
 \item{cluster}{Reserved for future use.}
 }

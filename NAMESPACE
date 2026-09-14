@@ -23,12 +23,14 @@ export(pooled_vcov)
 export(prepare_cd_input)
 export(sandwich_vcov)
 importFrom(Rdpack,reprompt)
-importFrom(stats,aggregate)
-importFrom(stats,cor)
-importFrom(stats,model.matrix.lm)
-importFrom(stats,pt)
-importFrom(stats,residuals)
-importFrom(stats,sd)
-importFrom(stats,setNames)
-importFrom(stats,symnum)
-importFrom(stats,terms)
+importFrom(stats,
+  aggregate,
+  cor,
+  model.matrix.lm,
+  pt,
+  residuals,
+  sd,
+  setNames,
+  symnum,
+  terms
+)

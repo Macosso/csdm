@@ -459,11 +459,7 @@
   o <- order(csa_time[[time]])
   csa_time <- csa_time[o, , drop = FALSE]
 
-  lag_spec <- csa$lags
-  if (length(csa_vars) && length(lag_spec) > 1L) {
-    lag_spec <- lag_spec[csa_vars]
-    lag_spec[is.na(lag_spec)] <- 0L
-  }
+  lag_spec <- .csdm_csa_lags(csa$lags, csa_vars)
 
   add_lag <- function(x, L) {
     if (L <= 0L) return(NULL)

@@ -1,3 +1,8 @@
+# Development
+
+- Preserve named CSA lag specifications and reject invalid lag orders.
+- Reject unsupported estimation options instead of silently ignoring them.
+
 # csdm 1.0.0
 
 ## Initial CRAN release
