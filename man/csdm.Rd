@@ -9,11 +9,11 @@ csdm(
   data,
   id,
   time,
-  model = c("mg", "cce", "dcce", "cs_ardl", "cs_ecm", "cs_dl"),
+  model = c("mg", "cce", "dcce", "cs_ardl"),
   csa = csdm_csa(),
   lr = csdm_lr(),
   pooled = NULL,
-  trend = c("none", "unit", "pooled"),
+  trend = c("none", "unit"),
   fullsample = FALSE,
   mgmissing = FALSE,
   vcov = csdm_vcov(),
@@ -43,8 +43,7 @@ provided values are ignored.}
 \item{pooled}{Deprecated. Pooled restrictions are not implemented; use
 \code{NULL}.}
 
-\item{trend}{One of \code{"none"} or \code{"unit"} (adds a linear unit trend).
-\code{"pooled"} is reserved and not implemented.}
+\item{trend}{One of \code{"none"} or \code{"unit"} (adds a linear unit trend).}
 
 \item{fullsample}{Logical; reserved for future extensions.}
 

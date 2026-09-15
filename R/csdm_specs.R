@@ -6,8 +6,8 @@
 #' @param lags Integer. Either a scalar integer >= 0 applied to all CSA variables,
 #'   or a named integer vector giving per-variable maximum lags.
 #'   Named specifications apply only to named variables; other CSA lags are zero.
-#' @param scope CSA sample scope. Currently only "estimation" is supported.
-#' @param cluster Reserved for future use.
+#' @param scope CSA sample scope. Must be `"estimation"`.
+#' @param cluster Must be `NULL`; clustered CSA construction is not implemented.
 #'
 #' @return A spec object (list) used by csdm().
 #' @export
@@ -42,14 +42,12 @@ csdm_csa <- function(
     stop("CSA lag names must be nonempty, unique, and nonmissing.")
   }
 
-  # scope
-  allowed <- c("estimation", "global", "cluster")
-  if (!is.character(scope) || length(scope) == 0L) stop("'scope' must be a character vector.")
-  if (anyNA(scope) || any(!scope %in% allowed)) {
-    bad <- setdiff(unique(scope), allowed)
-    stop("Invalid 'scope': ", paste(bad, collapse = ", "), ". Allowed: ", paste(allowed, collapse = ", "))
+  if (!is.character(scope) || length(scope) != 1L || is.na(scope) || scope != "estimation") {
+    stop("Only scope='estimation' is implemented.", call. = FALSE)
   }
-  scope <- unique(scope)
+  if (!is.null(cluster)) {
+    stop("'cluster' is not implemented and must be NULL.", call. = FALSE)
+  }
 
   spec <- list(
     vars = vars,
@@ -64,13 +62,15 @@ csdm_csa <- function(
 
 #' Specification: Long-run configuration
 #'
-#' @param vars Reserved for future use.
-#' @param type One of c("none","ecm","ardl","csdl").
+#' @param vars Must be `NULL`; variable-specific long-run restrictions are not
+#'   implemented.
+#' @param type Either `"none"` or `"ardl"`.
 #' @param ylags Integer >= 0. Within-unit lags of the dependent variable to include
 #'   when supported by the chosen model/type.
 #' @param xdlags Integer >= 0. Scalar distributed lags to apply to each RHS regressor
 #'   when supported by the chosen model/type.
-#' @param options Reserved for future use.
+#' @param options Must be an empty list; additional long-run options are not
+#'   implemented.
 #'
 #' @return A spec object (list) used by csdm().
 #' @export
@@ -95,11 +95,18 @@ csdm_csa <- function(
 #' )
 #' summary(fit)
 csdm_lr <- function(vars = NULL,
-                    type = c("none", "ecm", "ardl", "csdl"),
+                    type = c("none", "ardl"),
                     ylags = 0,
                     xdlags = 0,
                     options = list()) {
   type <- match.arg(type)
+
+  if (!is.null(vars)) {
+    stop("'vars' is not implemented and must be NULL.", call. = FALSE)
+  }
+  if (!identical(options, list())) {
+    stop("'options' is not implemented and must be an empty list.", call. = FALSE)
+  }
 
   ylags <- .csdm_integer(ylags, "ylags")
   xdlags <- .csdm_integer(xdlags, "xdlags")
@@ -137,15 +144,20 @@ csdm_pooled <- function(vars = NULL, constant = FALSE, trend = FALSE) {
 }
 
 
-#' Specification: Variance-covariance for MG output (stub)
+#' Specification: Mean-group variance-covariance estimator
 #'
-#' @param type One of c("mg","np","nw","wpn","ols").
-#' @param ... Reserved for future use.
+#' @param type Must be `"mg"`, the implemented mean-group variance estimator.
+#' @param ... Must be empty; additional variance estimators are not implemented.
 #'
 #' @return A spec object (list) used by csdm().
 #' @export
-csdm_vcov <- function(type = c("mg", "np", "nw", "wpn", "ols"), ...) {
-  type <- match.arg(type)
+csdm_vcov <- function(type = "mg", ...) {
+  if (!is.character(type) || length(type) != 1L || is.na(type) || type != "mg") {
+    stop("Only type='mg' is implemented.", call. = FALSE)
+  }
+  if (...length()) {
+    stop("Additional variance-covariance options are not implemented.", call. = FALSE)
+  }
   spec <- list(type = type, options = list(...))
   class(spec) <- "csdm_vcov_spec"
   spec

@@ -258,9 +258,7 @@ print.summary.csdm_fit <- function(x, digits = 4, ...) {
     "mg" = "Mean Group Model (MG)",
     "cce" = "Static Common Correlated Error Model (CCE)",
     "dcce" = "Dynamic Common Correlated Error Model (DCCE)",
-    "cs_ardl" = "Cross-Sectional ARDL (CS-ARDL)",
-    "cs_ecm" = "Cross-Sectional ECM (CS-ECM)",
-    "cs_dl" = "Cross-Sectional Distributed Lag (CS-DL)"
+    "cs_ardl" = "Cross-Sectional ARDL (CS-ARDL)"
     )
 
   cat("csdm summary: ", model_amapping[x$model], "\n", sep = "")

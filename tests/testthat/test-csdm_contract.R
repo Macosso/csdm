@@ -74,11 +74,15 @@ test_that("csdm() returns a stable csdm_fit contract", {
 
   expect_error(
     csdm(y ~ x1 + x2, data = df, id = "id", time = "time", model = "cs_ecm"),
-    "Not implemented yet"
+    "one of"
   )
   expect_error(
     csdm(y ~ x1 + x2, data = df, id = "id", time = "time", model = "cs_dl"),
-    "Not implemented yet"
+    "one of"
+  )
+  expect_error(
+    csdm(y ~ x1 + x2, data = df, id = "id", time = "time", trend = "pooled"),
+    "one of"
   )
 })
 

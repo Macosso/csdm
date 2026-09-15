@@ -12,7 +12,13 @@ test_that("CSA lag names survive validation and support partial specification", 
 
 test_that("unsupported settings cannot silently succeed", {
   d <- panel_fixture()
-  expect_error(csdm(y ~ x, d, "id", "time", vcov = csdm_vcov("nw")), "Only vcov")
+  expect_error(csdm_vcov("nw"), "Only type='mg'")
+  expect_error(csdm_vcov(adjust = TRUE), "options are not implemented")
+  expect_error(csdm_csa(scope = "global"), "scope='estimation'")
+  expect_error(csdm_csa(cluster = "id"), "cluster.*not implemented")
+  expect_error(csdm_lr(type = "ecm"), "one of")
+  expect_error(csdm_lr(vars = "x"), "vars.*not implemented")
+  expect_error(csdm_lr(options = list(foo = TRUE)), "options.*not implemented")
   expect_error(csdm(y ~ x, d, "id", "time", weights = rep(1, nrow(d))), "Unused")
   expect_error(csdm(y ~ x, d, "id", "time", pooled = suppressWarnings(csdm_pooled("x"))), "Pooled")
   expect_error(csdm(y ~ x, d, "id", "time", lr = csdm_lr(type = "ardl", ylags = 1)), "Use model")

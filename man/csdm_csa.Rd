@@ -13,9 +13,9 @@ csdm_csa(vars = "_all", lags = 0, scope = "estimation", cluster = NULL)
 or a named integer vector giving per-variable maximum lags.
 Named specifications apply only to named variables; other CSA lags are zero.}
 
-\item{scope}{CSA sample scope. Currently only "estimation" is supported.}
+\item{scope}{CSA sample scope. Must be \code{"estimation"}.}
 
-\item{cluster}{Reserved for future use.}
+\item{cluster}{Must be \code{NULL}; clustered CSA construction is not implemented.}
 }
 \value{
 A spec object (list) used by csdm().

@@ -1,5 +1,9 @@
 # Development
 
+- Limit model, trend, CSA, long-run, and variance-covariance specifications to
+  choices that are implemented. Unsupported names now fail at the relevant
+  public entry point instead of being stored for later rejection.
+
 - Deprecate `csdm_pooled()` because pooled restrictions are not implemented.
   Default fits now create their empty pooled metadata internally without warning.
 

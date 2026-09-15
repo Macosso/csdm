@@ -6,16 +6,17 @@
 \usage{
 csdm_lr(
   vars = NULL,
-  type = c("none", "ecm", "ardl", "csdl"),
+  type = c("none", "ardl"),
   ylags = 0,
   xdlags = 0,
   options = list()
 )
 }
 \arguments{
-\item{vars}{Reserved for future use.}
+\item{vars}{Must be \code{NULL}; variable-specific long-run restrictions are not
+implemented.}
 
-\item{type}{One of c("none","ecm","ardl","csdl").}
+\item{type}{Either \code{"none"} or \code{"ardl"}.}
 
 \item{ylags}{Integer >= 0. Within-unit lags of the dependent variable to include
 when supported by the chosen model/type.}
@@ -23,7 +24,8 @@ when supported by the chosen model/type.}
 \item{xdlags}{Integer >= 0. Scalar distributed lags to apply to each RHS regressor
 when supported by the chosen model/type.}
 
-\item{options}{Reserved for future use.}
+\item{options}{Must be an empty list; additional long-run options are not
+implemented.}
 }
 \value{
 A spec object (list) used by csdm().

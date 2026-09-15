@@ -22,7 +22,6 @@
 #' @param pooled Deprecated. Pooled restrictions are not implemented; use
 #'   `NULL`.
 #' @param trend One of \code{"none"} or \code{"unit"} (adds a linear unit trend).
-#'   \code{"pooled"} is reserved and not implemented.
 #' @param fullsample Logical; reserved for future extensions.
 #' @param mgmissing Logical; reserved for future extensions.
 #' @param vcov Variance-covariance specification, created by [csdm_vcov()].
@@ -192,11 +191,11 @@
 #' @export
 csdm <- function(
   formula, data, id, time,
-  model = c("mg", "cce", "dcce", "cs_ardl", "cs_ecm", "cs_dl"),
+  model = c("mg", "cce", "dcce", "cs_ardl"),
   csa = csdm_csa(),
   lr = csdm_lr(),
   pooled = NULL,
-  trend = c("none", "unit", "pooled"),
+  trend = c("none", "unit"),
   fullsample = FALSE,
   mgmissing = FALSE,
   vcov = csdm_vcov(),
@@ -239,9 +238,6 @@ csdm <- function(
   rownames(panel_df) <- as.character(panel_df$.csdm_rowid__)
   attr(panel_df, "csdm_na_action") <- na_fun
 
-  if (trend == "pooled") {
-    stop("trend='pooled' is not implemented yet")
-  }
   if (trend == "unit") {
     panel_df$.csdm_trend__ <- .csdm_time_index(panel_df[[time]], time_step)
     formula <- stats::update(formula, . ~ . + .csdm_trend__)
@@ -252,9 +248,7 @@ csdm <- function(
     mg = .csdm_fit_mg(panel_df = panel_df, formula = formula, id = id, time = time, lr = lr, vcov = vcov, ...),
     cce = .csdm_fit_cce(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...),
     dcce = .csdm_fit_dcce(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...),
-    cs_ardl = .csdm_fit_cs_ardl(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...),
-    cs_ecm  = stop("Not implemented yet"),
-    cs_dl   = stop("Not implemented yet")
+    cs_ardl = .csdm_fit_cs_ardl(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...)
   )
 
   fit$call <- match.call()
