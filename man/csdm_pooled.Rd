@@ -2,20 +2,21 @@
 % Please edit documentation in R/csdm_specs.R
 \name{csdm_pooled}
 \alias{csdm_pooled}
-\title{Specification: Pooled constraints (stub)}
+\title{Deprecated pooled-constraint specification}
 \usage{
 csdm_pooled(vars = NULL, constant = FALSE, trend = FALSE)
 }
 \arguments{
-\item{vars}{Reserved for future use.}
+\item{vars}{Deprecated; formerly reserved for pooled variables.}
 
-\item{constant}{Logical; pooled constant.}
+\item{constant}{Deprecated logical pooled-constant indicator.}
 
-\item{trend}{Logical; pooled trend.}
+\item{trend}{Deprecated logical pooled-trend indicator.}
 }
 \value{
-A spec object (list) used by csdm().
+A deprecated specification object retained for compatibility.
 }
 \description{
-Specification: Pooled constraints (stub)
+\code{csdm_pooled()} is deprecated because pooled restrictions are not implemented.
+Explicit pooled specifications continue to be rejected by \code{\link[=csdm]{csdm()}}.
 }

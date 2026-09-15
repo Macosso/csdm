@@ -19,8 +19,8 @@
 #'   \code{"dcce"}, or \code{"cs_ardl"}.
 #' @param csa Cross-sectional-average specification, created by [csdm_csa()].
 #' @param lr Long-run or dynamic specification, created by [csdm_lr()].
-#' @param pooled Pooled specification (reserved for future use), created by
-#'   [csdm_pooled()].
+#' @param pooled Deprecated. Pooled restrictions are not implemented; use
+#'   `NULL`.
 #' @param trend One of \code{"none"} or \code{"unit"} (adds a linear unit trend).
 #'   \code{"pooled"} is reserved and not implemented.
 #' @param fullsample Logical; reserved for future extensions.
@@ -195,7 +195,7 @@ csdm <- function(
   model = c("mg", "cce", "dcce", "cs_ardl", "cs_ecm", "cs_dl"),
   csa = csdm_csa(),
   lr = csdm_lr(),
-  pooled = csdm_pooled(),
+  pooled = NULL,
   trend = c("none", "unit", "pooled"),
   fullsample = FALSE,
   mgmissing = FALSE,
@@ -207,6 +207,7 @@ csdm <- function(
 ) {
   model <- match.arg(model)
   trend <- match.arg(trend)
+  if (is.null(pooled)) pooled <- .csdm_pooled_spec()
   if (...length()) stop("Unused arguments in '...'; estimation weights and additional options are not implemented.", call. = FALSE)
   .csdm_validate_specs(model, csa, lr, pooled, vcov, fullsample, mgmissing)
 

@@ -1,5 +1,8 @@
 # Development
 
+- Deprecate `csdm_pooled()` because pooled restrictions are not implemented.
+  Default fits now create their empty pooled metadata internally without warning.
+
 - Remove an unused internal model-matrix helper and obsolete `stats` imports.
 
 - Document `cross_sectional_avg()` as a supported standalone data utility and

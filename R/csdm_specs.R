@@ -110,15 +110,27 @@ csdm_lr <- function(vars = NULL,
 }
 
 
-#' Specification: Pooled constraints (stub)
+#' Deprecated pooled-constraint specification
 #'
-#' @param vars Reserved for future use.
-#' @param constant Logical; pooled constant.
-#' @param trend Logical; pooled trend.
+#' `csdm_pooled()` is deprecated because pooled restrictions are not implemented.
+#' Explicit pooled specifications continue to be rejected by [csdm()].
 #'
-#' @return A spec object (list) used by csdm().
+#' @param vars Deprecated; formerly reserved for pooled variables.
+#' @param constant Deprecated logical pooled-constant indicator.
+#' @param trend Deprecated logical pooled-trend indicator.
+#'
+#' @return A deprecated specification object retained for compatibility.
 #' @export
 csdm_pooled <- function(vars = NULL, constant = FALSE, trend = FALSE) {
+  .Deprecated(
+    package = "csdm",
+    old = "csdm_pooled",
+    msg = "'csdm_pooled()' is deprecated because pooled restrictions are not implemented."
+  )
+  .csdm_pooled_spec(vars, constant, trend)
+}
+
+.csdm_pooled_spec <- function(vars = NULL, constant = FALSE, trend = FALSE) {
   spec <- list(vars = vars, constant = .csdm_flag(constant, "constant"), trend = .csdm_flag(trend, "trend"))
   class(spec) <- "csdm_pooled_spec"
   spec

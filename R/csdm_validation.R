@@ -19,11 +19,12 @@
     if (!inherits(specs[[nm]], paste0("csdm_", nm, "_spec"))) {
       stop("Use csdm_", nm, "() to construct '", nm, "'.", call. = FALSE)
     }
-    expected <- names(do.call(get(paste0("csdm_", nm)), list()))
+    constructor <- if (nm == "pooled") .csdm_pooled_spec else get(paste0("csdm_", nm))
+    expected <- names(do.call(constructor, list()))
     if (!identical(sort(names(specs[[nm]])), sort(expected))) {
       stop("Invalid '", nm, "' specification fields.", call. = FALSE)
     }
-    do.call(get(paste0("csdm_", nm)), if (nm == "vcov") list(type = vcov$type) else specs[[nm]])
+    do.call(constructor, if (nm == "vcov") list(type = vcov$type) else specs[[nm]])
   }
   if (.csdm_flag(fullsample, "fullsample") || .csdm_flag(mgmissing, "mgmissing")) {
     stop("fullsample=TRUE and mgmissing=TRUE are not implemented.", call. = FALSE)

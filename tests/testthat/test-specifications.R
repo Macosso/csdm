@@ -14,9 +14,15 @@ test_that("unsupported settings cannot silently succeed", {
   d <- panel_fixture()
   expect_error(csdm(y ~ x, d, "id", "time", vcov = csdm_vcov("nw")), "Only vcov")
   expect_error(csdm(y ~ x, d, "id", "time", weights = rep(1, nrow(d))), "Unused")
-  expect_error(csdm(y ~ x, d, "id", "time", pooled = csdm_pooled("x")), "Pooled")
+  expect_error(csdm(y ~ x, d, "id", "time", pooled = suppressWarnings(csdm_pooled("x"))), "Pooled")
   expect_error(csdm(y ~ x, d, "id", "time", lr = csdm_lr(type = "ardl", ylags = 1)), "Use model")
   expect_error(csdm(y ~ x, d, "id", "time", csa = list()), "construct")
+})
+
+test_that("the unused pooled specification is deprecated without warning on default fits", {
+  d <- panel_fixture()
+  expect_warning(csdm_pooled(), class = "deprecatedWarning")
+  expect_no_warning(csdm(y ~ x, d, "id", "time"))
 })
 
 test_that("inactive CSA requests cannot silently succeed", {

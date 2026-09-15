@@ -12,7 +12,7 @@ csdm(
   model = c("mg", "cce", "dcce", "cs_ardl", "cs_ecm", "cs_dl"),
   csa = csdm_csa(),
   lr = csdm_lr(),
-  pooled = csdm_pooled(),
+  pooled = NULL,
   trend = c("none", "unit", "pooled"),
   fullsample = FALSE,
   mgmissing = FALSE,
@@ -40,8 +40,8 @@ provided values are ignored.}
 
 \item{lr}{Long-run or dynamic specification, created by \code{\link[=csdm_lr]{csdm_lr()}}.}
 
-\item{pooled}{Pooled specification (reserved for future use), created by
-\code{\link[=csdm_pooled]{csdm_pooled()}}.}
+\item{pooled}{Deprecated. Pooled restrictions are not implemented; use
+\code{NULL}.}
 
 \item{trend}{One of \code{"none"} or \code{"unit"} (adds a linear unit trend).
 \code{"pooled"} is reserved and not implemented.}
