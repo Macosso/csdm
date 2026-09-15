@@ -1,5 +1,8 @@
 # Development
 
+- Remove time periods containing no estimated residuals before CD sample balance
+  is assessed, while retaining the selected policy for partially observed periods.
+
 - Model updates retain evaluated subset, time spacing, missing-value policy, and pdata.frame time indexes.
 
 - Add tidy, glance, and augment methods with inference and row-alignment checks.

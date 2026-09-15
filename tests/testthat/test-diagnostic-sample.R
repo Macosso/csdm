@@ -22,3 +22,26 @@ test_that("classical CD retains pairwise observations and reports exclusions", {
   expect_true(is.finite(a$tests$CD$statistic))
   expect_error(cd_test(E, min_overlap = 1.5), "integers")
 })
+
+test_that("empty periods are removed before residual balance is assessed", {
+  set.seed(25)
+  E <- matrix(rnorm(8 * 20), 8, dimnames = list(NULL, 2001:2020))
+  with_empty_period <- cbind(`2000` = NA_real_, E)
+
+  expected <- cd_test(E, type = "all", seed = 7)
+  actual <- cd_test(with_empty_period, type = "all", seed = 7)
+
+  expect_equal(actual$tests, expected$tests)
+  expect_equal(actual$T, 20L)
+  expect_identical(actual$excluded_times, "2000")
+  expect_identical(actual$kept_times, colnames(E))
+})
+
+test_that("partially observed periods retain the requested missing-data policy", {
+  set.seed(26)
+  E <- matrix(rnorm(8 * 20), 8)
+  E[1, 1] <- NA_real_
+
+  expect_error(cd_test(E, type = "CDw", seed = 7), "balanced sample")
+  expect_equal(cd_test(E, type = "CD")$T, 20L)
+})

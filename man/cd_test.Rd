@@ -56,8 +56,10 @@ removes time periods with any missing observations to create a balanced panel fo
 }
 \value{
 An object of class \code{cd_test} with fields \code{tests}, \code{type},
-\code{N}, \code{T}, \code{na.action}, and \code{call}. The \code{tests} list
-contains one or more test results, each with \code{statistic} and \code{p.value}.
+\code{N}, \code{T}, \code{na.action}, \code{excluded_units},
+\code{excluded_times}, \code{kept_times}, and \code{call}. The \code{tests}
+list contains one or more test results, each with \code{statistic} and
+\code{p.value}.
 }
 \description{
 Computes Pesaran CD, CDw, CDw+, and CD* tests for cross-sectional dependence
@@ -78,15 +80,22 @@ overlapping time periods and \eqn{\rho_{ij}} the pairwise correlation.
 \item{CD (Pesaran, 2015)}{
 \deqn{CD = \sqrt{\frac{2}{N(N-1)}} \sum_{i<j} \sqrt{T_{ij}} \, \rho_{ij}}
 }
-\item{CDw (Juodis and Reese, 2021)}{
-Random sign flips \eqn{w_i \in \{-1,1\}} are applied to residuals before
-summing weighted cross-products, normalized by pooled residual variance.
+\item{CDw (Juodis and Reese, 2022)}{
+Independent Rademacher weights \eqn{w_i \in \{-1,1\}} are applied by
+unit. For a balanced residual panel, the statistic is
+\deqn{CD_W = \left(\frac{1}{NT}\sum_{i,t}w_i^2 e_{it}^2\right)^{-1}
+    \sqrt{\frac{2}{TN(N-1)}}
+    \sum_t\sum_{i<j}w_i e_{it}w_j e_{jt}.}
+The first factor is the inverse pooled residual variance. One set of
+random weights is drawn per call; use \code{seed} for reproducibility.
 }
-\item{CDw+ (Fan, Liao, and Yao, 2015)}{
-Power enhancement adds a sparse thresholding term to CDw. The threshold is
-\deqn{c_N = 2 \sqrt{\frac{\log(N)}{T}}}
-and the power term sums \eqn{|\rho_{ij}|} for pairs exceeding
-the threshold.
+\item{CDw+ (Juodis and Reese, 2022; Fan, Liao, and Yao, 2015)}{
+The power-enhanced statistic is
+\deqn{CD_{W+} = CD_W + \sum_{i<j}|\rho_{ij}|
+    1\left\{|\rho_{ij}| > 2\sqrt{\log(N)/T}\right\}.}
+Here \eqn{\rho_{ij}} is the ordinary residual correlation, without
+multiplication by \eqn{\sqrt{T}}. The nonnegative screening term is
+asymptotically zero under the conditions of the null hypothesis.
 }
 \item{CD* (Pesaran and Xie, 2021)}{
 CD is computed on residuals after removing \code{n_pc} principal components
@@ -101,6 +110,10 @@ do not establish the validity of the asymptotic approximation.
 }
 
 \subsection{Missing data and balance}{
+
+Time periods containing no finite residual for any retained unit are outside
+the effective residual sample and are always removed before balance is
+assessed. Partially observed periods are handled according to \code{na.action}.
 
 \describe{
 \item{CD}{Uses pairwise-complete observations by default. Each pairwise
