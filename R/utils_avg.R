@@ -40,6 +40,11 @@
 #'   }
 #'
 #' @details
+#' This is a standalone data utility. It does not configure the averages used by
+#' `csdm()`; use [csdm_csa()] for that purpose. Model fitting constructs averages
+#' from the evaluated model terms and its documented source sample, which can
+#' differ from averages of raw data columns produced here.
+#'
 #' Efficiently computes, for each \code{v in vars} and time \code{t},
 #' \deqn{\bar v_t = \frac{\sum_i w_{it}\, 1_{\{v_{it}\text{ finite}\}}\, v_{it}}
 #'                 {\sum_i w_{it}\, 1_{\{v_{it}\text{ finite}\}}}}
@@ -47,7 +52,6 @@
 #' denominator becomes \eqn{\le 0} (e.g., only one finite observation at that time),
 #' the LOO mean is set to \code{NA} for that row/variable.
 #'
-#' @keywords internal
 #' @export
 cross_sectional_avg <- function(data,
                                 id = NULL,

@@ -1,5 +1,8 @@
 # Development
 
+- Document `cross_sectional_avg()` as a supported standalone data utility and
+  distinguish it from the model-term averages configured by `csdm_csa()`.
+
 - Deprecate `get_residuals()` in favor of the standard `residuals()` method.
   `cd_test()` now uses an unexported residual-matrix adapter internally.
 
