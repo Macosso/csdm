@@ -113,13 +113,6 @@
 }
 
 
-.csdm_econ_names <- function(formula, panel_df, na.action = stats::na.omit) {
-  mf <- stats::model.frame(formula, panel_df, na.action = na.action)
-  X <- stats::model.matrix(formula, mf)
-  colnames(X)
-}
-
-
 .csdm_residual_matrix <- function(panel_df, id, time, res_long) {
   .or <- function(x, y) if (is.null(x)) y else x
 

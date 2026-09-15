@@ -1,5 +1,7 @@
 # Development
 
+- Remove an unused internal model-matrix helper and obsolete `stats` imports.
+
 - Document `cross_sectional_avg()` as a supported standalone data utility and
   distinguish it from the model-term averages configured by `csdm_csa()`.
 
