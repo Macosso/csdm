@@ -1,5 +1,8 @@
 # Development
 
+- Deprecate `prepare_cd_input()`. Its transformations are not used by
+  `cd_test()` and can change the hypothesis represented by the residuals.
+
 - Deprecate the exported `cluster_vcov()`, `sandwich_vcov()`, and
   `pooled_vcov()` matrix utilities. They are not used by `csdm()` estimators;
   existing calls continue to work with a migration warning.

@@ -26,5 +26,6 @@ test_that("residual type requests cannot silently return another type", {
   expect_error(get_residuals(m, "pca"), "PCA")
   expect_null(get_residuals(m, "pca", strict = FALSE))
   E <- residuals(m)
-  expect_equal(prepare_cd_input(E, standardize = "none")$Z, E)
+  expect_equal(suppressWarnings(prepare_cd_input(E, standardize = "none"))$Z, E)
+  expect_warning(prepare_cd_input(E), class = "deprecatedWarning")
 })
