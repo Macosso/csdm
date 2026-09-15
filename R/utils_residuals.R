@@ -1,10 +1,10 @@
 # utils_residuals.R
 
-#' Extract residual matrices for panel diagnostics
+#' Deprecated residual-matrix accessor
 #'
 #' @description
-#' Unified accessor that returns an \eqn{N x T} residual matrix suitable for
-#' cross-sectional dependence diagnostics and post-estimation analysis.
+#' `get_residuals()` is deprecated. Use [residuals()] for fitted `csdm` models,
+#' or pass a numeric residual matrix directly to [cd_test()].
 #'
 #' @param object A fitted model object supported by this package (e.g., class
 #'   \code{csdm_fit}), or directly a numeric matrix of residuals shaped as
@@ -66,6 +66,18 @@
 get_residuals <- function(object,
                           type = c("auto", "cce", "pca", "pca_std"),
                           strict = TRUE) {
+  .Deprecated(
+    new = "residuals",
+    package = "csdm",
+    old = "get_residuals",
+    msg = "'get_residuals()' is deprecated; use residuals() for csdm fits or pass a residual matrix directly to cd_test()."
+  )
+  .csdm_get_residuals(object, type = type, strict = strict)
+}
+
+.csdm_get_residuals <- function(object,
+                                type = c("auto", "cce", "pca", "pca_std"),
+                                strict = TRUE) {
   type <- match.arg(type)
 
   as_mat <- function(x) {

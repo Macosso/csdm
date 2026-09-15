@@ -395,7 +395,7 @@ vcov.csdm_fit <- function(object, component = c("all", "levels", "adjustment", "
 #' @param ... Currently unused.
 #'
 #' @return A numeric matrix of residuals with dimensions \eqn{N x T}.
-#' @seealso [get_residuals()], [cd_test()], [predict.csdm_fit()]
+#' @seealso [cd_test()], [predict.csdm_fit()]
 #' @export
 residuals.csdm_fit <- function(object, type = c("e", "u"), format = c("matrix", "vector", "long"), ...) {
   type <- match.arg(type)

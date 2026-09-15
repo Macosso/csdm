@@ -29,5 +29,5 @@ This method is designed for panel diagnostics and downstream tools such as
 \code{\link[=cd_test]{cd_test()}}.
 }
 \seealso{
-\code{\link[=get_residuals]{get_residuals()}}, \code{\link[=cd_test]{cd_test()}}, \code{\link[=predict.csdm_fit]{predict.csdm_fit()}}
+\code{\link[=cd_test]{cd_test()}}, \code{\link[=predict.csdm_fit]{predict.csdm_fit()}}
 }

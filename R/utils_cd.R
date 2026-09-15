@@ -283,7 +283,7 @@ cd_test.csdm_fit <- function(object,
                               ...) {
   type <- match.arg(type)
   na.action <- match.arg(na.action)
-  E <- get_residuals(object, type = "auto", strict = TRUE)
+  E <- .csdm_get_residuals(object, type = "auto", strict = TRUE)
   cd_test.default(E, type = type, n_pc = n_pc, seed = seed,
                   min_overlap = min_overlap, na.action = na.action, ...)
 }

@@ -23,8 +23,9 @@ test_that("orphaned covariance utilities are deprecated", {
 
 test_that("residual type requests cannot silently return another type", {
   d <- panel_fixture(); m <- csdm(y ~ x, d, "id", "time")
-  expect_error(get_residuals(m, "pca"), "PCA")
-  expect_null(get_residuals(m, "pca", strict = FALSE))
+  expect_error(suppressWarnings(get_residuals(m, "pca")), "PCA")
+  expect_null(suppressWarnings(get_residuals(m, "pca", strict = FALSE)))
+  expect_warning(get_residuals(m), class = "deprecatedWarning")
   E <- residuals(m)
   expect_equal(suppressWarnings(prepare_cd_input(E, standardize = "none"))$Z, E)
   expect_warning(prepare_cd_input(E), class = "deprecatedWarning")

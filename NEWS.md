@@ -1,5 +1,8 @@
 # Development
 
+- Deprecate `get_residuals()` in favor of the standard `residuals()` method.
+  `cd_test()` now uses an unexported residual-matrix adapter internally.
+
 - Deprecate `prepare_cd_input()`. Its transformations are not used by
   `cd_test()` and can change the hypothesis represented by the residuals.
 
