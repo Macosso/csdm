@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_vcov.R
 \name{cluster_vcov}
 \alias{cluster_vcov}
-\title{Cluster-robust variance-covariance for OLS}
+\title{Deprecated cluster-robust variance-covariance utility}
 \usage{
 cluster_vcov(X, u, cluster, df_correction = TRUE, type = c("oneway", "twoway"))
 }
@@ -25,7 +25,15 @@ cluster_vcov(X, u, cluster, df_correction = TRUE, type = c("oneway", "twoway"))
 A \code{k x k} variance-covariance matrix.
 }
 \description{
-Computes one- or two-way cluster-robust vcov for an OLS design using the
-Liang-Zeger "meat" and Cameron-Gelbach-Miller inclusion-exclusion for two-way clustering.
+\code{cluster_vcov()} is deprecated and is not used by \code{csdm()} estimators. For an
+ordinary OLS model, use \code{\link[sandwich:vcovCL]{sandwich::vcovCL()}} instead. The function remains
+available temporarily so existing code can migrate.
 }
+\section{Deprecation}{
+
+This low-level matrix utility is not a covariance method for \code{csdm_fit}
+objects. Applying it to stacked CCE residuals does not produce the
+mean-group covariance reported by \code{\link[=vcov]{vcov()}}.
+}
+
 \keyword{internal}

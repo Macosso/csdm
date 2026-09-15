@@ -1,10 +1,11 @@
 # utils_vcov.R
 
-#' Cluster-robust variance-covariance for OLS
+#' Deprecated cluster-robust variance-covariance utility
 #'
 #' @description
-#' Computes one- or two-way cluster-robust vcov for an OLS design using the
-#' Liang-Zeger "meat" and Cameron-Gelbach-Miller inclusion-exclusion for two-way clustering.
+#' `cluster_vcov()` is deprecated and is not used by `csdm()` estimators. For an
+#' ordinary OLS model, use [sandwich::vcovCL()] instead. The function remains
+#' available temporarily so existing code can migrate.
 #'
 #' @param X Numeric design matrix (n x k) used in OLS.
 #' @param u Numeric residual vector (length n).
@@ -17,10 +18,19 @@
 #' @param type Character, one of \code{"oneway"} or \code{"twoway"}.
 #'
 #' @returns A \code{k x k} variance-covariance matrix.
+#' @section Deprecation:
+#' This low-level matrix utility is not a covariance method for `csdm_fit`
+#' objects. Applying it to stacked CCE residuals does not produce the
+#' mean-group covariance reported by [vcov()].
 #' @keywords internal
 #' @export
 cluster_vcov <- function(X, u, cluster, df_correction = TRUE,
                          type = c("oneway", "twoway")) {
+  .Deprecated(
+    package = "csdm",
+    old = "cluster_vcov",
+    msg = "'cluster_vcov()' is deprecated and is not used by csdm estimators; use sandwich::vcovCL() for ordinary OLS models."
+  )
   type <- match.arg(type)
   .csdm_flag(df_correction, "df_correction")
   design <- .csdm_ols_design(X, u)
@@ -51,19 +61,29 @@ cluster_vcov <- function(X, u, cluster, df_correction = TRUE,
 }
 
 
-#' Heteroskedasticity-robust (HC) sandwich variance-covariance for OLS
+#' Deprecated heteroskedasticity-robust covariance utility
 #'
 #' @description
-#' Computes White/Huber HC0-HC3 sandwich vcov for an OLS design.
+#' `sandwich_vcov()` is deprecated and is not used by `csdm()` estimators. For
+#' an ordinary OLS model, use [sandwich::vcovHC()] instead. The function remains
+#' available temporarily so existing code can migrate.
 #'
 #' @param X Numeric design matrix (n x k) used in OLS.
 #' @param u Numeric residual vector (length n).
 #' @param type Character; one of \code{"HC0"}, \code{"HC1"}, \code{"HC2"}, \code{"HC3"}.
 #'
 #' @returns A \code{k x k} variance-covariance matrix.
+#' @section Deprecation:
+#' This low-level matrix utility is not a covariance method for `csdm_fit`
+#' objects. Use [vcov()] to extract the supported mean-group covariance.
 #' @keywords internal
 #' @export
 sandwich_vcov <- function(X, u, type = c("HC0", "HC1", "HC2", "HC3")) {
+  .Deprecated(
+    package = "csdm",
+    old = "sandwich_vcov",
+    msg = "'sandwich_vcov()' is deprecated and is not used by csdm estimators; use sandwich::vcovHC() for ordinary OLS models."
+  )
   type <- match.arg(type)
   design <- .csdm_ols_design(X, u)
   X <- design$X; u <- design$u
@@ -81,12 +101,12 @@ sandwich_vcov <- function(X, u, type = c("HC0", "HC1", "HC2", "HC3")) {
 }
 
 
-#' Variance-covariance of Mean-Group (MG) averages
+#' Deprecated fixed-weight mean-group covariance utility
 #'
 #' @description
-#' Computes the covariance matrix of the MG estimator \eqn{\bar{\beta} = N^{-1} \sum_i \hat\beta_i},
-#' using the cross-sectional covariance of unit-specific slopes and dividing by the
-#' effective sample sizes per coefficient (handles missing entries per unit).
+#' `pooled_vcov()` is deprecated and is not used by `csdm()` estimators. Use
+#' [vcov()] on a fitted model for supported mean-group inference. The function
+#' remains available temporarily so existing code can migrate.
 #'
 #' @param beta_i Numeric matrix of unit-specific coefficients (\eqn{N x K});
 #'   rows = units, columns = coefficients. May contain \code{NA}s.
@@ -105,10 +125,18 @@ sandwich_vcov <- function(X, u, type = c("HC0", "HC1", "HC2", "HC3")) {
 #' sample. Pairwise covariance with missing coefficients is not implemented.
 #' This is not an inverse-variance pooled estimator or a general covariance
 #' estimator for arbitrary unit-specific covariance matrices.
+#' Its name can be misleading because it calculates the covariance of a
+#' fixed-weight average of unit estimates under the stated common-covariance and
+#' independence assumptions.
 #'
 #' @keywords internal
 #' @export
 pooled_vcov <- function(beta_i, weights = NULL, pairwise = TRUE) {
+  .Deprecated(
+    package = "csdm",
+    old = "pooled_vcov",
+    msg = "'pooled_vcov()' is deprecated and is not used by csdm estimators; use vcov() on supported csdm fits."
+  )
   B <- as.matrix(beta_i)
   .csdm_flag(pairwise, "pairwise")
   if (!is.numeric(B) || !ncol(B)) stop("'beta_i' must be a numeric matrix with columns.")

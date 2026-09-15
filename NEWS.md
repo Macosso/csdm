@@ -1,5 +1,9 @@
 # Development
 
+- Deprecate the exported `cluster_vcov()`, `sandwich_vcov()`, and
+  `pooled_vcov()` matrix utilities. They are not used by `csdm()` estimators;
+  existing calls continue to work with a migration warning.
+
 - Remove time periods containing no estimated residuals before CD sample balance
   is assessed, while retaining the selected policy for partially observed periods.
 

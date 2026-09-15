@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_vcov.R
 \name{pooled_vcov}
 \alias{pooled_vcov}
-\title{Variance-covariance of Mean-Group (MG) averages}
+\title{Deprecated fixed-weight mean-group covariance utility}
 \usage{
 pooled_vcov(beta_i, weights = NULL, pairwise = TRUE)
 }
@@ -20,9 +20,9 @@ A \code{K x K} covariance matrix for the MG mean, with
 \code{dimnames} inherited from \code{colnames(beta_i)}.
 }
 \description{
-Computes the covariance matrix of the MG estimator \eqn{\bar{\beta} = N^{-1} \sum_i \hat\beta_i},
-using the cross-sectional covariance of unit-specific slopes and dividing by the
-effective sample sizes per coefficient (handles missing entries per unit).
+\code{pooled_vcov()} is deprecated and is not used by \code{csdm()} estimators. Use
+\code{\link[=vcov]{vcov()}} on a fitted model for supported mean-group inference. The function
+remains available temporarily so existing code can migrate.
 }
 \details{
 Weights are fixed relative weights, normalized on the retained units.
@@ -33,5 +33,8 @@ With missing coefficients, use pairwise=FALSE to select one complete-unit
 sample. Pairwise covariance with missing coefficients is not implemented.
 This is not an inverse-variance pooled estimator or a general covariance
 estimator for arbitrary unit-specific covariance matrices.
+Its name can be misleading because it calculates the covariance of a
+fixed-weight average of unit estimates under the stated common-covariance and
+independence assumptions.
 }
 \keyword{internal}
