@@ -39,10 +39,13 @@
       <circle cx="568" cy="526" r="13" />
     </g>
 
-    <circle cx="220" cy="465" r="57" fill="#38B6D2" stroke="#FFFFFF" stroke-width="9" />
-    <text x="220" y="487" fill="#12345B" text-anchor="middle"
-          font-family="Inter, Segoe UI, Helvetica Neue, Arial, sans-serif"
-          font-size="68" font-weight="700" font-style="italic">f</text>
+    <ellipse cx="220" cy="465" rx="65" ry="53"
+             fill="#12345B" stroke="#38B6D2" stroke-width="11" />
+    <text x="220" y="479" fill="#FFFFFF" text-anchor="middle"
+          font-family="Cambria Math, STIX Two Math, Georgia, serif"
+          font-size="61" font-style="italic">
+      f<tspan font-size="29" baseline-shift="sub">t</tspan>
+    </text>
   </g>
 
 </svg>
