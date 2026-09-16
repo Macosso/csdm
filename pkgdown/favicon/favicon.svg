@@ -4,51 +4,45 @@
   <title id="logo-title">csdm</title>
   <desc id="logo-description">Logo for the csdm R package for cross-sectional dependence models.</desc>
 
-  <defs>
-    <linearGradient id="background" x1="175" y1="120" x2="625" y2="690" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#12345B" />
-      <stop offset="1" stop-color="#081C33" />
-    </linearGradient>
-    <linearGradient id="dependence" x1="220" y1="0" x2="580" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#69D2E7" />
-      <stop offset="0.5" stop-color="#38B6D2" />
-      <stop offset="1" stop-color="#69D2E7" />
-    </linearGradient>
-  </defs>
-
   <path d="M400 42 706 219v362L400 758 94 581V219Z"
-        fill="url(#background)" stroke="#1D527D" stroke-width="10" />
+        fill="#12345B" stroke="#1D527D" stroke-width="10" />
 
   <text x="400" y="279" fill="#FFFFFF" text-anchor="middle"
         font-family="Inter, Segoe UI, Helvetica Neue, Arial, sans-serif"
         font-size="142" font-weight="700" letter-spacing="-5">csdm</text>
 
   <g aria-hidden="true">
-    <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-width="8" opacity="0.28">
-      <path d="M238 375v177" />
-      <path d="M400 375v177" />
-      <path d="M562 375v177" />
+    <g fill="none" stroke="#38B6D2" stroke-linecap="round" stroke-width="11" opacity="0.9">
+      <path d="M258 433 333 386" />
+      <path d="M270 465h63" />
+      <path d="M258 497 333 544" />
     </g>
 
-    <g fill="none" stroke="url(#dependence)" stroke-linecap="round" stroke-width="11">
-      <path d="M238 392c54-38 108-38 162 0s108 38 162 0" />
-      <path d="M238 464c54 38 108 38 162 0s108-38 162 0" opacity="0.82" />
-      <path d="M238 536c54-38 108-38 162 0s108 38 162 0" opacity="0.64" />
+    <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="10">
+      <path d="M333 386 410 365 487 402 568 374" />
+      <path d="M333 465 410 438 487 480 568 451" opacity="0.86" />
+      <path d="M333 544 410 515 487 558 568 526" opacity="0.72" />
     </g>
 
-    <g fill="#0D2947" stroke="#FFFFFF" stroke-width="8">
-      <circle cx="238" cy="392" r="17" />
-      <circle cx="400" cy="392" r="17" />
-      <circle cx="562" cy="392" r="17" />
-      <circle cx="238" cy="464" r="17" />
-      <circle cx="400" cy="464" r="17" />
-      <circle cx="562" cy="464" r="17" />
-      <circle cx="238" cy="536" r="17" />
-      <circle cx="400" cy="536" r="17" />
-      <circle cx="562" cy="536" r="17" />
+    <g fill="#12345B" stroke="#FFFFFF" stroke-width="7">
+      <circle cx="333" cy="386" r="13" />
+      <circle cx="410" cy="365" r="13" />
+      <circle cx="487" cy="402" r="13" />
+      <circle cx="568" cy="374" r="13" />
+      <circle cx="333" cy="465" r="13" />
+      <circle cx="410" cy="438" r="13" />
+      <circle cx="487" cy="480" r="13" />
+      <circle cx="568" cy="451" r="13" />
+      <circle cx="333" cy="544" r="13" />
+      <circle cx="410" cy="515" r="13" />
+      <circle cx="487" cy="558" r="13" />
+      <circle cx="568" cy="526" r="13" />
     </g>
 
-    <circle cx="400" cy="464" r="17" fill="#38B6D2" stroke="#FFFFFF" stroke-width="8" />
+    <circle cx="220" cy="465" r="57" fill="#38B6D2" stroke="#FFFFFF" stroke-width="9" />
+    <text x="220" y="487" fill="#12345B" text-anchor="middle"
+          font-family="Inter, Segoe UI, Helvetica Neue, Arial, sans-serif"
+          font-size="68" font-weight="700" font-style="italic">f</text>
   </g>
 
 </svg>
