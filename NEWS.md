@@ -1,5 +1,9 @@
 # Development
 
+- Rewrite the README, introductory vignette, and pkgdown navigation around the
+  implemented API. Correct the bundled-data description of `log_ngd`, replace
+  stale CDw/CDw+ explanations, and make all introductory examples runnable.
+
 - Limit model, trend, CSA, long-run, and variance-covariance specifications to
   choices that are implemented. Unsupported names now fail at the relevant
   public entry point instead of being stored for later rejection.
