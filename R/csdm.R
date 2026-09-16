@@ -19,13 +19,15 @@
 #'   \code{"dcce"}, or \code{"cs_ardl"}.
 #' @param csa Cross-sectional-average specification, created by [csdm_csa()].
 #' @param lr Long-run or dynamic specification, created by [csdm_lr()].
-#' @param pooled Pooled specification (reserved for future use), created by
-#'   [csdm_pooled()].
+#' @param pooled Deprecated. Pooled restrictions are not implemented; use
+#'   `NULL`.
 #' @param trend One of \code{"none"} or \code{"unit"} (adds a linear unit trend).
-#'   \code{"pooled"} is reserved and not implemented.
 #' @param fullsample Logical; reserved for future extensions.
 #' @param mgmissing Logical; reserved for future extensions.
 #' @param vcov Variance-covariance specification, created by [csdm_vcov()].
+#' @param subset Logical expression selecting rows before estimation.
+#' @param na.action One of na.omit, na.exclude, or na.fail.
+#' @param time_step Positive numeric spacing of the time grid (default 1). Missing periods are preserved in lags.
 #' @param ... Reserved for future extensions.
 #'
 #' @return An object of class \code{csdm_fit} containing estimated coefficients,
@@ -189,18 +191,24 @@
 #' @export
 csdm <- function(
   formula, data, id, time,
-  model = c("mg", "cce", "dcce", "cs_ardl", "cs_ecm", "cs_dl"),
+  model = c("mg", "cce", "dcce", "cs_ardl"),
   csa = csdm_csa(),
   lr = csdm_lr(),
-  pooled = csdm_pooled(),
-  trend = c("none", "unit", "pooled"),
+  pooled = NULL,
+  trend = c("none", "unit"),
   fullsample = FALSE,
   mgmissing = FALSE,
   vcov = csdm_vcov(),
+  time_step = 1,
+  subset = NULL,
+  na.action = stats::na.omit,
   ...
 ) {
   model <- match.arg(model)
   trend <- match.arg(trend)
+  if (is.null(pooled)) pooled <- .csdm_pooled_spec()
+  if (...length()) stop("Unused arguments in '...'; estimation weights and additional options are not implemented.", call. = FALSE)
+  .csdm_validate_specs(model, csa, lr, pooled, vcov, fullsample, mgmissing)
 
   if (inherits(data, "pdata.frame")) {
     idx <- attr(data, "index")
@@ -210,13 +218,28 @@ csdm <- function(
     }
   }
 
-  panel_df <- .csdm_prepare_panel_df(data = data, id = id, time = time)
-
-  if (trend == "pooled") {
-    stop("trend='pooled' is not implemented yet")
+  original_data <- as.data.frame(data)
+  if (!inherits(formula, "formula") || length(formula) != 3L) stop("Supply a two-sided model formula.")
+  formula <- stats::formula(stats::terms(formula, data = original_data))
+  selected <- seq_len(nrow(original_data))
+  if (!missing(subset)) {
+    selection <- eval(substitute(subset), original_data, parent.frame())
+    if (!is.null(selection)) {
+      if (!is.logical(selection) || length(selection) != nrow(original_data)) stop("'subset' must evaluate to one logical value per row.")
+      selected <- which(!is.na(selection) & selection)
+    }
   }
+  na_fun <- match.fun(na.action)
+  if (!any(vapply(list(stats::na.omit, stats::na.exclude, stats::na.fail), identical, logical(1), y = na_fun))) {
+    stop("Supported na.action values are na.omit, na.exclude, and na.fail.")
+  }
+  panel_df <- .csdm_prepare_panel_df(data = data[selected, , drop = FALSE], id = id, time = time, time_step = time_step)
+  panel_df$.csdm_rowid__ <- selected[panel_df$.csdm_rowid__]
+  rownames(panel_df) <- as.character(panel_df$.csdm_rowid__)
+  attr(panel_df, "csdm_na_action") <- na_fun
+
   if (trend == "unit") {
-    panel_df$.csdm_trend__ <- .csdm_time_index(panel_df[[time]])
+    panel_df$.csdm_trend__ <- .csdm_time_index(panel_df[[time]], time_step)
     formula <- stats::update(formula, . ~ . + .csdm_trend__)
   }
 
@@ -225,16 +248,23 @@ csdm <- function(
     mg = .csdm_fit_mg(panel_df = panel_df, formula = formula, id = id, time = time, lr = lr, vcov = vcov, ...),
     cce = .csdm_fit_cce(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...),
     dcce = .csdm_fit_dcce(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...),
-    cs_ardl = .csdm_fit_cs_ardl(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...),
-    cs_ecm  = stop("Not implemented yet"),
-    cs_dl   = stop("Not implemented yet")
+    cs_ardl = .csdm_fit_cs_ardl(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...)
   )
 
   fit$call <- match.call()
+  fit$data <- original_data
+  fit$na.action <- if (identical(na_fun, stats::na.exclude)) {
+    structure(setdiff(selected, fit$sample$row[fit$sample$used]), class = "exclude")
+  } else structure(setdiff(selected, fit$sample$row[fit$sample$used]), class = "omit")
+  fit$meta$selected_rows <- selected
+  fit$meta$na_action <- na_fun
+  fit$meta$time_step <- time_step
+  fit$meta$pdata <- inherits(data, "pdata.frame")
   fit$formula <- formula
   fit$model <- model
   fit$id <- id
   fit$time <- time
+  fit$meta$requested_csa <- csa
   fit$meta$trend <- trend
   fit$meta$fullsample <- isTRUE(fullsample)
   fit$meta$mgmissing <- isTRUE(mgmissing)

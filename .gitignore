@@ -5,3 +5,6 @@ inst/doc
 /doc/
 /Meta/
 docs
+.dev-library/
+.dev-check/
+*.tar.gz

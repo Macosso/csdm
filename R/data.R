@@ -8,11 +8,12 @@
 #' \describe{
 #'   \item{id}{Unit identifier (country id).}
 #'   \item{year}{Time identifier (year, 1960-2007).}
-#'   \item{log_rgdpo}{Log real GDP (output).}
+#'   \item{log_rgdpo}{Log real output.}
 #'   \item{log_hc}{Log human capital index.}
-#'   \item{log_ck}{Log capital stock.}
-#'   \item{log_ngd}{Log (net) government debt (or similar), used as a covariate/control.}
+#'   \item{log_ck}{Log physical capital.}
+#'   \item{log_ngd}{Log population growth plus a 5 percent break-even investment rate.}
 #' }
-#' @source Penn World Table (PWT). This dataset is included as a small, convenient
-#'   panel for examples and tests.
+#' @source Penn World Table 8 example data distributed with Stata's
+#'   \code{xtdcce2}. The variable descriptions follow the accompanying
+#'   \code{xtdcce2} documentation.
 "PWT_60_07"

@@ -2,12 +2,12 @@
 % Please edit documentation in R/utils_residuals.R
 \name{prepare_cd_input}
 \alias{prepare_cd_input}
-\title{Prepare residual matrices for CD and CD* diagnostics}
+\title{Deprecated residual preprocessing utility}
 \usage{
 prepare_cd_input(
   E,
   standardize = c("row", "none"),
-  demean_time = TRUE,
+  demean_time = FALSE,
   min_per_time = 2L
 )
 }
@@ -33,15 +33,23 @@ A list with:
 \item{col_means}{Numeric vector of time means subtracted when \code{demean_time=TRUE}.}
 }
 \description{
-Cleans and transforms an \eqn{N x T} residual matrix for cross-sectional
-dependence testing. Operations include:
+\code{prepare_cd_input()} is deprecated and is not used by \code{\link[=cd_test]{cd_test()}}. Transforming
+residuals before a dependence test can change the tested hypothesis. Pass the
+original residual matrix to \code{\link[=cd_test]{cd_test()}} and use its documented missing-data
+policy instead.
+
+For compatibility, this function still performs:
 \enumerate{
 \item Dropping time periods with fewer than \code{min_per_time} finite observations.
 \item Optional row-wise standardization to unit variance over available times.
-\item Optional demeaning across units at each time (recommended for CD).
+\item Optional demeaning across units at each time (changes the tested residuals).
 }
 }
 \details{
+This helper is retained temporarily for compatibility. Row scaling changes
+the weighted covariance underlying CDw, while cross-sectional time demeaning
+can mechanically induce dependence. Neither transformation is applied by
+\code{cd_test()}.
 \subsection{Transformation steps}{
 
 \enumerate{

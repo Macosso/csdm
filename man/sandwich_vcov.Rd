@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_vcov.R
 \name{sandwich_vcov}
 \alias{sandwich_vcov}
-\title{Heteroskedasticity-robust (HC) sandwich variance-covariance for OLS}
+\title{Deprecated heteroskedasticity-robust covariance utility}
 \usage{
 sandwich_vcov(X, u, type = c("HC0", "HC1", "HC2", "HC3"))
 }
@@ -17,6 +17,14 @@ sandwich_vcov(X, u, type = c("HC0", "HC1", "HC2", "HC3"))
 A \code{k x k} variance-covariance matrix.
 }
 \description{
-Computes White/Huber HC0-HC3 sandwich vcov for an OLS design.
+\code{sandwich_vcov()} is deprecated and is not used by \code{csdm()} estimators. For
+an ordinary OLS model, use \code{\link[sandwich:vcovHC]{sandwich::vcovHC()}} instead. The function remains
+available temporarily so existing code can migrate.
 }
+\section{Deprecation}{
+
+This low-level matrix utility is not a covariance method for \code{csdm_fit}
+objects. Use \code{\link[=vcov]{vcov()}} to extract the supported mean-group covariance.
+}
+
 \keyword{internal}

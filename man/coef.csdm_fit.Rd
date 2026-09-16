@@ -4,10 +4,13 @@
 \alias{coef.csdm_fit}
 \title{Extract model coefficients from a fitted csdm model}
 \usage{
-\method{coef}{csdm_fit}(object, ...)
+\method{coef}{csdm_fit}(object, component = c("all", "levels", "adjustment", "long_run"), ...)
 }
 \arguments{
 \item{object}{A fitted object of class \code{csdm_fit}.}
+
+\item{component}{Parameter block. For CS-ARDL, all uses one common sample
+for the joint parameter vector; individual components may retain more units.}
 
 \item{...}{Currently unused.}
 }

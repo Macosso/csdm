@@ -1,7 +1,7 @@
 test_that("csdm() returns a stable csdm_fit contract", {
   df <- data.frame(
-    id = rep(1:4, each = 10),
-    time = rep(1:10, times = 4)
+    id = rep(1:4, each = 30),
+    time = rep(1:30, times = 4)
   )
   set.seed(1)
   df$x1 <- rnorm(nrow(df))
@@ -74,11 +74,15 @@ test_that("csdm() returns a stable csdm_fit contract", {
 
   expect_error(
     csdm(y ~ x1 + x2, data = df, id = "id", time = "time", model = "cs_ecm"),
-    "Not implemented yet"
+    "one of"
   )
   expect_error(
     csdm(y ~ x1 + x2, data = df, id = "id", time = "time", model = "cs_dl"),
-    "Not implemented yet"
+    "one of"
+  )
+  expect_error(
+    csdm(y ~ x1 + x2, data = df, id = "id", time = "time", trend = "pooled"),
+    "one of"
   )
 })
 
@@ -107,8 +111,8 @@ test_that("csdm() residual mapping remains aligned with mid-panel NA", {
 
 test_that("dcce supports within-unit y-lags via lr(type='ardl')", {
   df <- data.frame(
-    id = rep(1:4, each = 10),
-    time = rep(1:10, times = 4)
+    id = rep(1:4, each = 30),
+    time = rep(1:30, times = 4)
   )
   set.seed(3)
   df$x1 <- rnorm(nrow(df))
@@ -133,8 +137,8 @@ test_that("dcce supports within-unit y-lags via lr(type='ardl')", {
 
 test_that("dcce supports scalar x distributed lags via lr(type='ardl')", {
   df <- data.frame(
-    id = rep(1:4, each = 10),
-    time = rep(1:10, times = 4)
+    id = rep(1:4, each = 30),
+    time = rep(1:30, times = 4)
   )
   set.seed(4)
   df$x1 <- rnorm(nrow(df))
@@ -159,8 +163,8 @@ test_that("dcce supports scalar x distributed lags via lr(type='ardl')", {
 
 test_that("xdlags accepts bare variable names like 'xlog'", {
   df <- data.frame(
-    id = rep(1:4, each = 10),
-    time = rep(1:10, times = 4)
+    id = rep(1:4, each = 30),
+    time = rep(1:30, times = 4)
   )
   set.seed(5)
   df$xlog <- rnorm(nrow(df))
@@ -182,8 +186,8 @@ test_that("xdlags accepts bare variable names like 'xlog'", {
 
 test_that("xdlags rejects transformed RHS terms", {
   df <- data.frame(
-    id = rep(1:4, each = 10),
-    time = rep(1:10, times = 4)
+    id = rep(1:4, each = 30),
+    time = rep(1:30, times = 4)
   )
   set.seed(6)
   df$x1 <- rnorm(nrow(df))

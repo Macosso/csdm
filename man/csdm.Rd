@@ -9,14 +9,17 @@ csdm(
   data,
   id,
   time,
-  model = c("mg", "cce", "dcce", "cs_ardl", "cs_ecm", "cs_dl"),
+  model = c("mg", "cce", "dcce", "cs_ardl"),
   csa = csdm_csa(),
   lr = csdm_lr(),
-  pooled = csdm_pooled(),
-  trend = c("none", "unit", "pooled"),
+  pooled = NULL,
+  trend = c("none", "unit"),
   fullsample = FALSE,
   mgmissing = FALSE,
   vcov = csdm_vcov(),
+  time_step = 1,
+  subset = NULL,
+  na.action = stats::na.omit,
   ...
 )
 }
@@ -37,17 +40,22 @@ provided values are ignored.}
 
 \item{lr}{Long-run or dynamic specification, created by \code{\link[=csdm_lr]{csdm_lr()}}.}
 
-\item{pooled}{Pooled specification (reserved for future use), created by
-\code{\link[=csdm_pooled]{csdm_pooled()}}.}
+\item{pooled}{Deprecated. Pooled restrictions are not implemented; use
+\code{NULL}.}
 
-\item{trend}{One of \code{"none"} or \code{"unit"} (adds a linear unit trend).
-\code{"pooled"} is reserved and not implemented.}
+\item{trend}{One of \code{"none"} or \code{"unit"} (adds a linear unit trend).}
 
 \item{fullsample}{Logical; reserved for future extensions.}
 
 \item{mgmissing}{Logical; reserved for future extensions.}
 
 \item{vcov}{Variance-covariance specification, created by \code{\link[=csdm_vcov]{csdm_vcov()}}.}
+
+\item{time_step}{Positive numeric spacing of the time grid (default 1). Missing periods are preserved in lags.}
+
+\item{subset}{Logical expression selecting rows before estimation.}
+
+\item{na.action}{One of na.omit, na.exclude, or na.fail.}
 
 \item{...}{Reserved for future extensions.}
 }

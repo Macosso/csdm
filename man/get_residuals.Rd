@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_residuals.R
 \name{get_residuals}
 \alias{get_residuals}
-\title{Extract residual matrices for panel diagnostics}
+\title{Deprecated residual-matrix accessor}
 \usage{
 get_residuals(object, type = c("auto", "cce", "pca", "pca_std"), strict = TRUE)
 }
@@ -19,7 +19,7 @@ PCA residuals, otherwise CCE residuals, otherwise \code{object} if it is a matri
 \item \code{"cce"}: residuals from the CCE-augmented per-unit regressions.
 \item \code{"pca"}: residuals after removing estimated factors from \eqn{\hat v_{it}}.
 \item \code{"pca_std"}: \code{"pca"} residuals standardized by unit-specific
-scale (recommended for CD).
+scale (changes the tested residuals).
 }}
 
 \item{strict}{Logical; if \code{TRUE}, error on unsupported objects. If \code{FALSE},
@@ -31,8 +31,8 @@ preserving \code{rownames} and \code{colnames} when available; or \code{NULL}
 if nothing suitable is found and \code{strict = FALSE}.
 }
 \description{
-Unified accessor that returns an \eqn{N x T} residual matrix suitable for
-cross-sectional dependence diagnostics and post-estimation analysis.
+\code{get_residuals()} is deprecated. Use \code{\link[=residuals]{residuals()}} for fitted \code{csdm} models,
+or pass a numeric residual matrix directly to \code{\link[=cd_test]{cd_test()}}.
 }
 \details{
 \subsection{Residual types}{

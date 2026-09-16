@@ -1,10 +1,10 @@
 # utils_residuals.R
 
-#' Extract residual matrices for panel diagnostics
+#' Deprecated residual-matrix accessor
 #'
 #' @description
-#' Unified accessor that returns an \eqn{N x T} residual matrix suitable for
-#' cross-sectional dependence diagnostics and post-estimation analysis.
+#' `get_residuals()` is deprecated. Use [residuals()] for fitted `csdm` models,
+#' or pass a numeric residual matrix directly to [cd_test()].
 #'
 #' @param object A fitted model object supported by this package (e.g., class
 #'   \code{csdm_fit}), or directly a numeric matrix of residuals shaped as
@@ -17,7 +17,7 @@
 #'     \item \code{"cce"}: residuals from the CCE-augmented per-unit regressions.
 #'     \item \code{"pca"}: residuals after removing estimated factors from \eqn{\hat v_{it}}.
 #'     \item \code{"pca_std"}: \code{"pca"} residuals standardized by unit-specific
-#'       scale (recommended for CD).
+#'       scale (changes the tested residuals).
 #'   }
 #' @param strict Logical; if \code{TRUE}, error on unsupported objects. If \code{FALSE},
 #'   return \code{NULL} when residuals cannot be found.
@@ -66,6 +66,18 @@
 get_residuals <- function(object,
                           type = c("auto", "cce", "pca", "pca_std"),
                           strict = TRUE) {
+  .Deprecated(
+    new = "residuals",
+    package = "csdm",
+    old = "get_residuals",
+    msg = "'get_residuals()' is deprecated; use residuals() for csdm fits or pass a residual matrix directly to cd_test()."
+  )
+  .csdm_get_residuals(object, type = type, strict = strict)
+}
+
+.csdm_get_residuals <- function(object,
+                                type = c("auto", "cce", "pca", "pca_std"),
+                                strict = TRUE) {
   type <- match.arg(type)
 
   as_mat <- function(x) {
@@ -89,6 +101,10 @@ get_residuals <- function(object,
 
   # Handle supported class: csdm_fit
   if (inherits(object, "csdm_fit")) {
+    if (!type %in% c("auto", "cce")) {
+      if (strict) stop("This fit does not store PCA residuals.")
+      return(NULL)
+    }
     M <- as_mat(object$residuals_e)
     if (is.matrix(M) && is.numeric(M)) return(M)
   }
@@ -122,15 +138,19 @@ get_residuals <- function(object,
 }
 
 
-#' Prepare residual matrices for CD and CD* diagnostics
+#' Deprecated residual preprocessing utility
 #'
 #' @description
-#' Cleans and transforms an \eqn{N x T} residual matrix for cross-sectional
-#' dependence testing. Operations include:
+#' `prepare_cd_input()` is deprecated and is not used by [cd_test()]. Transforming
+#' residuals before a dependence test can change the tested hypothesis. Pass the
+#' original residual matrix to [cd_test()] and use its documented missing-data
+#' policy instead.
+#'
+#' For compatibility, this function still performs:
 #' \enumerate{
 #'   \item Dropping time periods with fewer than \code{min_per_time} finite observations.
 #'   \item Optional row-wise standardization to unit variance over available times.
-#'   \item Optional demeaning across units at each time (recommended for CD).
+#'   \item Optional demeaning across units at each time (changes the tested residuals).
 #' }
 #'
 #' @param E A numeric matrix of residuals (\eqn{N x T}); rows are units,
@@ -150,6 +170,11 @@ get_residuals <- function(object,
 #' \item{col_means}{Numeric vector of time means subtracted when \code{demean_time=TRUE}.}
 #'
 #' @details
+#' This helper is retained temporarily for compatibility. Row scaling changes
+#' the weighted covariance underlying CDw, while cross-sectional time demeaning
+#' can mechanically induce dependence. Neither transformation is applied by
+#' `cd_test()`.
+#'
 #' ## Transformation steps
 #'
 #' \enumerate{
@@ -185,12 +210,20 @@ get_residuals <- function(object,
 #' @export
 prepare_cd_input <- function(E,
                              standardize = c("row", "none"),
-                             demean_time = TRUE,
+                             demean_time = FALSE,
                              min_per_time = 2L) {
+  .Deprecated(
+    package = "csdm",
+    old = "prepare_cd_input",
+    msg = "'prepare_cd_input()' is deprecated and is not used by cd_test(); pass original residuals to cd_test() instead."
+  )
   if (!is.matrix(E) || !is.numeric(E)) {
     stop("prepare_cd_input(): E must be a numeric matrix (N x T).")
   }
   standardize <- match.arg(standardize)
+  .csdm_flag(demean_time, "demean_time")
+  min_per_time <- .csdm_integer(min_per_time, "min_per_time")
+  if (min_per_time < 1L) stop("'min_per_time' must be positive.")
   N <- nrow(E)
   T_n <- ncol(E)
 
@@ -220,7 +253,7 @@ prepare_cd_input <- function(E,
     }
   }
 
-  # 3) Demean across units at each time (optional but recommended for CD)
+  # 3) Demean across units at each time (changes the tested residuals)
   col_means <- rep(0, ncol(Z))
   if (isTRUE(demean_time)) {
     for (j in seq_len(ncol(Z))) {

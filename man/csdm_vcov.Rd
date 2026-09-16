@@ -2,18 +2,18 @@
 % Please edit documentation in R/csdm_specs.R
 \name{csdm_vcov}
 \alias{csdm_vcov}
-\title{Specification: Variance-covariance for MG output (stub)}
+\title{Specification: Mean-group variance-covariance estimator}
 \usage{
-csdm_vcov(type = c("mg", "np", "nw", "wpn", "ols"), ...)
+csdm_vcov(type = "mg", ...)
 }
 \arguments{
-\item{type}{One of c("mg","np","nw","wpn","ols").}
+\item{type}{Must be \code{"mg"}, the implemented mean-group variance estimator.}
 
-\item{...}{Reserved for future use.}
+\item{...}{Must be empty; additional variance estimators are not implemented.}
 }
 \value{
 A spec object (list) used by csdm().
 }
 \description{
-Specification: Variance-covariance for MG output (stub)
+Specification: Mean-group variance-covariance estimator
 }

@@ -40,6 +40,11 @@
 #'   }
 #'
 #' @details
+#' This is a standalone data utility. It does not configure the averages used by
+#' `csdm()`; use [csdm_csa()] for that purpose. Model fitting constructs averages
+#' from the evaluated model terms and its documented source sample, which can
+#' differ from averages of raw data columns produced here.
+#'
 #' Efficiently computes, for each \code{v in vars} and time \code{t},
 #' \deqn{\bar v_t = \frac{\sum_i w_{it}\, 1_{\{v_{it}\text{ finite}\}}\, v_{it}}
 #'                 {\sum_i w_{it}\, 1_{\{v_{it}\text{ finite}\}}}}
@@ -47,7 +52,6 @@
 #' denominator becomes \eqn{\le 0} (e.g., only one finite observation at that time),
 #' the LOO mean is set to \code{NA} for that row/variable.
 #'
-#' @keywords internal
 #' @export
 cross_sectional_avg <- function(data,
                                 id = NULL,
@@ -60,151 +64,58 @@ cross_sectional_avg <- function(data,
                                 na.rm = TRUE) {
   return_mode <- match.arg(return_mode)
 
-  # --- 0) Extract id/time if pdata.frame
+  .csdm_flag(leave_out, "leave_out")
+  .csdm_flag(na.rm, "na.rm")
+  if (leave_out && return_mode == "time") stop("Leave-one-out averages require return_mode='attach'.")
   if (inherits(data, "pdata.frame")) {
     idx <- attr(data, "index")
-    if (is.null(idx)) stop("pdata.frame without index attribute.")
-    if (is.null(id))   id   <- names(idx)[1L]
+    if (is.null(id)) id <- names(idx)[1L]
     if (is.null(time)) time <- names(idx)[2L]
-    df <- as.data.frame(data)
-  } else {
-    df <- as.data.frame(data)
-    if (is.null(id) || is.null(time)) {
-      stop("For data.frame, both 'id' and 'time' must be provided.")
-    }
   }
-
-  if (!all(vars %in% names(df))) {
-    miss <- setdiff(vars, names(df))
-    stop("Variables not found in data: ", paste(miss, collapse = ", "))
+  df <- as.data.frame(data)
+  if (!length(id) || !length(time) || !all(c(id, time) %in% names(df))) stop("Specify valid id/time columns.")
+  if (!is.character(vars) || !length(vars) || anyNA(vars) || anyDuplicated(vars) ||
+      !all(vars %in% names(df))) stop("'vars' must name unique numeric columns.")
+  if (anyNA(df[[id]]) || anyNA(df[[time]]) || anyDuplicated(df[c(id, time)])) stop("Invalid or duplicate panel keys.")
+  if (!all(vapply(df[vars], is.numeric, logical(1)))) stop("CSA variables must be numeric.")
+  if (!is.character(suffix) || length(suffix) != 1L || is.na(suffix) || !nzchar(suffix)) stop("Invalid suffix.")
+  out_names <- paste0(suffix, "_", vars)
+  if (any(out_names %in% names(df))) stop("CSA column names already exist in data.")
+  if (is.character(weights) && length(weights) == 1L) {
+    if (!weights %in% names(df)) stop("Unknown weights column.")
+    weights <- df[[weights]]
   }
-  if (!all(c(id, time) %in% names(df))) {
-    stop("Columns 'id' and/or 'time' not found in data.")
+  w <- if (is.null(weights)) rep(1, nrow(df)) else weights
+  if (!is.numeric(w) || length(w) != nrow(df) || any(!is.finite(w) | w < 0)) {
+    stop("Weights must be nonnegative, finite, and have length nrow(data).")
   }
-
-  # --- 1) Weights vector
-  if (is.null(weights)) {
-    w <- rep(1, nrow(df))
-  } else if (is.character(weights) && length(weights) == 1L) {
-    if (!weights %in% names(df)) stop("weights column '", weights, "' not found.")
-    w <- as.numeric(df[[weights]])
-  } else if (is.numeric(weights)) {
-    if (length(weights) != nrow(df)) stop("weights vector must have length nrow(data).")
-    w <- as.numeric(weights)
-  } else {
-    stop("'weights' must be NULL, a column name, or a numeric vector length nrow(data).")
-  }
-  if (any(!is.finite(w) | w < 0, na.rm = TRUE)) {
-    stop("weights must be nonnegative and finite.")
-  }
-  # For NA weights, treat as zero weight
-  w[!is.finite(w)] <- 0
-
-  # --- 2) Build time-level sums and denominators for each var
-  # Efficient base aggregation with tapply on vectors
-  time_vec <- df[[time]]
-  id_vec   <- df[[id]]
-
-  # Helper: time-wise sum of w * x and sum of w for finite x
-  time_sumw  <- function(x) tapply(x, time_vec, sum, na.rm = TRUE)
-  time_sumi  <- function(ind) tapply(ind, time_vec, sum, na.rm = TRUE)
-
-  # Precompute maps per var: sum_wx_t and sum_w_t
-  uniq_t <- sort(unique(time_vec))
-  K <- length(vars)
-
-  sum_wx_list <- vector("list", K)
-  sum_w_list  <- vector("list", K)
-
-  for (k in seq_along(vars)) {
-    v <- df[[vars[k]]]
-    fin <- is.finite(v)
-    ww  <- w * fin
-    sum_wx <- tapply(ww * v, time_vec, sum, na.rm = TRUE)
-    sum_w  <- tapply(ww,       time_vec, sum, na.rm = TRUE)
-
-    # Ensure all uniq_t present
-    sum_wx <- sum_wx[as.character(uniq_t)]
-    sum_w  <- sum_w[as.character(uniq_t)]
-
-    # Replace NA with 0 in aggregates (consistent with na.rm=TRUE path)
-    sum_wx[!is.finite(sum_wx)] <- 0
-    sum_w[!is.finite(sum_w)]   <- 0
-
-    sum_wx_list[[k]] <- sum_wx
-    sum_w_list[[k]]  <- sum_w
-  }
-
-  # --- 3) Compute non-LOO time means if needed
-  if (!leave_out) {
-    csa_time <- as.data.frame(stats::setNames(list(uniq_t), time))
-    for (k in seq_along(vars)) {
-      denom <- sum_w_list[[k]]
-      num   <- sum_wx_list[[k]]
-      mu    <- if (na.rm) ifelse(denom > 0, num / denom, NA_real_) else num / denom
-      csa_time[[paste0(suffix, "_", vars[k])]] <- as.numeric(mu)
-    }
-    # Return as requested
-    if (return_mode == "time") {
-      rownames(csa_time) <- NULL
-      return(csa_time)
+  times <- sort(unique(df[[time]]))
+  index <- match(df[[time]], times)
+  time_result <- data.frame(times, check.names = FALSE)
+  names(time_result) <- time
+  for (j in seq_along(vars)) {
+    x <- df[[vars[j]]]
+    finite <- is.finite(x)
+    contribution <- ifelse(finite, x, 0) * w
+    denominator <- w * finite
+    sums <- as.numeric(rowsum(contribution, index, reorder = TRUE))
+    denoms <- as.numeric(rowsum(denominator, index, reorder = TRUE))
+    missing <- as.numeric(rowsum(as.integer(!finite), index, reorder = TRUE))
+    if (leave_out) {
+      numerator <- sums[index] - contribution
+      denom <- denoms[index] - denominator
+      missing <- missing[index] - !finite
     } else {
-      # attach to df: map time -> CSA columns
-      key <- as.character(uniq_t)
-      idx_map <- match(as.character(time_vec), key)
-      for (nm in setdiff(names(csa_time), time)) {
-        df[[nm]] <- csa_time[[nm]][idx_map]
-      }
-      return(df)
+      numerator <- sums
+      denom <- denoms
+    }
+    value <- rep(NA_real_, length(denom))
+    ok <- denom > 0 & (na.rm | missing == 0)
+    value[ok] <- numerator[ok] / denom[ok]
+    if (leave_out) df[[out_names[j]]] <- value else {
+      time_result[[out_names[j]]] <- value
+      df[[out_names[j]]] <- value[index]
     }
   }
-
-  # --- 4) Leave-one-out: row-wise adjustment (sum_wx_t - w_i x_i) / (sum_w_t - w_i * 1_{finite})
-  # Prepare output columns
-  out_cols <- replicate(K, numeric(nrow(df)), simplify = FALSE)
-  names(out_cols) <- paste0(suffix, "_", vars)
-
-  # Precompute time-index vector to align with time aggregates
-  time_key <- as.character(uniq_t)
-  t_idx <- match(as.character(time_vec), time_key)
-
-  for (k in seq_along(vars)) {
-    v <- df[[vars[k]]]
-    fin_i <- is.finite(v)
-    w_i   <- w
-
-    sum_wx_t <- as.numeric(sum_wx_list[[k]][t_idx])
-    sum_w_t  <- as.numeric(sum_w_list[[k]][t_idx])
-
-    num   <- sum_wx_t - (w_i * v) * fin_i
-    denom <- sum_w_t  - (w_i * fin_i)
-
-    mu_lo <- ifelse(denom > 0, num / denom, NA_real_)
-    if (!na.rm) {
-      # If not removing NA, set NA when v is NA or any NA in slice is present.
-      # Cheap conservative rule: if v_i is NA, keep NA; otherwise use mu_lo.
-      mu_lo[!fin_i] <- NA_real_
-    }
-    out_cols[[k]] <- mu_lo
-  }
-
-  for (k in seq_along(vars)) {
-    df[[paste0(suffix, "_", vars[k])]] <- out_cols[[k]]
-  }
-
-  if (return_mode == "time") {
-    # Collapse to time-level non-LOO (there is no single "time-level LOO" table);
-    # return the standard CSA by time to avoid misleading output.
-    csa_time <- as.data.frame(stats::setNames(list(uniq_t), time))
-    for (k in seq_along(vars)) {
-      denom <- sum_w_list[[k]]
-      num   <- sum_wx_list[[k]]
-      mu    <- if (na.rm) ifelse(denom > 0, num / denom, NA_real_) else num / denom
-      csa_time[[paste0(suffix, "_", vars[k])]] <- as.numeric(mu)
-    }
-    rownames(csa_time) <- NULL
-    return(csa_time)
-  } else {
-    return(df)
-  }
+  if (return_mode == "time") time_result else df
 }

@@ -4,10 +4,12 @@
 \alias{vcov.csdm_fit}
 \title{Extract coefficient covariance matrix from a fitted csdm model}
 \usage{
-\method{vcov}{csdm_fit}(object, ...)
+\method{vcov}{csdm_fit}(object, component = c("all", "levels", "adjustment", "long_run"), ...)
 }
 \arguments{
 \item{object}{A fitted object of class \code{csdm_fit}.}
+
+\item{component}{Parameter block, matching coef().}
 
 \item{...}{Currently unused.}
 }

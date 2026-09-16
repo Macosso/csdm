@@ -1,3 +1,3 @@
-#' @importFrom stats aggregate cor model.matrix.lm pt residuals sd setNames symnum terms
+#' @importFrom stats coef df.residual fitted formula model.frame model.matrix nobs predict residuals terms update vcov
 #' @importFrom Rdpack reprompt
 NULL

@@ -15,7 +15,7 @@ cd_test(object, ...)
   n_pc = 4L,
   seed = NULL,
   min_overlap = 2L,
-  na.action = c("drop.incomplete.times", "pairwise"),
+  na.action = c("pairwise", "drop.incomplete.times"),
   ...
 )
 
@@ -25,7 +25,7 @@ cd_test(object, ...)
   n_pc = 4L,
   seed = NULL,
   min_overlap = 2L,
-  na.action = c("drop.incomplete.times", "pairwise"),
+  na.action = c("pairwise", "drop.incomplete.times"),
   ...
 )
 
@@ -41,14 +41,14 @@ cd_test(object, ...)
 
 \item{n_pc}{Number of principal components for CD* (default 4).}
 
-\item{seed}{Integer seed for weight draws in CDw/CDw+ (default NULL = no seed set).}
+\item{seed}{Integer seed for weight draws. Seeded calls restore the caller's RNG state; NULL uses the current RNG stream.}
 
 \item{min_overlap}{Minimum number of overlapping time periods required for a unit
 pair to be included in CD/CDw/CDw+ (default 2).}
 
-\item{na.action}{How to handle missing data: \code{"drop.incomplete.times"} (default)
+\item{na.action}{How to handle missing data: \code{"drop.incomplete.times"}
 removes time periods with any missing observations to create a balanced panel for CD*;
-\code{"pairwise"} uses pairwise correlations for CD/CDw/CDw+ and warns for CD*.}
+\code{"pairwise"} (default) uses pairwise correlations for CD; unbalanced CDw/CDw+ requests error and CD* warns.}
 
 \item{x}{An object of class \code{cd_test}.}
 
@@ -56,8 +56,10 @@ removes time periods with any missing observations to create a balanced panel fo
 }
 \value{
 An object of class \code{cd_test} with fields \code{tests}, \code{type},
-\code{N}, \code{T}, \code{na.action}, and \code{call}. The \code{tests} list
-contains one or more test results, each with \code{statistic} and \code{p.value}.
+\code{N}, \code{T}, \code{na.action}, \code{excluded_units},
+\code{excluded_times}, \code{kept_times}, and \code{call}. The \code{tests}
+list contains one or more test results, each with \code{statistic} and
+\code{p.value}.
 }
 \description{
 Computes Pesaran CD, CDw, CDw+, and CD* tests for cross-sectional dependence
@@ -78,29 +80,46 @@ overlapping time periods and \eqn{\rho_{ij}} the pairwise correlation.
 \item{CD (Pesaran, 2015)}{
 \deqn{CD = \sqrt{\frac{2}{N(N-1)}} \sum_{i<j} \sqrt{T_{ij}} \, \rho_{ij}}
 }
-\item{CDw (Juodis and Reese, 2021)}{
-Random sign flips \eqn{w_i \in \{-1,1\}} are applied to residuals before
-computing correlations. The statistic is CD applied to the sign-flipped data.
+\item{CDw (Juodis and Reese, 2022)}{
+Independent Rademacher weights \eqn{w_i \in \{-1,1\}} are applied by
+unit. For a balanced residual panel, the statistic is
+\deqn{CD_W = \left(\frac{1}{NT}\sum_{i,t}w_i^2 e_{it}^2\right)^{-1}
+    \sqrt{\frac{2}{TN(N-1)}}
+    \sum_t\sum_{i<j}w_i e_{it}w_j e_{jt}.}
+The first factor is the inverse pooled residual variance. One set of
+random weights is drawn per call; use \code{seed} for reproducibility.
 }
-\item{CDw+ (Fan, Liao, and Yao, 2015)}{
-Power enhancement adds a sparse thresholding term to CDw. The threshold is
-\deqn{c_N = \sqrt{\frac{2 \log(N)}{T}}}
-and the power term sums \eqn{\sqrt{T_{ij}} |\rho_{ij}|} for pairs exceeding
-the threshold.
+\item{CDw+ (Juodis and Reese, 2022; Fan, Liao, and Yao, 2015)}{
+The power-enhanced statistic is
+\deqn{CD_{W+} = CD_W + \sum_{i<j}|\rho_{ij}|
+    1\left\{|\rho_{ij}| > 2\sqrt{\log(N)/T}\right\}.}
+Here \eqn{\rho_{ij}} is the ordinary residual correlation, without
+multiplication by \eqn{\sqrt{T}}. The nonnegative screening term is
+asymptotically zero under the conditions of the null hypothesis.
 }
 \item{CD* (Pesaran and Xie, 2021)}{
 CD is computed on residuals after removing \code{n_pc} principal components
 from \eqn{E}. This provides a bias-corrected test under multifactor errors.
 }
 }
+
+CD* requires a nondegenerate bias-correction denominator. Near-zero
+denominators can produce severe size distortions, including proportional
+loading/error-scale designs after standardization. Numerical rank checks
+do not establish the validity of the asymptotic approximation.
 }
 
 \subsection{Missing data and balance}{
 
+Time periods containing no finite residual for any retained unit are outside
+the effective residual sample and are always removed before balance is
+assessed. Partially observed periods are handled according to \code{na.action}.
+
 \describe{
-\item{CD, CDw, CDw+}{Always use pairwise-complete observations. Each pairwise
+\item{CD}{Uses pairwise-complete observations by default. Each pairwise
 correlation uses available overlaps.}
-\item{CD*}{Requires a balanced panel. By default, \code{na.action = "drop.incomplete.times"}
+\item{CDw, CDw+}{Require a balanced sample; explicitly select complete times if desired.}
+\item{CD*}{Requires a balanced panel. Explicitly setting \code{na.action = "drop.incomplete.times"}
 removes any time period with missing observations. With \code{na.action = "pairwise"},
 CD* returns \code{NA} and a warning when missing values are present.}
 }
@@ -114,7 +133,7 @@ E_dep <- matrix(rnorm(10), nrow = 10, ncol = 10, byrow = TRUE)
 
 # Compute all tests
 cd_test(E_indep, type = "all")
-cd_test(E_dep, type = "all")
+cd_test(E_dep, type = "CD")
 
 # Specific test with parameters
 cd_test(E_indep, type = "CDstar", n_pc = 2)

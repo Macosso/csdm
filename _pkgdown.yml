@@ -1,17 +1,66 @@
+url: https://macosso.github.io/csdm/
+
 template:
   bootstrap: 5
   bootswatch: flatly
   bslib:
-    primary: "#0b1f3b"
-    secondary: "#1f3c88"
-    success: "#2c7fb8"
-    info: "#d0d8e8"
-    base_font:
-      google: "Inter"
-    heading_font:
-      google: "Inter"
-    code_font:
-      google: "Fira Code"
+    primary: "#12345B"
+    secondary: "#1D527D"
+    success: "#38B6D2"
+    info: "#D9E8F2"
+
+home:
+  title: "csdm: Cross-Sectional Dependence Models"
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+
+articles:
+  - title: "Get started"
+    navbar: ~
+    contents:
+      - introduction_to_csdm
+
+reference:
+  - title: "Estimate models"
+    desc: "Fit heterogeneous panel models and define their terms."
+    contents:
+      - csdm
+      - csdm_csa
+      - csdm_lr
+      - csdm_vcov
+  - title: "Inspect fitted models"
+    desc: "Standard model methods and tidy extraction."
+    contents:
+      - print.csdm_fit
+      - summary.csdm_fit
+      - print.summary.csdm_fit
+      - coef.csdm_fit
+      - vcov.csdm_fit
+      - predict.csdm_fit
+      - residuals.csdm_fit
+      - fitted.csdm_fit
+      - update.csdm_fit
+      - csdm_extract
+      - csdm_tidy
+  - title: "Diagnostics and data utilities"
+    contents:
+      - cd_test
+      - cross_sectional_avg
+  - title: "Data"
+    contents:
+      - PWT_60_07
+  - title: "Deprecated"
+    desc: "Compatibility wrappers scheduled for removal."
+    contents:
+      - csdm_pooled
+      - get_residuals
+      - prepare_cd_input
+      - cluster_vcov
+      - sandwich_vcov
+      - pooled_vcov
 
 footer:
   structure:

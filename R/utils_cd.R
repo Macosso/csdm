@@ -10,8 +10,10 @@
 #' @param ... Additional arguments passed to methods.
 #'
 #' @return An object of class \code{cd_test} with fields \code{tests}, \code{type},
-#'   \code{N}, \code{T}, \code{na.action}, and \code{call}. The \code{tests} list
-#'   contains one or more test results, each with \code{statistic} and \code{p.value}.
+#'   \code{N}, \code{T}, \code{na.action}, \code{excluded_units},
+#'   \code{excluded_times}, \code{kept_times}, and \code{call}. The \code{tests}
+#'   list contains one or more test results, each with \code{statistic} and
+#'   \code{p.value}.
 #'
 #' @details
 #' ## Notation
@@ -26,15 +28,22 @@
 #'   \item{CD (Pesaran, 2015)}{
 #'     \deqn{CD = \sqrt{\frac{2}{N(N-1)}} \sum_{i<j} \sqrt{T_{ij}} \, \rho_{ij}}
 #'   }
-#'   \item{CDw (Juodis and Reese, 2021)}{
-#'     Random sign flips \eqn{w_i \in \{-1,1\}} are applied to residuals before
-#'     computing correlations. The statistic is CD applied to the sign-flipped data.
+#'   \item{CDw (Juodis and Reese, 2022)}{
+#'     Independent Rademacher weights \eqn{w_i \in \{-1,1\}} are applied by
+#'     unit. For a balanced residual panel, the statistic is
+#'     \deqn{CD_W = \left(\frac{1}{NT}\sum_{i,t}w_i^2 e_{it}^2\right)^{-1}
+#'     \sqrt{\frac{2}{TN(N-1)}}
+#'     \sum_t\sum_{i<j}w_i e_{it}w_j e_{jt}.}
+#'     The first factor is the inverse pooled residual variance. One set of
+#'     random weights is drawn per call; use \code{seed} for reproducibility.
 #'   }
-#'   \item{CDw+ (Fan, Liao, and Yao, 2015)}{
-#'     Power enhancement adds a sparse thresholding term to CDw. The threshold is
-#'     \deqn{c_N = \sqrt{\frac{2 \log(N)}{T}}}
-#'     and the power term sums \eqn{\sqrt{T_{ij}} |\rho_{ij}|} for pairs exceeding
-#'     the threshold.
+#'   \item{CDw+ (Juodis and Reese, 2022; Fan, Liao, and Yao, 2015)}{
+#'     The power-enhanced statistic is
+#'     \deqn{CD_{W+} = CD_W + \sum_{i<j}|\rho_{ij}|
+#'     1\left\{|\rho_{ij}| > 2\sqrt{\log(N)/T}\right\}.}
+#'     Here \eqn{\rho_{ij}} is the ordinary residual correlation, without
+#'     multiplication by \eqn{\sqrt{T}}. The nonnegative screening term is
+#'     asymptotically zero under the conditions of the null hypothesis.
 #'   }
 #'   \item{CD* (Pesaran and Xie, 2021)}{
 #'     CD is computed on residuals after removing \code{n_pc} principal components
@@ -42,12 +51,22 @@
 #'   }
 #' }
 #'
+#' CD* requires a nondegenerate bias-correction denominator. Near-zero
+#' denominators can produce severe size distortions, including proportional
+#' loading/error-scale designs after standardization. Numerical rank checks
+#' do not establish the validity of the asymptotic approximation.
+#'
 #' ## Missing data and balance
 #'
+#' Time periods containing no finite residual for any retained unit are outside
+#' the effective residual sample and are always removed before balance is
+#' assessed. Partially observed periods are handled according to \code{na.action}.
+#'
 #' \describe{
-#'   \item{CD, CDw, CDw+}{Always use pairwise-complete observations. Each pairwise
+#'   \item{CD}{Uses pairwise-complete observations by default. Each pairwise
 #'   correlation uses available overlaps.}
-#'   \item{CD*}{Requires a balanced panel. By default, \code{na.action = "drop.incomplete.times"}
+#'   \item{CDw, CDw+}{Require a balanced sample; explicitly select complete times if desired.}
+#'   \item{CD*}{Requires a balanced panel. Explicitly setting \code{na.action = "drop.incomplete.times"}
 #'   removes any time period with missing observations. With \code{na.action = "pairwise"},
 #'   CD* returns \code{NA} and a warning when missing values are present.}
 #' }
@@ -71,7 +90,7 @@
 #'
 #' # Compute all tests
 #' cd_test(E_indep, type = "all")
-#' cd_test(E_dep, type = "all")
+#' cd_test(E_dep, type = "CD")
 #'
 #' # Specific test with parameters
 #' cd_test(E_indep, type = "CDstar", n_pc = 2)
@@ -100,12 +119,12 @@ cd_test <- function(object, ...) {
 #' @param type Which test(s) to compute: one of \code{"CD"}, \code{"CDw"}, \code{"CDw+"},
 #'   \code{"CDstar"}, or \code{"all"} (default: \code{"CD"}).
 #' @param n_pc Number of principal components for CD* (default 4).
-#' @param seed Integer seed for weight draws in CDw/CDw+ (default NULL = no seed set).
+#' @param seed Integer seed for weight draws. Seeded calls restore the caller's RNG state; NULL uses the current RNG stream.
 #' @param min_overlap Minimum number of overlapping time periods required for a unit
 #'   pair to be included in CD/CDw/CDw+ (default 2).
-#' @param na.action How to handle missing data: \code{"drop.incomplete.times"} (default)
+#' @param na.action How to handle missing data: \code{"drop.incomplete.times"}
 #'   removes time periods with any missing observations to create a balanced panel for CD*;
-#'   \code{"pairwise"} uses pairwise correlations for CD/CDw/CDw+ and warns for CD*.
+#'   \code{"pairwise"} (default) uses pairwise correlations for CD; unbalanced CDw/CDw+ requests error and CD* warns.
 #' @export
 #' @method cd_test default
 cd_test.default <- function(object,
@@ -113,7 +132,7 @@ cd_test.default <- function(object,
                             n_pc = 4L,
                             seed = NULL,
                             min_overlap = 2L,
-                            na.action = c("drop.incomplete.times", "pairwise"),
+                            na.action = c("pairwise", "drop.incomplete.times"),
                             ...) {
   type <- match.arg(type)
   na.action <- match.arg(na.action)
@@ -126,7 +145,31 @@ cd_test.default <- function(object,
     stop("cd_test: At least 2 units and 2 time periods required.")
   }
 
-  E <- object  # N x T matrix
+  min_overlap <- .csdm_integer(min_overlap, "min_overlap")
+  if (min_overlap < 2L) stop("'min_overlap' must be at least two.")
+  if (any(is.infinite(object))) stop("Residuals may contain NA, but not infinite values.")
+  if (!is.null(seed)) {
+    seed <- .csdm_integer(seed, "seed")
+    had_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    if (had_seed) old_seed <- get(".Random.seed", envir = .GlobalEnv)
+    on.exit({
+      if (had_seed) assign(".Random.seed", old_seed, envir = .GlobalEnv)
+      else if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) rm(".Random.seed", envir = .GlobalEnv)
+    }, add = TRUE)
+  }
+  usable <- apply(object, 1L, function(x) {
+    x <- x[is.finite(x)]
+    length(x) >= min_overlap && stats::sd(x) > 0
+  })
+  if (sum(usable) < 2L) stop("At least two nonconstant units with sufficient observations are required.")
+  excluded_units <- which(!usable)
+  E <- object[usable, , drop = FALSE]
+
+  # Periods with no estimated residuals are not part of the residual sample.
+  empty_times <- colSums(is.finite(E)) == 0L
+  excluded_times <- if (is.null(colnames(E))) which(empty_times) else colnames(E)[empty_times]
+  if (any(empty_times)) E <- E[, !empty_times, drop = FALSE]
+  if (ncol(E) < 2L) stop("At least two time periods with residual observations are required.")
 
   # Handle missing data
   if (na.action == "drop.incomplete.times" && anyNA(E)) {
@@ -164,67 +207,29 @@ cd_test.default <- function(object,
     )
   }
 
-  # 2. Weighted CD (Juodis & Reese)
-  if (type %in% c("CDw", "all", "CDw+")) {
+  if (type %in% c("CDw", "CDw+", "all")) {
+    if (anyNA(E)) stop("CDw/CDw+ currently require a balanced sample; use explicit drop.incomplete.times or classical CD.")
     if (!is.null(seed)) set.seed(seed)
     w <- sample(c(-1, 1), N, replace = TRUE)
-    data_cdw <- sweep(data_tn, 2, w, FUN = "*")
-    cdw_res <- .cd_compute_classic(data_cdw, N, Tt, min_overlap)
-    out$CDw <- list(
-      statistic = cdw_res$statistic,
-      p.value = cdw_res$p.value,
-      N = N,
-      T = Tt,
-      pairs_used = cdw_res$pairs_used
-    )
-  }
-
-  # 3. Power-enhanced CDw+ (Fan et al.)
-  if (type %in% c("CDw+", "all")) {
-    # Need unweighted correlations for threshold
-    if (is.null(out$CD)) {
-      cd_res <- .cd_compute_classic(data_tn, N, Tt, min_overlap)
+    centered <- sweep(data_tn, 2L, colMeans(data_tn))
+    variance <- mean(centered^2)
+    weighted <- sweep(centered, 2L, w, "*")
+    pair_sum <- sum(rowSums(weighted)^2 - rowSums(weighted^2)) / 2
+    statistic <- sqrt(2 / (Tt * N * (N - 1))) * pair_sum / variance
+    out$CDw <- list(statistic = statistic,
+      p.value = 2 * stats::pnorm(abs(statistic), lower.tail = FALSE),
+      N = N, T = Tt, pairs_used = choose(N, 2))
+    if (type %in% c("CDw+", "all")) {
+      correlation <- stats::cor(centered)
+      rho <- abs(correlation[upper.tri(correlation)])
+      threshold <- 2 * sqrt(log(N) / Tt)
+      enhancement <- sum(rho[rho > threshold])
+      statistic <- statistic + enhancement
+      out$CDw_plus <- list(statistic = statistic,
+        p.value = 2 * stats::pnorm(abs(statistic), lower.tail = FALSE),
+        N = N, T = Tt, pairs_used = choose(N, 2),
+        threshold = threshold, enhancement = enhancement)
     }
-    # Compute threshold and power term
-    crit <- sqrt(2 * log(N) / Tt)
-    corr_mat <- stats::cor(data_tn, use = "pairwise.complete.obs")
-    upper_corr <- corr_mat[upper.tri(corr_mat)]
-    # Count overlaps for each pair
-    overlap_mat <- matrix(0, N, N)
-    for (i in seq_len(N - 1)) {
-      for (j in (i + 1):N) {
-        ok <- is.finite(data_tn[, i]) & is.finite(data_tn[, j])
-        overlap_mat[i, j] <- sum(ok)
-      }
-    }
-    upper_overlap <- overlap_mat[upper.tri(overlap_mat)]
-    # Power term: sum sqrt(T_ij) * |rho_ij| for correlations exceeding threshold
-    exceeds <- abs(upper_corr * sqrt(upper_overlap)) > crit & upper_overlap >= min_overlap
-    power_term <- sum(sqrt(upper_overlap[exceeds]) * abs(upper_corr[exceeds]))
-
-    if (is.null(out$CDw)) {
-      if (!is.null(seed)) set.seed(seed)
-      w <- sample(c(-1, 1), N, replace = TRUE)
-      data_cdw <- sweep(data_tn, 2, w, FUN = "*")
-      cdw_res <- .cd_compute_classic(data_cdw, N, Tt, min_overlap)
-    } else {
-      cdw_res <- list(
-        statistic = out$CDw$statistic,
-        pairs_used = out$CDw$pairs_used
-      )
-    }
-
-    # Normalize power_term to match the scale of cdw_res$statistic
-    cdw_plus_stat <- cdw_res$statistic + power_term
-    cdw_plus_p <- 2 * (1 - stats::pnorm(abs(cdw_plus_stat)))
-
-    out$CDw_plus <- list(
-      statistic = cdw_plus_stat,
-      p.value = cdw_plus_p,
-      N = N,
-      T = Tt,
-      pairs_used = cdw_res$pairs_used
-    )
   }
 
   # 4. CD* (bias-corrected with PCA factor removal)
@@ -240,7 +245,7 @@ cd_test.default <- function(object,
         n_pc = as.integer(n_pc)
       )
     } else {
-      cdstar_res <- .cd_compute_star(data_tn, N, Tt, as.integer(n_pc))
+      cdstar_res <- .cd_compute_star(data_tn, N, Tt, n_pc)
       out$CDstar <- list(
         statistic = cdstar_res$statistic,
         p.value = cdstar_res$p.value,
@@ -257,6 +262,9 @@ cd_test.default <- function(object,
     N = N,
     T = Tt,
     na.action = na.action,
+    excluded_units = excluded_units,
+    excluded_times = excluded_times,
+    kept_times = colnames(E),
     call = match.call()
   )
   class(res) <- "cd_test"
@@ -271,11 +279,11 @@ cd_test.csdm_fit <- function(object,
                               n_pc = 4L,
                               seed = NULL,
                               min_overlap = 2L,
-                              na.action = c("drop.incomplete.times", "pairwise"),
+                              na.action = c("pairwise", "drop.incomplete.times"),
                               ...) {
   type <- match.arg(type)
   na.action <- match.arg(na.action)
-  E <- get_residuals(object, type = "auto", strict = TRUE)
+  E <- .csdm_get_residuals(object, type = "auto", strict = TRUE)
   cd_test.default(E, type = type, n_pc = n_pc, seed = seed,
                   min_overlap = min_overlap, na.action = na.action, ...)
 }
@@ -378,55 +386,35 @@ print.cd_test <- function(x, digits = 3, ...) {
     return(list(statistic = NA_real_, p.value = NA_real_, pairs_used = 0L))
   }
 
-  # Normalize by number of pairs used (not total pairs)
+  # The Pesaran normalization uses the retained number of units.
   cd_stat <- sqrt(2 / (N * (N - 1))) * cd_sum
-  cd_p <- 2 * (1 - stats::pnorm(abs(cd_stat)))
+  cd_p <- 2 * stats::pnorm(abs(cd_stat), lower.tail = FALSE)
 
   list(statistic = cd_stat, p.value = cd_p, pairs_used = as.integer(pairs_used))
 }
 
 # Internal helper: compute CD* with PCA factor removal
 .cd_compute_star <- function(data_tn, N, Tt, n_pc) {
-  # data_tn: T x N matrix (must be complete/balanced)
-  # Returns: list(statistic, p.value)
-
-  # Standardize columns
-  col_means <- colMeans(data_tn)
-  col_sds <- apply(data_tn, 2, stats::sd)
-  col_sds[col_sds == 0 | !is.finite(col_sds)] <- 1
-  data_std <- sweep(sweep(data_tn, 2, col_means), 2, col_sds, `/`)
-
-  # PCA: Extract factors
-  S <- data_std %*% t(data_std)
-  eig <- eigen(S, symmetric = TRUE)
-  idx <- order(eig$values, decreasing = TRUE)[seq_len(n_pc)]
-  f <- eig$vectors[, idx, drop = FALSE]
-  fx <- cbind(1, f)  # intercept + factors
-
-  # Defactor residuals
-  beta <- solve(t(fx) %*% fx, t(fx) %*% data_std)
-  res_defac <- data_std - fx %*% beta
-
-  # CD on defactored residuals
-  corr_defac <- stats::cor(res_defac)
-  upper_defac <- corr_defac[upper.tri(corr_defac)]
-  cd_defac <- sqrt(2 / (N * (N - 1))) * sum(upper_defac * sqrt(Tt))
-
-  # Bias correction (Pesaran & Xie 2021)
-  betai <- beta[-1, , drop = FALSE]  # remove intercept
-  betaij <- (betai %*% t(betai)) / N
-  betasum <- sqrt(diag(betaij))
-  betasum[betasum == 0] <- 1  # avoid division by zero
-  gamma <- sweep(betai, 1, betasum, `/`)  # normalize columns (units) by their norms
-  sgm <- sqrt(mean(res_defac^2))
-  if (sgm == 0) sgm <- 1
-  phi <- rowMeans(gamma / sgm)
-  ai_vals <- as.numeric((1 - t(gamma * sgm) %*% phi) / sqrt(N))
-  theta <- sum(ai_vals^2)
-  if (theta == 0) theta <- 1  # avoid division by zero
-
-  cd_star_stat <- (cd_defac + sqrt(Tt / 2) * (1 - theta)) / theta
-  cd_star_p <- 2 * (1 - stats::pnorm(abs(cd_star_stat)))
-
-  list(statistic = cd_star_stat, p.value = cd_star_p)
+  n_pc <- .csdm_integer(n_pc, "n_pc")
+  if (n_pc >= min(N, Tt - 1L)) stop("'n_pc' must be below min(N, T - 1).")
+  scales <- apply(data_tn, 2L, stats::sd)
+  if (any(!is.finite(scales) | scales <= 0)) stop("CD* requires nonconstant complete unit series.")
+  data_std <- sweep(sweep(data_tn, 2L, colMeans(data_tn)), 2L, scales, "/")
+  if (n_pc == 0L) return(.cd_compute_classic(data_std, N, Tt))
+  decomposition <- svd(data_std, nu = n_pc, nv = 0L)
+  if (decomposition$d[n_pc] <= decomposition$d[1L] * 1e-7) stop("Requested factors exceed numerical rank.")
+  factors <- cbind(1, decomposition$u[, seq_len(n_pc), drop = FALSE])
+  beta <- qr.coef(qr(factors), data_std)
+  residual <- data_std - factors %*% beta
+  sigma <- sqrt(colMeans(residual^2))
+  if (any(!is.finite(sigma) | sigma <= sqrt(.Machine$double.eps))) stop("CD* residual scales are degenerate.")
+  loadings <- beta[-1L, , drop = FALSE]
+  gamma <- sweep(loadings, 1L, sqrt(rowMeans(loadings^2)), "/")
+  phi <- rowMeans(sweep(gamma, 2L, sigma, "/"))
+  a <- as.numeric(1 - t(sweep(gamma, 2L, sigma, "*")) %*% phi)
+  correction <- mean(a^2)
+  if (!is.finite(correction) || correction <= sqrt(.Machine$double.eps)) stop("CD* bias correction is degenerate.")
+  cd <- .cd_compute_classic(residual, N, Tt)$statistic
+  statistic <- (cd + sqrt(Tt / 2) * (1 - correction)) / correction
+  list(statistic = statistic, p.value = 2 * stats::pnorm(abs(statistic), lower.tail = FALSE))
 }
