@@ -4,10 +4,10 @@ template:
   bootstrap: 5
   bootswatch: flatly
   bslib:
-    primary: "#0b1f3b"
-    secondary: "#1f3c88"
-    success: "#2c7fb8"
-    info: "#d0d8e8"
+    primary: "#12345B"
+    secondary: "#1D527D"
+    success: "#38B6D2"
+    info: "#D9E8F2"
 
 home:
   title: "csdm: Cross-Sectional Dependence Models"

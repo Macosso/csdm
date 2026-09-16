@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "short_name": "",
+  "name": "csdm",
+  "short_name": "csdm",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -15,7 +15,7 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#ffffff",
+  "theme_color": "#12345B",
   "background_color": "#ffffff",
   "display": "standalone"
 }
