@@ -3,6 +3,7 @@
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/csdm)](https://CRAN.R-project.org/package=csdm)
 [![R-CMD-check](https://github.com/Macosso/csdm/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Macosso/csdm/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/Macosso/csdm/branch/master/graph/badge.svg)](https://app.codecov.io/gh/Macosso/csdm?branch=master)
 [![CRAN downloads](https://cranlogs.r-pkg.org/badges/csdm)](https://cran.r-project.org/package=csdm)
 [![r-universe](https://macosso.r-universe.dev/csdm/badges/version)](https://macosso.r-universe.dev/csdm)
 <!-- badges: end -->
