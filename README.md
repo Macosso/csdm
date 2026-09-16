@@ -1,4 +1,4 @@
-# csdm
+# csdm <img src="man/figures/logo.svg" align="right" height="138" alt="csdm logo" />
 
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/csdm)](https://CRAN.R-project.org/package=csdm)
