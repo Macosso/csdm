@@ -199,11 +199,40 @@ one-lag model is an ARDL$(1,1)$, so both `ylags` and `xdlags` equal one.
 
 ## Reproducing Table 17
 
-The following helper extracts long-run estimates, mean-group standard errors,
-the adjustment coefficient, the classical residual CD statistic, and the
-number of fitted observations using public model methods.
+`csdm_fit` objects implement `tidy()` and `glance()`, so `modelsummary` can
+consume the fitted models directly. The table keeps the coefficient names used
+by the models: `lr_dgd` and `lr_dp` are the long-run coefficients, while
+`lr_dy` is the adjustment coefficient. The remaining level and lag
+coefficients are available in the fitted objects but omitted here to match the
+focus of Table 17.
 
-```{r extract-results}
+```{r modelsummary-table, results='asis'}
+modelsummary::modelsummary(
+  fits,
+  coef_map = c(
+    lr_dgd = "lr_dgd",
+    lr_dp = "lr_dp",
+    lr_dy = "lr_dy"
+  ),
+  statistic = "({std.error})",
+  stars = TRUE,
+  fmt = modelsummary::fmt_decimal(digits = 3, pdigits = 3),
+  gof_map = c("nobs", "cd.statistic"),
+  output = "markdown"
+)
+```
+
+All nine models reproduce the published coefficients, standard errors,
+adjustment estimates, CD statistics, and observation counts at the reported
+precision. Matching the observation counts is especially useful: it verifies
+the transformations, lag orders, cross-sectional-average scope, and missing-data
+handling together.
+
+The following hidden check compares the fitted results with the values printed
+in the paper. It stops the website build if a result falls outside the relevant
+rounding interval.
+
+```{r extract-results, include=FALSE}
 extract_replication_row <- function(fit, model) {
   long_run <- broom::tidy(fit, component = "long_run")
   adjustment <- broom::tidy(fit, component = "adjustment")
@@ -233,11 +262,6 @@ estimated <- do.call(
   Map(extract_replication_row, fits, names(fits))
 )
 ```
-
-The published values below are transcribed at the precision printed in Table
-17. The article build fails if the estimates move outside the corresponding
-rounding interval. This makes the replication an executable numerical check,
-not merely a visual comparison.
 
 ```{r verify-published-results, include=FALSE}
 published <- data.frame(
@@ -274,98 +298,6 @@ stopifnot(
 )
 ```
 
-```{r replication-table}
-effect <- function(estimate, std.error) {
-  ifelse(
-    is.na(estimate),
-    "",
-    sprintf("%.3f (%.3f)", estimate, std.error)
-  )
-}
-
-display <- data.frame(
-  `ARDL order` = sub("^[abc]", "", estimated$model),
-  Specification = toupper(sub("[123]$", "", estimated$model)),
-  `Debt/GDP growth` = effect(estimated$debt, estimated$debt_se),
-  Inflation = effect(estimated$inflation, estimated$inflation_se),
-  Adjustment = effect(estimated$adjustment, estimated$adjustment_se),
-  `CD statistic` = sprintf("%.2f", estimated$cd),
-  Observations = estimated$observations,
-  check.names = FALSE
-)
-
-knitr::kable(
-  display,
-  align = c("r", "c", "r", "r", "r", "r", "r"),
-  caption = "CS-ARDL replication. Mean-group standard errors are in parentheses."
-)
-```
-
-All nine models reproduce the published coefficients, standard errors,
-adjustment estimates, CD statistics, and observation counts at the reported
-precision. Matching the observation counts is especially useful: it verifies
-the transformations, lag orders, cross-sectional-average scope, and missing-data
-handling together.
-
-## Reporting with `modelsummary`
-
-`csdm_fit` objects implement `tidy()` and `glance()`, so `modelsummary` can read
-them directly. The table below focuses on joint specification (c) and compares
-the three ARDL lag orders. `coef_map` keeps the adjustment and long-run terms;
-the underlying fitted objects retain the complete short-run coefficient vector.
-
-```{r modelsummary-table}
-modelsummary_table <- modelsummary::modelsummary(
-  list(
-    `ARDL(1,1)` = fits$c1,
-    `ARDL(2,2)` = fits$c2,
-    `ARDL(3,3)` = fits$c3
-  ),
-  coef_map = c(
-    lr_dgd = "Debt/GDP growth: long run",
-    lr_dp = "Inflation: long run",
-    lr_dy = "Adjustment"
-  ),
-  statistic = "({std.error})",
-  stars = TRUE,
-  fmt = 3,
-  gof_map = c("nobs"),
-  output = "data.frame"
-)
-modelsummary_table$part <- NULL
-standard_error <- modelsummary_table$statistic == "({std.error})"
-modelsummary_table$term[standard_error] <- ""
-modelsummary_table$statistic[modelsummary_table$statistic == "estimate"] <- "Estimate"
-modelsummary_table$statistic[standard_error] <- "Std. error"
-knitr::kable(
-  modelsummary_table,
-  align = c("l", "l", "r", "r", "r"),
-  caption = "Joint CS-ARDL specifications reported through modelsummary."
-)
-```
-
-## Reporting an extracted table with `stargazer`
-
-`stargazer` does not provide an extension interface for new fitted-model
-classes, so it cannot consume `csdm_fit` objects directly. It can still format a
-carefully extracted data frame. This distinction matters: `modelsummary` uses
-the model's standard methods, while the `stargazer` table is only a presentation
-of values already extracted and checked above.
-
-```{r stargazer-table, results='asis'}
-stargazer_data <- display
-
-stargazer_html <- capture.output(stargazer::stargazer(
-  stargazer_data,
-  type = "html",
-  summary = FALSE,
-  rownames = FALSE,
-  digits = 3,
-  title = "CS-ARDL replication results"
-))
-knitr::asis_output(paste(stargazer_html, collapse = "\n"))
-```
-
 ## Lag sensitivity and diagnostics
 
 Lag-order robustness should be evaluated on the estimates, uncertainty, sample,
@@ -388,12 +320,7 @@ joint$eligible_units <- vapply(
 )
 
 lag_display <- data.frame(
-  Model = toupper(joint$model),
-  `Debt/GDP growth` = effect(joint$debt, joint$debt_se),
-  Inflation = effect(joint$inflation, joint$inflation_se),
-  Adjustment = effect(joint$adjustment, joint$adjustment_se),
-  `CD statistic` = sprintf("%.2f", joint$cd),
-  Observations = joint$observations,
+  Model = names(fits[c("c1", "c2", "c3")]),
   `Stable/eligible units` = paste0(
     joint$stable_units, "/", joint$eligible_units
   ),
@@ -402,7 +329,7 @@ lag_display <- data.frame(
 
 knitr::kable(
   lag_display,
-  align = c("c", "r", "r", "r", "r", "r", "r"),
+  align = c("c", "r"),
   row.names = FALSE,
   caption = "Lag sensitivity for the joint debt-inflation specification."
 )
