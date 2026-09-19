@@ -1,5 +1,9 @@
 # Development
 
+- Add a website-only CS-ARDL replication article with verified acquisition of
+  the externally licensed CMPR data. The dataset is not distributed in the
+  package or source repository.
+
 - Implement `fullsample = TRUE` for CCE-based models. Cross-sectional averages
   are then calculated variable by variable from all finite observations in the
   selected sample before dynamic lag trimming.

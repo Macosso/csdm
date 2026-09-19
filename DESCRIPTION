@@ -31,6 +31,7 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 Config/testthat/edition: 3
+Config/Needs/website: pkgdown, haven, digest, stargazer
 VignetteBuilder: knitr
 Language: en-US
 Config/roxygen2/version: 8.1.0

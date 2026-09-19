@@ -9,6 +9,7 @@
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
+^vignettes/articles$
 ^review$
 ^\.dev-library$
 ^\.dev-check$
