@@ -1,0 +1,468 @@
+---
+title: "CS-ARDL in R: Estimating Long-Run Effects with Cross-Sectional Dependence"
+author: "Joao Claudio Macosso"
+description: >
+  A technical guide to specifying, estimating, diagnosing, and reporting
+  cross-sectionally augmented ARDL models in R, with a published replication.
+bibliography: "`r system.file('REFERENCES.bib', package = 'csdm')`"
+csl: "`r system.file('apa.csl', package = 'csdm')`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center"
+)
+options(width = 90)
+library(csdm)
+
+helper <- file.path("vignettes", "articles", "cmpr-data.R")
+if (!file.exists(helper)) helper <- "cmpr-data.R"
+source(helper, local = knitr::knit_global())
+```
+
+## The applied problem
+
+Suppose a thesis asks whether inflation and persistent increases in public debt
+affect output growth in the long run. A pooled dynamic panel would require the
+same slopes for every country and would leave global shocks untreated. Separate
+country regressions allow heterogeneous slopes, but their errors can remain
+correlated through recessions, commodity prices, financial conditions, or other
+unobserved common factors.
+
+The cross-sectionally augmented autoregressive distributed lag estimator
+(CS-ARDL) addresses both problems. It estimates a dynamic regression for each
+unit, augments it with cross-sectional averages, transforms the estimated ARDL
+coefficients into unit-specific long-run effects, and then averages those
+effects across units. This guide develops that calculation and reproduces Table
+17 of @ChudikEtAl2013. The method was subsequently published and developed in
+@ChudikEtAl2016. Ditzen's `xtdcce2` provides an independent Stata implementation
+[@Ditzen2018].
+
+## Model and estimand
+
+For unit $i$, let $y_{it}$ be the dependent variable, let $\mathbf{x}_{it}$
+contain $K$ regressors, and let $\bar{\mathbf z}_t$ collect cross-sectional
+averages. A CS-ARDL$(p,q)$ regression is
+
+$$
+y_{it}=c_i+
+\sum_{\ell=1}^{p}\phi_{i\ell}y_{i,t-\ell}+
+\sum_{\ell=0}^{q}\boldsymbol\beta_{i\ell}'\mathbf{x}_{i,t-\ell}+
+\sum_{\ell=0}^{p_{\bar z}}\boldsymbol\delta_{i\ell}'
+\bar{\mathbf z}_{t-\ell}+e_{it}.
+$$
+
+Define the autoregressive denominator
+
+$$
+d_i=1-\sum_{\ell=1}^{p}\phi_{i\ell}.
+$$
+
+The unit-specific adjustment coefficient and long-run effects are
+
+$$
+\lambda_i=-d_i,
+\qquad
+\boldsymbol\theta_i=
+\frac{\sum_{\ell=0}^{q}\boldsymbol\beta_{i\ell}}{d_i}.
+$$
+
+`csdm` calculates these nonlinear ratios for each eligible unit and then forms
+the mean-group estimates
+
+$$
+\widehat{\boldsymbol\theta}_{MG}
+=\frac{1}{N_e}\sum_{i\in\mathcal E}\widehat{\boldsymbol\theta}_i,
+$$
+
+where $\mathcal E$ is the common set of units for which all requested
+parameters are finite. The mean-group covariance is the cross-unit sample
+covariance of the unit estimates divided by $N_e$. This is large-$N$ inference;
+it does not remove the finite-$T$ bias in the unit dynamic regressions.
+
+Two lag choices have different jobs:
+
+- `csdm_lr(ylags = p, xdlags = q)` sets the ARDL orders.
+- `csdm_csa(lags = p_z)` sets the maximum lag of the cross-sectional averages.
+
+In the replication, the ARDL orders are $(1,1)$, $(2,2)$, and $(3,3)$, while
+the cross-sectional-average lag order remains three in every model.
+
+## Data, provenance, and licensing
+
+The application uses annual GDP, CPI, and gross government debt-to-GDP data for
+40 countries from 1965 through 2010. The files are deposited in the
+[UK Data Service ReShare record](https://reshare.ukdataservice.ac.uk/851454/)
+(DOI: [10.5255/UKDA-SN-851454](https://doi.org/10.5255/UKDA-SN-851454)).
+
+The deposit is licensed under
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). It is not
+distributed in `csdm` or in the package repository. During the website build,
+the article downloads the archive from the institutional record, verifies its
+SHA-256 checksum, and reads it from a temporary cache. The package code remains
+GPL-3. Attribution and the source-data license continue to apply to the source
+files and to derived material where required.
+
+For an offline build, point `CSDM_CMPR_PATH` to `CMPR.dta`, the downloaded ZIP,
+or the directory containing `CMPR.dta`:
+
+```r
+Sys.setenv(CSDM_CMPR_PATH = "/path/to/CMPR_Data")
+```
+
+```{r acquire-data}
+cmpr <- prepare_cmpr()
+
+data.frame(
+  countries = length(unique(cmpr$ccode)),
+  first_year = min(cmpr$year),
+  last_year = max(cmpr$year),
+  rows = nrow(cmpr),
+  archive_sha256 = CMPR_ARCHIVE_SHA256
+)
+```
+
+The transformations follow the supplied Stata do-file:
+
+$$
+y_{it}=\log(GDP_{it}),\quad
+\Delta y_{it}=y_{it}-y_{i,t-1},
+$$
+
+$$
+\pi_{it}=\Delta\log(CPI_{it}),\quad
+\Delta d_{it}=\Delta\log(Debt/GDP_{it}).
+$$
+
+The estimated dependent variable is `dy`, output growth. The regressors are
+`dp`, inflation, and `dgd`, the growth rate of the debt-to-GDP ratio. Panel
+differences are calculated only across consecutive years and are never allowed
+to cross country boundaries.
+
+```{r transformed-data}
+summary(cmpr[c("dy", "dp", "dgd")])
+```
+
+## Specifying the nine CS-ARDL models
+
+The paper considers three economic specifications at each lag order:
+
+- **(a)** debt-to-GDP growth only;
+- **(b)** inflation only;
+- **(c)** debt-to-GDP growth and inflation jointly.
+
+The authors calculate each cross-sectional average from every available value
+of that variable before ARDL lag trimming. Because the variables have different
+missing-value patterns, `fullsample = TRUE` is necessary for this replication.
+
+```{r fit-function}
+fit_cmpr_cs_ardl <- function(regressors, order) {
+  csdm(
+    formula = reformulate(regressors, response = "dy"),
+    data = cmpr,
+    id = "ccode",
+    time = "year",
+    model = "cs_ardl",
+    csa = csdm_csa(vars = c("dy", regressors), lags = 3),
+    lr = csdm_lr(type = "ardl", ylags = order, xdlags = order),
+    fullsample = TRUE
+  )
+}
+```
+
+```{r fit-models}
+economic_specifications <- list(
+  a = "dgd",
+  b = "dp",
+  c = c("dgd", "dp")
+)
+
+fits <- list()
+for (order in 1:3) {
+  for (specification in names(economic_specifications)) {
+    name <- paste0(specification, order)
+    fits[[name]] <- fit_cmpr_cs_ardl(
+      economic_specifications[[specification]],
+      order
+    )
+  }
+}
+```
+
+A common mistake is to set `xdlags = 0` for these models. Table 17 uses the
+same order for the dependent variable and each regressor. For example, its
+one-lag model is an ARDL$(1,1)$, so both `ylags` and `xdlags` equal one.
+
+## Reproducing Table 17
+
+The following helper extracts long-run estimates, mean-group standard errors,
+the adjustment coefficient, the classical residual CD statistic, and the
+number of fitted observations using public model methods.
+
+```{r extract-results}
+extract_replication_row <- function(fit, model) {
+  long_run <- broom::tidy(fit, component = "long_run")
+  adjustment <- broom::tidy(fit, component = "adjustment")
+  cd <- cd_test(fit, type = "CD")$tests$CD
+
+  value <- function(term, column) {
+    found <- long_run[[column]][long_run$term == term]
+    if (length(found)) found else NA_real_
+  }
+
+  data.frame(
+    model = model,
+    debt = value("lr_dgd", "estimate"),
+    debt_se = value("lr_dgd", "std.error"),
+    inflation = value("lr_dp", "estimate"),
+    inflation_se = value("lr_dp", "std.error"),
+    adjustment = adjustment$estimate,
+    adjustment_se = adjustment$std.error,
+    cd = cd$statistic,
+    observations = nobs(fit),
+    row.names = NULL
+  )
+}
+
+estimated <- do.call(
+  rbind,
+  Map(extract_replication_row, fits, names(fits))
+)
+```
+
+The published values below are transcribed at the precision printed in Table
+17. The article build fails if the estimates move outside the corresponding
+rounding interval. This makes the replication an executable numerical check,
+not merely a visual comparison.
+
+```{r verify-published-results, include=FALSE}
+published <- data.frame(
+  model = c("a1", "b1", "c1", "a2", "b2", "c2", "a3", "b3", "c3"),
+  debt = c(-0.087, NA, -0.087, -0.090, NA, -0.079, -0.096, NA, -0.120),
+  debt_se = c(0.013, NA, 0.016, 0.013, NA, 0.022, 0.016, NA, 0.040),
+  inflation = c(NA, -0.083, -0.164, NA, -0.071, -0.110, NA, -0.065, -0.080),
+  inflation_se = c(NA, 0.034, 0.038, NA, 0.031, 0.035, NA, 0.041, 0.059),
+  adjustment = c(-0.889, -0.790, -0.952, -0.967, -0.817, -1.058, -0.920, -0.792, -1.210),
+  adjustment_se = c(0.031, 0.041, 0.039, 0.042, 0.053, 0.053, 0.047, 0.058, 0.201),
+  cd = c(-0.94, -0.30, 0.55, -0.43, 0.02, -0.11, -0.21, 0.05, -0.56),
+  observations = c(1599, 1657, 1599, 1581, 1652, 1581, 1562, 1645, 1562)
+)
+
+estimated <- estimated[match(published$model, estimated$model), ]
+inside_rounding_interval <- function(actual, printed, digits) {
+  both_missing <- is.na(actual) & is.na(printed)
+  close <- abs(actual - printed) < 0.5 * 10^(-digits) + 1e-12
+  both_missing | (!is.na(close) & close)
+}
+
+three_digit_columns <- setdiff(names(published), c("model", "cd", "observations"))
+checks <- vapply(
+  three_digit_columns,
+  function(column) inside_rounding_interval(
+    estimated[[column]], published[[column]], 3
+  ),
+  logical(nrow(published))
+)
+stopifnot(
+  all(checks),
+  all(inside_rounding_interval(estimated$cd, published$cd, 2)),
+  all(estimated$observations == published$observations)
+)
+```
+
+```{r replication-table}
+effect <- function(estimate, std.error) {
+  ifelse(
+    is.na(estimate),
+    "",
+    sprintf("%.3f (%.3f)", estimate, std.error)
+  )
+}
+
+display <- data.frame(
+  `ARDL order` = sub("^[abc]", "", estimated$model),
+  Specification = toupper(sub("[123]$", "", estimated$model)),
+  `Debt/GDP growth` = effect(estimated$debt, estimated$debt_se),
+  Inflation = effect(estimated$inflation, estimated$inflation_se),
+  Adjustment = effect(estimated$adjustment, estimated$adjustment_se),
+  `CD statistic` = sprintf("%.2f", estimated$cd),
+  Observations = estimated$observations,
+  check.names = FALSE
+)
+
+knitr::kable(
+  display,
+  align = c("r", "c", "r", "r", "r", "r", "r"),
+  caption = "CS-ARDL replication. Mean-group standard errors are in parentheses."
+)
+```
+
+All nine models reproduce the published coefficients, standard errors,
+adjustment estimates, CD statistics, and observation counts at the reported
+precision. Matching the observation counts is especially useful: it verifies
+the transformations, lag orders, cross-sectional-average scope, and missing-data
+handling together.
+
+## Reporting with `modelsummary`
+
+`csdm_fit` objects implement `tidy()` and `glance()`, so `modelsummary` can read
+them directly. The table below focuses on joint specification (c) and compares
+the three ARDL lag orders. `coef_map` keeps the adjustment and long-run terms;
+the underlying fitted objects retain the complete short-run coefficient vector.
+
+```{r modelsummary-table}
+modelsummary_table <- modelsummary::modelsummary(
+  list(
+    `ARDL(1,1)` = fits$c1,
+    `ARDL(2,2)` = fits$c2,
+    `ARDL(3,3)` = fits$c3
+  ),
+  coef_map = c(
+    lr_dgd = "Debt/GDP growth: long run",
+    lr_dp = "Inflation: long run",
+    lr_dy = "Adjustment"
+  ),
+  statistic = "({std.error})",
+  stars = TRUE,
+  fmt = 3,
+  gof_map = c("nobs"),
+  output = "data.frame"
+)
+modelsummary_table$part <- NULL
+standard_error <- modelsummary_table$statistic == "({std.error})"
+modelsummary_table$term[standard_error] <- ""
+modelsummary_table$statistic[modelsummary_table$statistic == "estimate"] <- "Estimate"
+modelsummary_table$statistic[standard_error] <- "Std. error"
+knitr::kable(
+  modelsummary_table,
+  align = c("l", "l", "r", "r", "r"),
+  caption = "Joint CS-ARDL specifications reported through modelsummary."
+)
+```
+
+## Reporting an extracted table with `stargazer`
+
+`stargazer` does not provide an extension interface for new fitted-model
+classes, so it cannot consume `csdm_fit` objects directly. It can still format a
+carefully extracted data frame. This distinction matters: `modelsummary` uses
+the model's standard methods, while the `stargazer` table is only a presentation
+of values already extracted and checked above.
+
+```{r stargazer-table, results='asis'}
+stargazer_data <- display
+
+stargazer_html <- capture.output(stargazer::stargazer(
+  stargazer_data,
+  type = "html",
+  summary = FALSE,
+  rownames = FALSE,
+  digits = 3,
+  title = "CS-ARDL replication results"
+))
+knitr::asis_output(paste(stargazer_html, collapse = "\n"))
+```
+
+## Lag sensitivity and diagnostics
+
+Lag-order robustness should be evaluated on the estimates, uncertainty, sample,
+and dynamics together. For joint specification (c), increasing the ARDL order
+uses more initial observations for lags and therefore reduces the estimation
+sample. The three-lag model also produces a noticeably less precise adjustment
+estimate and a larger debt effect in absolute value.
+
+```{r stability-table}
+joint <- estimated[substr(estimated$model, 1, 1) == "c", ]
+joint$stable_units <- vapply(
+  fits[c("c1", "c2", "c3")],
+  function(fit) sum(fit$cs_ardl$stable, na.rm = TRUE),
+  integer(1)
+)
+joint$eligible_units <- vapply(
+  fits[c("c1", "c2", "c3")],
+  function(fit) fit$components$long_run$n_used,
+  integer(1)
+)
+
+lag_display <- data.frame(
+  Model = toupper(joint$model),
+  `Debt/GDP growth` = effect(joint$debt, joint$debt_se),
+  Inflation = effect(joint$inflation, joint$inflation_se),
+  Adjustment = effect(joint$adjustment, joint$adjustment_se),
+  `CD statistic` = sprintf("%.2f", joint$cd),
+  Observations = joint$observations,
+  `Stable/eligible units` = paste0(
+    joint$stable_units, "/", joint$eligible_units
+  ),
+  check.names = FALSE
+)
+
+knitr::kable(
+  lag_display,
+  align = c("c", "r", "r", "r", "r", "r", "r"),
+  row.names = FALSE,
+  caption = "Lag sensitivity for the joint debt-inflation specification."
+)
+```
+
+All 40 units contribute finite long-run estimates in each model. In the
+three-lag specification, however, three unit AR polynomials are flagged as
+unstable. `csdm` reports that diagnostic and does not silently discard those
+units, so the estimate should be presented together with its stability result
+and the lower-order specifications.
+
+The paper reports the classical Pesaran CD statistic. For example:
+
+```{r residual-cd}
+cd_test(fits$c1, type = "CD")
+```
+
+The large positive CD statistics from unaugmented ARDL models in the paper fall
+close to zero after cross-sectional augmentation. A small CD statistic is useful
+evidence about remaining average pairwise residual correlation, but it does not
+prove that every form of strong or weak dependence has been removed.
+
+## Interpretation and limits
+
+The replicated long-run estimates are negative. In specification (c), the
+estimated debt-growth effect ranges from approximately -0.079 to -0.120, and the
+inflation effect ranges from approximately -0.080 to -0.164. These are averages
+of country-specific nonlinear long-run ratios, not coefficients from one pooled
+regression.
+
+Substantive interpretation requires several checks:
+
+1. **Dynamic stability.** A long-run ratio is meaningful only when its AR
+   denominator is nonzero and the fitted dynamics support a stable long-run
+   interpretation. Inspect `fit$cs_ardl$stable` and the stored AR roots.
+2. **Lag sensitivity.** Long-run ARDL ratios can change materially with the lag
+   order. Report the sensitivity rather than selecting one order only because it
+   produces a preferred significance level.
+3. **Finite-$T$ bias.** Cross-sectional augmentation addresses common factors;
+   it does not eliminate bias in short dynamic unit regressions. The adjustment
+   estimates should therefore be interpreted cautiously.
+4. **Factor coverage.** Cross-sectional averages must span the relevant common
+   factor space. Three lags reproduce this application, but they are not a
+   universal default.
+5. **Long-run claim.** The ARDL transformation computes an implied equilibrium
+   relationship. It does not by itself prove cointegration or establish a causal
+   effect.
+
+The replication is a strong implementation benchmark because it checks a
+different software workflow against published numerical results. It does not
+replace application-specific identification, stability, specification, and data
+quality analysis.
+
+## Reproducibility information
+
+```{r session-info}
+sessionInfo()
+```
+
+## References
+
+::: {#refs}
+:::

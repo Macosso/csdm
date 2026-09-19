@@ -22,6 +22,10 @@ articles:
     navbar: ~
     contents:
       - introduction_to_csdm
+  - title: "Applied econometrics"
+    desc: "Technical estimation guides and published replications."
+    contents:
+      - articles/cs-ardl-in-r
 
 reference:
   - title: "Estimate models"
