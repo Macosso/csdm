@@ -7,7 +7,7 @@
   list(frame = mf, terms = stats::terms(mf), X = X, y = y)
 }
 
-.csdm_augment <- function(data, formula, econ_formula, id, time, csa) {
+.csdm_augment <- function(data, formula, econ_formula, id, time, csa, fullsample = FALSE) {
   base <- .csdm_design(formula, data)
   if (identical(csa$vars, "_none")) return(list(data = data, formula = econ_formula, csa = csa))
   if (identical(csa$vars, "_all")) {
@@ -22,13 +22,16 @@
   labels <- colnames(values)
   if (anyDuplicated(labels)) stop("Default CSA labels are ambiguous; specify CSA variables explicitly.")
   lags <- .csdm_csa_lags(csa$lags, labels)
-  # Estimation scope uses complete base model rows, before lag trimming.
+  # Estimation scope uses complete base model rows before lag trimming.
   eligible <- is.finite(base$y) & rowSums(!is.finite(base$X)) == 0
   times <- sort(unique(data[[time]]))
   terms <- character()
+  source_n <- integer(length(labels))
   for (j in seq_along(labels)) {
+    source <- if (fullsample) is.finite(values[, j]) else eligible
+    source_n[j] <- sum(source)
     means <- vapply(times, function(t) {
-      v <- values[eligible & data[[time]] == t, j]
+      v <- values[source & data[[time]] == t, j]
       v <- v[is.finite(v)]
       if (length(v)) mean(v) else NA_real_
     }, numeric(1))
@@ -42,7 +45,10 @@
   }
   csa$resolved_vars <- labels
   csa$resolved_lags <- lags
-  csa$source_n <- sum(eligible)
+  source_n <- stats::setNames(source_n, labels)
+  csa$source_n <- if (fullsample) source_n else sum(eligible)
+  csa$source_n_by_variable <- source_n
+  csa$fullsample <- fullsample
   list(data = data, formula = stats::update(econ_formula,
     paste(". ~ . +", paste(terms, collapse = " + "))), csa = csa)
 }

@@ -1,5 +1,9 @@
 # Development
 
+- Implement `fullsample = TRUE` for CCE-based models. Cross-sectional averages
+  are then calculated variable by variable from all finite observations in the
+  selected sample before dynamic lag trimming.
+
 - Rewrite the README, introductory vignette, and pkgdown navigation around the
   implemented API. Correct the bundled-data description of `log_ngd`, replace
   stale CDw/CDw+ explanations, and make all introductory examples runnable.

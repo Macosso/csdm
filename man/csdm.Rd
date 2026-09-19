@@ -45,7 +45,11 @@ provided values are ignored.}
 
 \item{trend}{One of \code{"none"} or \code{"unit"} (adds a linear unit trend).}
 
-\item{fullsample}{Logical; reserved for future extensions.}
+\item{fullsample}{Logical. For models with cross-sectional averages, use all
+finite observations of each averaging variable in the selected sample.
+The default, \code{FALSE}, constructs every average from the joint complete-case
+sample of the base formula. Averages are always computed before dynamic lag
+trimming.}
 
 \item{mgmissing}{Logical; reserved for future extensions.}
 

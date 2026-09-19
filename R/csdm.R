@@ -22,7 +22,11 @@
 #' @param pooled Deprecated. Pooled restrictions are not implemented; use
 #'   `NULL`.
 #' @param trend One of \code{"none"} or \code{"unit"} (adds a linear unit trend).
-#' @param fullsample Logical; reserved for future extensions.
+#' @param fullsample Logical. For models with cross-sectional averages, use all
+#'   finite observations of each averaging variable in the selected sample.
+#'   The default, `FALSE`, constructs every average from the joint complete-case
+#'   sample of the base formula. Averages are always computed before dynamic lag
+#'   trimming.
 #' @param mgmissing Logical; reserved for future extensions.
 #' @param vcov Variance-covariance specification, created by [csdm_vcov()].
 #' @param subset Logical expression selecting rows before estimation.
@@ -246,9 +250,15 @@ csdm <- function(
   fit <- switch(
     model,
     mg = .csdm_fit_mg(panel_df = panel_df, formula = formula, id = id, time = time, lr = lr, vcov = vcov, ...),
-    cce = .csdm_fit_cce(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...),
-    dcce = .csdm_fit_dcce(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...),
-    cs_ardl = .csdm_fit_cs_ardl(panel_df = panel_df, formula = formula, id = id, time = time, csa = csa, lr = lr, vcov = vcov, ...)
+    cce = .csdm_fit_cce(panel_df = panel_df, formula = formula, id = id,
+      time = time, csa = csa, lr = lr, vcov = vcov,
+      fullsample = fullsample, ...),
+    dcce = .csdm_fit_dcce(panel_df = panel_df, formula = formula, id = id,
+      time = time, csa = csa, lr = lr, vcov = vcov,
+      fullsample = fullsample, ...),
+    cs_ardl = .csdm_fit_cs_ardl(panel_df = panel_df, formula = formula, id = id,
+      time = time, csa = csa, lr = lr, vcov = vcov,
+      fullsample = fullsample, ...)
   )
 
   fit$call <- match.call()
