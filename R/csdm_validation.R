@@ -26,14 +26,21 @@
     }
     do.call(constructor, if (nm == "vcov") list(type = vcov$type) else specs[[nm]])
   }
-  if (.csdm_flag(fullsample, "fullsample") || .csdm_flag(mgmissing, "mgmissing")) {
-    stop("fullsample=TRUE and mgmissing=TRUE are not implemented.", call. = FALSE)
+  .csdm_flag(fullsample, "fullsample")
+  if (.csdm_flag(mgmissing, "mgmissing")) {
+    stop("mgmissing=TRUE is not implemented.", call. = FALSE)
   }
   if (!identical(csa$scope, "estimation") || !is.null(csa$cluster)) {
     stop("Only csa scope='estimation' without cluster is implemented.", call. = FALSE)
   }
   if (model == "mg" && (length(csa$vars) != 1L || !csa$vars %in% c("_all", "_none") || any(csa$lags != 0L) || !is.null(names(csa$lags)))) {
     stop("MG does not use cross-sectional averages; use model='cce' or 'dcce'.", call. = FALSE)
+  }
+  if (model == "mg" && fullsample) {
+    stop("fullsample=TRUE applies only to models with cross-sectional averages.", call. = FALSE)
+  }
+  if (identical(csa$vars, "_none") && fullsample) {
+    stop("fullsample=TRUE requires active cross-sectional averages.", call. = FALSE)
   }
   if (identical(csa$vars, "_none") && (any(csa$lags != 0L) || !is.null(names(csa$lags)))) {
     stop("CSA lags require CSA variables.", call. = FALSE)

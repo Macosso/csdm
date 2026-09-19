@@ -38,3 +38,49 @@ test_that("inactive CSA requests cannot silently succeed", {
   expect_error(csdm(y ~ x, d, "id", "time", model = "dcce",
     csa = csdm_csa("_none", lags = 1)), "CSA lags require")
 })
+
+test_that("fullsample averages each variable over its available observations", {
+  d <- data.frame(
+    id = rep(1:3, each = 2),
+    time = rep(1:2, 3),
+    y = c(1, 2, 30, 4, 5, 6),
+    x = c(1, 2, NA, 4, 5, 6),
+    .csdm_rowid__ = 1:6
+  )
+  attr(d, "csdm_time_step") <- 1
+
+  estimation <- csdm:::.csdm_augment(
+    d, y ~ x, y ~ x, "id", "time", csdm_csa(), fullsample = FALSE
+  )
+  full <- csdm:::.csdm_augment(
+    d, y ~ x, y ~ x, "id", "time", csdm_csa(), fullsample = TRUE
+  )
+
+  expect_equal(estimation$data$.csdm_csa1_lag0[d$time == 1], rep(3, 3))
+  expect_equal(full$data$.csdm_csa1_lag0[d$time == 1], rep(12, 3))
+  expect_equal(estimation$data$.csdm_csa2_lag0[d$time == 1], rep(3, 3))
+  expect_equal(full$data$.csdm_csa2_lag0[d$time == 1], rep(3, 3))
+  expect_identical(estimation$csa$source_n, 5L)
+  expect_identical(full$csa$source_n_by_variable, c(y = 6L, x = 5L))
+  expect_true(full$csa$fullsample)
+})
+
+test_that("fullsample is available only when averages are active", {
+  d <- panel_fixture()
+  expect_error(
+    csdm(y ~ x, d, "id", "time", model = "mg", fullsample = TRUE),
+    "models with cross-sectional averages"
+  )
+  expect_error(
+    csdm(
+      y ~ x, d, "id", "time", model = "dcce",
+      csa = csdm_csa("_none"), fullsample = TRUE
+    ),
+    "requires active cross-sectional averages"
+  )
+  expect_no_error(
+    suppressMessages(csdm(
+      y ~ x, d, "id", "time", model = "cce", fullsample = TRUE
+    ))
+  )
+})

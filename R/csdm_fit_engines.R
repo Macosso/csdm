@@ -5,7 +5,8 @@
 }
 
 
-.csdm_fit_cce <- function(panel_df, formula, id, time, csa, lr = NULL, vcov, ...) {
+.csdm_fit_cce <- function(panel_df, formula, id, time, csa, lr = NULL, vcov,
+                          fullsample = FALSE, ...) {
   if (length(csa$lags) == 1L && as.integer(csa$lags) != 0L) {
     stop("For model='cce', csa$lags must be 0")
   }
@@ -13,12 +14,13 @@
     stop("For model='cce', all csa$lags entries must be 0")
   }
 
-  augmented <- .csdm_augment(panel_df, formula, formula, id, time, csa)
+  augmented <- .csdm_augment(panel_df, formula, formula, id, time, csa, fullsample)
   .csdm_fit_units(augmented$data, augmented$formula, id, time, formula, "cce", augmented$csa)
 }
 
 
-.csdm_fit_dcce <- function(panel_df, formula, id, time, csa, lr, vcov, ...) {
+.csdm_fit_dcce <- function(panel_df, formula, id, time, csa, lr, vcov,
+                           fullsample = FALSE, ...) {
   lr_type <- if (!is.null(lr) && !is.null(lr$type)) as.character(lr$type) else "none"
   lr_ylags <- if (!is.null(lr) && !is.null(lr$ylags)) as.integer(lr$ylags) else 0L
   lr_xdlags <- if (!is.null(lr) && !is.null(lr$xdlags)) as.integer(lr$xdlags) else 0L
@@ -117,12 +119,15 @@
     }
   }
 
-  augmented <- .csdm_augment(panel_work, formula, econ_formula, id, time, csa)
+  augmented <- .csdm_augment(
+    panel_work, formula, econ_formula, id, time, csa, fullsample
+  )
   .csdm_fit_units(augmented$data, augmented$formula, id, time, econ_formula, "dcce", augmented$csa)
 }
 
 
-.csdm_fit_cs_ardl <- function(panel_df, formula, id, time, csa, lr, vcov, ...) {
+.csdm_fit_cs_ardl <- function(panel_df, formula, id, time, csa, lr, vcov,
+                              fullsample = FALSE, ...) {
   lr_type <- if (!is.null(lr) && !is.null(lr$type)) as.character(lr$type) else "none"
   lr_ylags <- if (!is.null(lr) && !is.null(lr$ylags)) as.integer(lr$ylags) else 0L
   lr_xdlags <- if (!is.null(lr) && !is.null(lr$xdlags)) as.integer(lr$xdlags) else 0L
@@ -142,6 +147,7 @@
     csa = csa,
     lr = lr,
     vcov = vcov,
+    fullsample = fullsample,
     ...
   )
   fit$model <- "cs_ardl"

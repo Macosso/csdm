@@ -236,6 +236,10 @@ listed with reasons in `fit$units`. At least two eligible units are required.
 For `csa = csdm_csa("_all")`, the source sample for cross-sectional averages is
 the complete base formula sample after subsetting and before dynamic lag
 trimming. It therefore need not equal the final set of fitted observations.
+Set `fullsample = TRUE` to calculate each average from all finite observations
+of that variable in the selected sample. This is useful when the averaging
+variables have different missing-value patterns and mirrors the `fullsample`
+option used in `xtdcce2`.
 
 ## Inference and R model methods
 
