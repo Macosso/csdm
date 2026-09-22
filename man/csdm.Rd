@@ -36,7 +36,7 @@ provided values are ignored.}
 \item{model}{Estimator to fit. One of \code{"mg"}, \code{"cce"},
 \code{"dcce"}, or \code{"cs_ardl"}.}
 
-\item{csa}{Cross-sectional-average specification, created by \code{\link[=csdm_csa]{csdm_csa()}}.}
+\item{csa}{Cross-sectional-average specification, created by [csdm_csa()].}
 
 \item{lr}{Long-run or dynamic specification, created by \code{\link[=csdm_lr]{csdm_lr()}}.}
 
