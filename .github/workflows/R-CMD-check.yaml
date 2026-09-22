@@ -1,7 +1,7 @@
 name: R-CMD-check
 on:
   push:
-    branches: [main, master, code_refactor]
+    branches: [main, master, code_refactor, 'release-*']
   pull_request:
   workflow_dispatch:
 

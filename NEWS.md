@@ -1,9 +1,8 @@
-# csdm 2.0.0.9000
+# csdm 2.0.0
 
-This development version prepares the next major CRAN release. Several
-corrections affect coefficient estimates, standard errors, and dependence-test
-statistics. Analyses produced with `csdm` 1.0.1 should be re-estimated before
-results are compared or reported.
+Several corrections in this release affect coefficient estimates, standard
+errors, and dependence-test statistics. Analyses produced with `csdm` 1.0.1
+should be re-estimated before results are compared or reported.
 
 ## Estimation and inference
 
