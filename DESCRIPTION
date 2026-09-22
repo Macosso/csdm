@@ -1,6 +1,6 @@
 Package: csdm
 Title: Cross-Sectional Dependence Models
-Version: 1.0.1
+Version: 2.0.0.9000
 Depends: R (>= 4.0.0)
 Imports: Rdpack,
     generics,
