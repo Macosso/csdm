@@ -1,8 +1,11 @@
 # csdm 2.0.0
 
-Several corrections in this release affect coefficient estimates, standard
-errors, and dependence-test statistics. Analyses produced with `csdm` 1.0.1
-should be re-estimated before results are compared or reported.
+Version 2.0.0 expands the package's R model interfaces, adds new sample
+controls, and improves estimator and diagnostic behavior. It also includes bug
+fixes for edge cases involving irregular time indexes, missing observations,
+cross-sectional averages, covariance calculations, and dependence tests. For
+reproducibility, report the package version when comparing output across
+releases.
 
 ## Estimation and inference
 
