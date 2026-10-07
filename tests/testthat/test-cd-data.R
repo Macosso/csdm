@@ -54,6 +54,7 @@ test_that("data inputs retain variable-specific samples and structural gaps", {
                                     seed = 7, na.action = "drop.incomplete.times"),
                  "Dropped 1")
   expect_equal(balanced$y$T, 59L)
+  expect_identical(balanced$y$excluded_times, "2")
 })
 
 test_that("time indexes can be labels or dates without an estimation grid", {

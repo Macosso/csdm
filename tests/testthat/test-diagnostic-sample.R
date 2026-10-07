@@ -45,3 +45,19 @@ test_that("partially observed periods retain the requested missing-data policy",
   expect_error(cd_test(E, type = "CDw", seed = 7), "balanced sample")
   expect_equal(cd_test(E, type = "CD")$T, 20L)
 })
+
+test_that("complete-time selection records all excluded periods in input order", {
+  set.seed(27)
+  E <- matrix(rnorm(8 * 20), 8L, dimnames = list(NULL, 2001:2020))
+  E[1L, 1L] <- NA_real_
+  E[, 2L] <- NA_real_
+  E[2L, 3L] <- NA_real_
+  expect_message(a <- cd_test(E, type = "CDw", seed = 7,
+                              na.action = "drop.incomplete.times"), "Dropped 2")
+  expect_identical(a$excluded_times, colnames(E)[1:3])
+  expect_identical(a$kept_times, colnames(E)[-(1:3)])
+  expect_equal(a$tests, cd_test(E[, -(1:3)], type = "CDw", seed = 7)$tests)
+  colnames(E) <- NULL
+  expect_message(b <- cd_test(E, na.action = "drop.incomplete.times"), "Dropped 2")
+  expect_identical(b$excluded_times, 1:3)
+})

@@ -187,7 +187,7 @@ cd_test.default <- function(object,
   if (min_overlap < 2L) stop("'min_overlap' must be at least two.")
   reps <- .csdm_integer(reps, "reps")
   if (reps < 1L) stop("'reps' must be at least one.", call. = FALSE)
-  if (any(is.infinite(object))) stop("Residuals may contain NA, but not infinite values.")
+  if (any(is.infinite(object))) stop("Input values may contain NA, but not infinite values.")
   if (!is.null(seed)) {
     seed <- .csdm_integer(seed, "seed")
     had_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
@@ -205,9 +205,11 @@ cd_test.default <- function(object,
   excluded_units <- which(!usable)
   E <- object[usable, , drop = FALSE]
 
-  # Periods with no estimated residuals are not part of the residual sample.
+  # Periods with no finite values are not part of the diagnostic sample.
+  time_labels <- if (is.null(colnames(E))) seq_len(ncol(E)) else colnames(E)
   empty_times <- colSums(is.finite(E)) == 0L
-  excluded_times <- if (is.null(colnames(E))) which(empty_times) else colnames(E)[empty_times]
+  excluded_times <- time_labels[empty_times]
+  kept_time_labels <- time_labels[!empty_times]
   if (any(empty_times)) E <- E[, !empty_times, drop = FALSE]
   if (ncol(E) < 2L) stop("At least two time periods with residual observations are required.")
 
@@ -219,6 +221,8 @@ cd_test.default <- function(object,
     if (sum(complete_times) < 2) {
       stop("cd_test: After dropping incomplete time periods, fewer than 2 periods remain.")
     }
+    dropped <- c(excluded_times, kept_time_labels[!complete_times])
+    excluded_times <- time_labels[time_labels %in% dropped]
     E <- E[, complete_times, drop = FALSE]
     if (n_dropped > 0) {
       message(sprintf("cd_test: Dropped %d incomplete time period%s (%.1f%%). Balanced panel: %d units x %d periods.",
