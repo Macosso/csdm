@@ -12,3 +12,4 @@
 ^review$
 ^\.dev-library$
 ^\.dev-check$
+^cran-comments\.md$
