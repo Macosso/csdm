@@ -290,18 +290,28 @@ approximation. Depending on the theoretical formulation, that null is stated as
 cross-sectional independence or sufficiently weak dependence [@Pesaran2015;
 @Pesaran2021].
 
-For a balanced residual matrix, CDw draws one independent Rademacher weight
-$w_i\in\{-1,1\}$ per unit and computes [@JuodisReese2021]
+For a balanced panel, CDw draws one independent Rademacher weight
+$w_i\in\{-1,1\}$ per unit, independently of the data. Write
+$u_{it}=e_{it}-\bar e_i$ for the input demeaned within unit. Equation (30) of
+the published Juodis-Reese paper [@JuodisReese2021, p. 1197] is
 
 $$
-CD_W=
-\left(\frac{1}{NT}\sum_{i,t}w_i^2\widetilde e_{it}^2\right)^{-1}
+\widehat s_W^2=\frac{1}{NT}\sum_{i=1}^{N}\sum_{t=1}^{T}w_i^2u_{it}^2,
+\qquad
+CD_W=(\widehat s_W^2)^{-1}
 \sqrt{\frac{2}{TN(N-1)}}
-\sum_t\sum_{i<j}w_i\widetilde e_{it}w_j\widetilde e_{jt},
+\sum_{t=1}^{T}\sum_{i=2}^{N}\sum_{j=1}^{i-1}w_i u_{it}w_j u_{jt}.
 $$
 
-where $\widetilde e_{it}$ is demeaned within unit. Set `seed` to reproduce the
-random weights without changing the caller's random-number state.
+The paper denotes the residuals by $\widehat\varepsilon_{it}$; its unit
+intercepts make their time means zero. The within-unit demeaning above also
+allows the package to accept raw variables. Since $w_i^2=1$,
+$\widehat s_W^2$ is the pooled mean squared demeaned input. The inverse pooled
+variance is essential: CDw uses weighted covariances with this common scale,
+rather than individually standardized correlations. The shorthand
+$\sum_{i<j}$ used elsewhere denotes the same unordered pairs as the displayed
+double sum. Set `seed` to reproduce the random weights without changing the
+caller's random-number state.
 
 With `reps = G`, the test draws $G$ independent sets of unit weights and
 combines the resulting statistics using equation (33) of Juodis and Reese:
@@ -314,7 +324,8 @@ The default `reps = 1` preserves the single-draw statistic. The authors suggest
 keeping the number of draws modest, for example 30, since increasing $G$ can
 amplify lower-order terms.
 
-CDw+ adds the power-enhancement screening term [@FanLiaoYao2015]:
+CDw+ follows equation (32) of Juodis and Reese, which applies the
+power-enhancement principle of Fan, Liao, and Yao [@FanLiaoYao2015]:
 
 $$
 CD_{W+}=CD_W+
@@ -328,10 +339,52 @@ independent random-sign test.
 With multiple draws, CDw+ adds this screening term once to
 $\overline{CD}_W$.
 
-CD* applies the Pesaran-Xie bias correction after removing `n_pc` principal
-components [@PesaranXie2021]. Its approximation requires a nondegenerate
-bias-correction denominator; a numerically computable result alone does not
-establish that the asymptotic assumptions are suitable.
+CD* uses the Pesaran-Xie correction algebra [@PesaranXie2021; @PesaranXie2026],
+with a standardized-PCA implementation variant. For matrix and data inputs,
+write $A_{ti}=(e_{it}-\bar e_i)/s_i$, where $s_i$ is the unit's sample standard
+deviation. Extract `n_pc` principal components from $A$, normalizing the loading
+matrix so that $\widehat\Gamma'\widehat\Gamma/N=I$. Set
+$\widehat F=A\widehat\Gamma/N$ and $r=A-\widehat F\widehat\Gamma'$. The
+implemented correction is
+
+$$
+\widehat\sigma_i=\sqrt{T^{-1}\sum_t r_{it}^{2}},\qquad
+\widehat\varphi=N^{-1}\sum_i\frac{\widehat\gamma_i}{\widehat\sigma_i},\qquad
+\widehat a_i=1-\widehat\sigma_i\widehat\varphi'\widehat\gamma_i,
+$$
+
+$$
+\widehat\theta=1-N^{-1}\sum_i\widehat a_i^{2},\qquad
+CD^*=\frac{CD(r)+\sqrt{T/2}\,\widehat\theta}{1-\widehat\theta}.
+$$
+
+Pesaran-Xie estimate the PCs from unstandardized observations. Standardizing
+before PCA can change the factor space when unit variances differ, so this
+package's variant should not be described as an exact reproduction of their
+PCA procedure. Setting `n_pc = 0` returns classical CD on the supplied panel.
+The correction requires a nondegenerate denominator; a numerically computable
+result alone does not establish that the asymptotic assumptions are suitable.
+
+For fitted models, CD* starts from the partial residual
+$\widehat v_{it}=y_{it}-x_{it}'\widehat\beta_i$, retaining the fitted
+common-factor component. Here $x_{it}$ includes the economic regressors and
+any intercept, unit trend, and constructed economic lags. The CSA contribution
+is retained for PCA, following the input construction in Pesaran-Xie's
+regression procedure. CD, CDw, and CDw+ instead use the full fitted residuals.
+Passing `residuals(fit)` directly to CD* therefore tests a different input from
+passing the fit itself. CD* records its input and sample exclusions in
+`tests$CDstar`; in an `"all"` result, its sample dimensions are in
+`tests$CDstar$N` and `tests$CDstar$T`.
+
+All reported p-values are two-sided standard-normal approximations,
+$2\Phi(-|\text{statistic}|)$. The implemented tests do not estimate a
+serial-correlation correction or establish validity for nonstationary series.
+The papers impose time-series, factor, and panel-dimension conditions; accepting
+a numeric variable does not establish those conditions. In particular, classical
+CD can be biased on CCE residuals after estimating common time parameters.
+CDw addresses that problem under Juodis-Reese's assumptions, including
+$\sqrt{T}/N\to0$. Omitting pairs or using very short overlaps can also affect
+classical CD calibration; `min_overlap = 2` is a computational minimum.
 
 ```{r cd-tests}
 cd_test(fit_mg, type = "CD")

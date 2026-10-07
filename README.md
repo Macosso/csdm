@@ -134,6 +134,15 @@ its result. The tests use different corrections and should be interpreted
 against their own assumptions; agreement among p-values is not a substitute
 for checking those assumptions.
 
+CDw follows equation (30) of Juodis and Reese, using weighted covariances and
+the inverse pooled variance of the demeaned input. CDw+ follows their equation
+(32). CD* uses the Pesaran-Xie correction with a standardized-PCA variant:
+the package standardizes units before PCA, whereas the paper uses
+unstandardized observations. For fitted models, CD* removes the economic and
+deterministic fitted component while retaining the common-factor component
+for PCA; the other tests use full fitted residuals. Thus CD* on a fit can differ
+from CD* on `residuals(fit)`. The vignette details these formulas and assumptions.
+
 ## R model interface
 
 Fitted models support the model methods expected by downstream R tools:
