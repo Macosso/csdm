@@ -10,6 +10,14 @@
   CDw+ adds its screening term once. Seeded calls continue to preserve RNG state.
 - Record incomplete time periods removed by `drop.incomplete.times` in
   `excluded_times`, alongside periods with no finite observations.
+- Correct fitted-model CD* input to retain the common-factor component after
+  subtracting the economic and deterministic fitted terms, following
+  Pesaran-Xie's regression input construction. This changes fitted CD* results;
+  CD, CDw, and CDw+ still use full fitted residuals. Preserve and document the
+  standardized-PCA implementation variant for CD*.
+- Clarify the CDw and CDw+ formulas against Juodis-Reese equations (30) and (32),
+  document the complete CD* correction, and correct the Pesaran-Xie and
+  Fan-Liao-Yao references.
 
 # csdm 2.0.0
 

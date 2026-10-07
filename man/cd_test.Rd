@@ -79,8 +79,9 @@ For matrices and fitted models, additional arguments passed to methods.}
 
 \item{seed}{Integer seed for weight draws. Seeded calls restore the caller's RNG state; NULL uses the current RNG stream.}
 
-\item{min_overlap}{Minimum number of overlapping time periods required for a unit
-pair to be included in CD/CDw/CDw+ (default 2).}
+\item{min_overlap}{Minimum number of finite observations for retaining a unit
+before time filtering (all tests), and minimum overlapping time periods
+for including a pair in classical CD (default 2).}
 
 \item{na.action}{How to handle missing data: \code{"drop.incomplete.times"}
 removes time periods with any missing observations to create a balanced panel for CD*;
@@ -111,6 +112,10 @@ Data-frame methods return a \code{cd_test_list}: a named list containing one
 is selected. Each result also records \code{variable}, \code{units}, and
 \code{excluded_unit_ids}. The list has \code{call}, \code{id}, and \code{time}
 attributes and prints a combined table with each variable's sample dimensions.
+For fitted models, CD* additionally records \code{input = "partial_residuals"}
+and its own sample exclusions in \code{tests$CDstar}. With \code{type = "all"},
+top-level sample fields describe the full residual panel; the CD* sample
+dimensions are recorded in \code{tests$CDstar$N} and \code{tests$CDstar$T}.
 }
 \description{
 Computes Pesaran CD, CDw, CDw+, and CD* tests for cross-sectional dependence
@@ -135,22 +140,31 @@ the data-frame methods and must be named.
 Let \eqn{E} contain the selected observations or residuals, with \eqn{N}
 cross-sectional units and \eqn{T} time periods. For each unit pair
 \eqn{(i,j)}, let \eqn{T_{ij}} be the number of
-overlapping time periods and \eqn{\rho_{ij}} the pairwise correlation.
+overlapping time periods and \eqn{\widehat\rho_{ij}} the correlation computed
+after demeaning both series over that pair's overlapping observations.
 }
 
 \subsection{Test statistics}{
 
 \describe{
 \item{CD (Pesaran, 2015)}{
-\deqn{CD = \sqrt{\frac{2}{N(N-1)}} \sum_{i<j} \sqrt{T_{ij}} \, \rho_{ij}}
+\deqn{CD = \sqrt{\frac{2}{N(N-1)}} \sum_{i<j} \sqrt{T_{ij}} \, \widehat\rho_{ij}}
+The sum includes pairs with at least \code{min_overlap} observations and
+a finite correlation; \eqn{N} remains the retained number of units.
 }
 \item{CDw (Juodis and Reese, 2022)}{
 Independent Rademacher weights \eqn{w_i \in \{-1,1\}} are applied by
-unit. For a balanced residual panel, the statistic is
-\deqn{CD_W = \left(\frac{1}{NT}\sum_{i,t}w_i^2 e_{it}^2\right)^{-1}
+unit, independently of the data. Write \eqn{u_{it}=e_{it}-\bar e_i} for
+observations demeaned within unit and define the pooled variance
+\deqn{\widehat s_W^2=\frac{1}{NT}\sum_{i=1}^N\sum_{t=1}^T w_i^2 u_{it}^2.}
+For a balanced panel, equation (30) of Juodis and Reese is implemented as
+\deqn{CD_W = (\widehat s_W^2)^{-1}
     \sqrt{\frac{2}{TN(N-1)}}
-    \sum_t\sum_{i<j}w_i e_{it}w_j e_{jt}.}
-The first factor is the inverse pooled residual variance. With
+    \sum_{t=1}^T\sum_{i=2}^N\sum_{j=1}^{i-1}w_i u_{it}w_j u_{jt}.}
+Since \eqn{w_i^2=1}, the pooled variance is \eqn{\operatorname{mean}(u_{it}^2)}.
+This is a weighted covariance statistic, with pooled rather than
+pair-specific scale normalization. The paper's estimated residuals have
+zero unit means when unit intercepts are included. With
 \code{reps = G}, draw \eqn{G} independent sets of unit weights and combine
 the statistics as in equation (33) of Juodis and Reese:
 \deqn{\overline{CD}_W = \frac{1}{\sqrt{G}}\sum_{g=1}^G CD_W^{(g)}.}
@@ -159,18 +173,40 @@ The default \code{reps = 1} preserves the single-draw statistic. Use
 draws (for example, 30), since large \eqn{G} can amplify lower-order terms.
 }
 \item{CDw+ (Juodis and Reese, 2022; Fan, Liao, and Yao, 2015)}{
-The power-enhanced statistic is
-\deqn{CD_{W+} = CD_W + \sum_{i<j}|\rho_{ij}|
-    1\left\{|\rho_{ij}| > 2\sqrt{\log(N)/T}\right\}.}
-Here \eqn{\rho_{ij}} is the ordinary residual correlation, without
+Equation (32) of Juodis and Reese applies the power-enhancement principle
+of Fan, Liao, and Yao. Its statistic is
+\deqn{CD_{W+} = CD_W + \sum_{i<j}|\widehat\rho_{ij}|
+    1\left\{|\widehat\rho_{ij}| > 2\sqrt{\log(N)/T}\right\}.}
+Here \eqn{\widehat\rho_{ij}} is the ordinary residual correlation, without
 multiplication by \eqn{\sqrt{T}}. The nonnegative screening term is
 asymptotically zero under the conditions of the null hypothesis.
 With \code{reps > 1}, replace \eqn{CD_W} by \eqn{\overline{CD}_W} and add
 the screening term once.
 }
-\item{CD* (Pesaran and Xie, 2021)}{
-CD is computed on residuals after removing \code{n_pc} principal components
-from \eqn{E}. This provides a bias-corrected test under multifactor errors.
+\item{CD* (Pesaran-Xie correction; standardized-PCA variant)}{
+Each unit is demeaned and divided by its sample standard deviation before
+extracting \code{n_pc} principal components. Write \eqn{A} for this
+\eqn{T\times N} standardized matrix. The estimated loading matrix
+\eqn{\widehat\Gamma} is normalized so that
+\eqn{\widehat\Gamma'\widehat\Gamma/N=I}, and the factors are
+\eqn{\widehat F=A\widehat\Gamma/N}. For the factor-filtered residuals
+\eqn{r_{it}} of \eqn{A-\widehat F\widehat\Gamma'}, define
+\deqn{\widehat\sigma_i=\sqrt{T^{-1}\sum_t r_{it}^2},\quad
+    \widehat\varphi=N^{-1}\sum_i\widehat\gamma_i/\widehat\sigma_i,\quad
+    \widehat a_i=1-\widehat\sigma_i\widehat\varphi'\widehat\gamma_i.}
+The implemented bias correction is
+\deqn{\widehat\theta=1-N^{-1}\sum_i\widehat a_i^2,\qquad
+    CD^*=\frac{CD(r)+\sqrt{T/2}\,\widehat\theta}{1-\widehat\theta}.}
+This uses the Pesaran-Xie correction algebra, but their PCA procedure
+operates on unstandardized observations. Standardizing before PCA can
+change the estimated factor space and is an implementation variant.
+Setting \code{n_pc = 0} returns classical CD without factor removal.
+For fitted models, the PCA input is
+\eqn{\widehat v_{it}=y_{it}-x_{it}'\widehat\beta_i}, where \eqn{x_{it}}
+includes all economic and deterministic design columns, including any
+intercept, trend, and constructed lags. The fitted CSA contribution is
+retained, following the input construction in Pesaran-Xie's regression
+procedure. CD, CDw, and CDw+ use the full regression residuals instead.
 }
 }
 
@@ -178,6 +214,16 @@ CD* requires a nondegenerate bias-correction denominator. Near-zero
 denominators can produce severe size distortions, including proportional
 loading/error-scale designs after standardization. Numerical rank checks
 do not establish the validity of the asymptotic approximation.
+
+All p-values use the two-sided standard-normal approximation
+\eqn{2\Phi(-|\mathrm{statistic}|)}. The implemented tests do not estimate a
+serial-correlation correction. Stationarity, time-series dependence, factor
+strength, and relative panel dimensions must satisfy the relevant theory;
+accepting a numeric variable does not establish these conditions. For CD,
+omitting pairs or using very short overlaps can also affect calibration.
+Classical CD can be biased on CCE residuals because common time parameters
+have been estimated. CDw addresses this problem under Juodis-Reese's
+assumptions, including \eqn{\sqrt{T}/N\to0}.
 }
 
 \subsection{Missing data and balance}{
@@ -241,4 +287,6 @@ cd_test(fit, type = "all")
 \insertRef{FanLiaoYao2015}{csdm}
 
 \insertRef{PesaranXie2021}{csdm}
+
+\insertRef{PesaranXie2026}{csdm}
 }
