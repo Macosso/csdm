@@ -60,4 +60,8 @@ test_that("complete-time selection records all excluded periods in input order",
   colnames(E) <- NULL
   expect_message(b <- cd_test(E, na.action = "drop.incomplete.times"), "Dropped 2")
   expect_identical(b$excluded_times, 1:3)
+  colnames(E) <- c(rep("same", 4L), as.character(5:20))
+  expect_message(c <- cd_test(E, na.action = "drop.incomplete.times"), "Dropped 2")
+  expect_identical(c$excluded_times, rep("same", 3L))
+  expect_identical(c$kept_times[1L], "same")
 })

@@ -132,8 +132,9 @@ the data-frame methods and must be named.
 
 \subsection{Notation}{
 
-Let \eqn{E} be the residual matrix with \eqn{N} cross-sectional units and \eqn{T}
-time periods. For each unit pair \eqn{(i,j)}, let \eqn{T_{ij}} be the number of
+Let \eqn{E} contain the selected observations or residuals, with \eqn{N}
+cross-sectional units and \eqn{T} time periods. For each unit pair
+\eqn{(i,j)}, let \eqn{T_{ij}} be the number of
 overlapping time periods and \eqn{\rho_{ij}} the pairwise correlation.
 }
 

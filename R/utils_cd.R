@@ -37,8 +37,9 @@
 #'
 #' ## Notation
 #'
-#' Let \eqn{E} be the residual matrix with \eqn{N} cross-sectional units and \eqn{T}
-#' time periods. For each unit pair \eqn{(i,j)}, let \eqn{T_{ij}} be the number of
+#' Let \eqn{E} contain the selected observations or residuals, with \eqn{N}
+#' cross-sectional units and \eqn{T} time periods. For each unit pair
+#' \eqn{(i,j)}, let \eqn{T_{ij}} be the number of
 #' overlapping time periods and \eqn{\rho_{ij}} the pairwise correlation.
 #'
 #' ## Test statistics
@@ -209,7 +210,7 @@ cd_test.default <- function(object,
   time_labels <- if (is.null(colnames(E))) seq_len(ncol(E)) else colnames(E)
   empty_times <- colSums(is.finite(E)) == 0L
   excluded_times <- time_labels[empty_times]
-  kept_time_labels <- time_labels[!empty_times]
+  kept_time_indices <- which(!empty_times)
   if (any(empty_times)) E <- E[, !empty_times, drop = FALSE]
   if (ncol(E) < 2L) stop("At least two time periods with residual observations are required.")
 
@@ -221,8 +222,9 @@ cd_test.default <- function(object,
     if (sum(complete_times) < 2) {
       stop("cd_test: After dropping incomplete time periods, fewer than 2 periods remain.")
     }
-    dropped <- c(excluded_times, kept_time_labels[!complete_times])
-    excluded_times <- time_labels[time_labels %in% dropped]
+    excluded <- empty_times
+    excluded[kept_time_indices[!complete_times]] <- TRUE
+    excluded_times <- time_labels[excluded]
     E <- E[, complete_times, drop = FALSE]
     if (n_dropped > 0) {
       message(sprintf("cd_test: Dropped %d incomplete time period%s (%.1f%%). Balanced panel: %d units x %d periods.",
