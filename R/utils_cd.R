@@ -1,21 +1,40 @@
 # utils_cd.R - Cross-sectional dependence tests for panel models
 
-#' Cross-sectional dependence (CD) tests for panel residuals
+#' Cross-sectional dependence (CD) tests for panel data and residuals
 #'
 #' Computes Pesaran CD, CDw, CDw+, and CD* tests for cross-sectional dependence
-#' in panel residuals. The implementation supports residual matrices or fitted
-#' \code{csdm_fit} objects and provides consistent handling of unbalanced panels.
+#' in panel variables or residuals. The implementation supports data frames,
+#' indexed panel data frames, numeric matrices, and fitted \code{csdm_fit} objects.
 #'
-#' @param object A \code{csdm_fit} model object or a numeric matrix of residuals (N x T).
-#' @param ... Additional arguments passed to methods.
+#' @param object A \code{data.frame}, \code{pdata.frame}, \code{csdm_fit} model,
+#'   or numeric matrix with units in rows and time periods in columns (N x T).
+#' @param ... For data frames, explicitly selected numeric columns as bare names,
+#'   quoted names, or character vectors of names. Selections must be unnamed.
+#'   For matrices and fitted models, additional arguments passed to methods.
 #'
 #' @return An object of class \code{cd_test} with fields \code{tests}, \code{type},
 #'   \code{N}, \code{T}, \code{na.action}, \code{excluded_units},
 #'   \code{excluded_times}, \code{kept_times}, and \code{call}. The \code{tests}
 #'   list contains one or more test results, each with \code{statistic} and
 #'   \code{p.value}.
+#'   Data-frame methods return a \code{cd_test_list}: a named list containing one
+#'   \code{cd_test} result per selected variable, including when only one variable
+#'   is selected. Each result also records \code{variable}, \code{units}, and
+#'   \code{excluded_unit_ids}. The list has \code{call}, \code{id}, and \code{time}
+#'   attributes and prints a combined table with each variable's sample dimensions.
 #'
 #' @details
+#' ## Selecting panel variables
+#'
+#' For a plain data frame, supply distinct unit and time column names through
+#' \code{id} and \code{time}. For a \code{pdata.frame}, the stored indexes are
+#' used, even when the index columns have been removed from the data. Select at
+#' least one numeric non-index column explicitly. Each variable is tested
+#' separately using its own available sample and the same missing-data policy.
+#' No regression is fitted. CDw demeans the observations within each unit, as it
+#' does for matrix inputs. Test controls and panel indexes follow \code{...} in
+#' the data-frame methods and must be named.
+#'
 #' ## Notation
 #'
 #' Let \eqn{E} be the residual matrix with \eqn{N} cross-sectional units and \eqn{T}
@@ -94,6 +113,12 @@
 #'
 #' # Specific test with parameters
 #' cd_test(E_indep, type = "CDstar", n_pc = 2)
+#'
+#' # Test raw panel variables separately
+#' panel <- expand.grid(id = 1:10, year = 1:10)
+#' panel$x <- rnorm(nrow(panel))
+#' panel$y <- rnorm(nrow(panel))
+#' cd_test(panel, x, "y", id = "id", time = "year")
 #'
 #' # From a fitted csdm model
 #' data(PWT_60_07, package = "csdm")
@@ -289,7 +314,7 @@ cd_test.csdm_fit <- function(object,
 }
 
 #' @rdname cd_test
-#' @param x An object of class \code{cd_test}.
+#' @param x An object of class \code{cd_test} or \code{cd_test_list}.
 #' @param digits Number of digits to print (default 3).
 #' @export
 #' @method print cd_test
