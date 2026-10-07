@@ -273,7 +273,7 @@ modelsummary::modelsummary(
 )
 ```
 
-## Residual cross-sectional dependence
+## Cross-sectional dependence in residuals and variables
 
 Let $e_{it}$ denote the fitted residual and $T_{ij}$ the number of overlapping
 finite observations for units $i$ and $j$. The classical statistic implemented
@@ -303,6 +303,17 @@ $$
 where $\widetilde e_{it}$ is demeaned within unit. Set `seed` to reproduce the
 random weights without changing the caller's random-number state.
 
+With `reps = G`, the test draws $G$ independent sets of unit weights and
+combines the resulting statistics using equation (33) of Juodis and Reese:
+
+$$
+\overline{CD}_W = \frac{1}{\sqrt{G}}\sum_{g=1}^{G}CD_W^{(g)}.
+$$
+
+The default `reps = 1` preserves the single-draw statistic. The authors suggest
+keeping the number of draws modest, for example 30, since increasing $G$ can
+amplify lower-order terms.
+
 CDw+ adds the power-enhancement screening term [@FanLiaoYao2015]:
 
 $$
@@ -314,6 +325,8 @@ $$
 The threshold is applied to the ordinary residual correlation, without a
 $\sqrt{T}$ multiplier. The enhancement is nonnegative, so CDw+ is not a second
 independent random-sign test.
+With multiple draws, CDw+ adds this screening term once to
+$\overline{CD}_W$.
 
 CD* applies the Pesaran-Xie bias correction after removing `n_pc` principal
 components [@PesaranXie2021]. Its approximation requires a nondegenerate
@@ -323,6 +336,37 @@ establish that the asymptotic assumptions are suitable.
 ```{r cd-tests}
 cd_test(fit_mg, type = "CD")
 cd_test(fit_cce, type = "all", seed = 42)
+cd_test(fit_cce, type = "CDw+", reps = 30, seed = 42)
+```
+
+To test panel variables directly, select them explicitly through `...`. Bare
+column names, quoted names, and character vectors are supported. For a plain
+data frame, supply named `id` and `time` column names. All test controls must
+also be named because they follow `...` in the data methods.
+
+```{r cd-variables}
+variable_tests <- cd_test(
+  dat, log_rgdpo, "log_hc", id = "id", time = "year"
+)
+variable_tests
+variable_tests$log_rgdpo$tests$CD
+
+vars <- c("log_rgdpo", "log_hc")
+cd_test(dat, vars, id = "id", time = "year", type = "CDw",
+        reps = 30, seed = 42)
+```
+
+Each variable is tested separately on its own available sample, with no
+regression fitted. The result is always a named list of class `cd_test_list`,
+even for one variable; printing it shows a combined table with the sample
+dimensions for each variable. Seeded tests apply the seed separately to each
+variable, making results independent of selection order. A `pdata.frame`
+provides the indexes automatically, including when its index columns have been
+removed:
+
+```{r cd-pdata, eval=FALSE}
+panel_dat <- plm::pdata.frame(dat, index = c("id", "year"), drop.index = TRUE)
+cd_test(panel_dat, log_rgdpo, log_hc, type = "CDw+", reps = 30, seed = 42)
 ```
 
 Periods with no finite residual for any retained unit are outside the effective
@@ -345,7 +389,7 @@ cd_test(
 )
 ```
 
-A rejection concerns the residual dependence targeted by the selected test; it
+A rejection concerns the variable or residual dependence targeted by the selected test; it
 does not by itself identify the source of misspecification. A non-rejection does
 not prove residual independence, particularly in small samples or weak-power
 settings.

@@ -1,3 +1,16 @@
+# csdm (development version)
+
+- Add `cd_test()` methods for `data.frame` and `pdata.frame` inputs. Select
+  numeric panel variables explicitly using bare names, quoted names, or
+  character vectors. Plain data frames require named `id` and `time` columns;
+  indexed panels use their stored indexes. Return separate named results per
+  variable and print a combined table with variable-specific sample dimensions.
+- Add `reps` to CDw and CDw+, defaulting to 1. Repeated weighted statistics use
+  the sum divided by `sqrt(reps)`, following equation (33) of Juodis and Reese;
+  CDw+ adds its screening term once. Seeded calls continue to preserve RNG state.
+- Record incomplete time periods removed by `drop.incomplete.times` in
+  `excluded_times`, alongside periods with no finite observations.
+
 # csdm 2.0.0
 
 Version 2.0.0 expands the package's R model interfaces, adds new sample

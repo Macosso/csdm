@@ -11,7 +11,7 @@
 `csdm` estimates heterogeneous panel models when units may share unobserved
 common factors. It provides mean-group (MG), common correlated effects (CCE),
 dynamic CCE (DCCE), and cross-sectionally augmented ARDL (CS-ARDL) estimators,
-along with residual cross-sectional dependence diagnostics.
+along with cross-sectional dependence diagnostics for residuals and panel variables.
 
 The package follows the econometric structure used by Stata's `xtdcce2`, while
 using standard R model methods and explicit specification objects. It does not
@@ -92,12 +92,26 @@ preserves gaps in calendar time.
 
 ## Cross-sectional dependence diagnostics
 
-`cd_test()` accepts a fitted `csdm` model or an `N` by `T` residual matrix:
+`cd_test()` accepts a fitted `csdm` model, an `N` by `T` numeric matrix,
+or explicitly selected variables in a `data.frame` or `pdata.frame`:
 
 ```r
 cd_test(cce, type = "CD")
 cd_test(cce, type = "all", seed = 42)
+
+cd_test(dat, log_rgdpo, "log_hc", id = "id", time = "year")
+
+vars <- c("log_rgdpo", "log_hc")
+cd_test(dat, vars, id = "id", time = "year", type = "CDw",
+        reps = 30, seed = 42)
 ```
+
+Data inputs return a named list of separate results per variable, printed in a
+combined table. Variables must be selected explicitly through `...`, using bare
+names, quoted names, or character vectors. Name `id`, `time`, and all test
+controls; a `pdata.frame` supplies its stored indexes automatically. Each
+variable uses its own available sample. The tests operate on the selected
+observations without fitting a regression.
 
 The available diagnostics are classical CD, randomized CDw, power-enhanced
 CDw+, and bias-corrected CD\*. CD uses pairwise-complete observations by
@@ -111,7 +125,12 @@ cd_test(cce, type = "all", seed = 42,
 ```
 
 Use a fixed `seed` when reporting CDw or CDw+ because their Rademacher weights
-are random. The tests use different corrections and should be interpreted
+are random. `reps = 1` preserves the single-draw behavior. For multiple draws,
+equation (33) of Juodis and Reese combines the CDw statistics as their sum
+divided by `sqrt(reps)`; CDw+ adds its screening term once to that aggregate.
+The authors suggest a modest number of draws, such as 30. Seeded data calls
+apply the seed separately to each variable, so selection order does not affect
+its result. The tests use different corrections and should be interpreted
 against their own assumptions; agreement among p-values is not a substitute
 for checking those assumptions.
 
