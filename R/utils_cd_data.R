@@ -7,7 +7,8 @@
 cd_test.data.frame <- function(object, ..., id = NULL, time = NULL,
                                type = c("CD", "CDw", "CDw+", "CDstar", "all"),
                                n_pc = 4L, seed = NULL, min_overlap = 2L,
-                               na.action = c("pairwise", "drop.incomplete.times")) {
+                               na.action = c("pairwise", "drop.incomplete.times"),
+                               reps = 1L) {
   vars <- .cd_select_variables(as.list(substitute(list(...)))[-1L],
                                names(object), parent.frame())
   panel <- .cd_panel_input(object, id, time, vars)
@@ -19,7 +20,7 @@ cd_test.data.frame <- function(object, ..., id = NULL, time = NULL,
                 dimnames = list(panel$units, as.character(panel$times)))
     E[panel$cells] <- as.numeric(object[[variable]])
     result <- cd_test.default(E, type = type, n_pc = n_pc, seed = seed,
-                              min_overlap = min_overlap, na.action = na.action)
+                              min_overlap = min_overlap, na.action = na.action, reps = reps)
     result$variable <- variable
     result$units <- panel$units[!seq_along(panel$units) %in% result$excluded_units]
     result$excluded_unit_ids <- panel$units[result$excluded_units]

@@ -53,8 +53,13 @@
 #'     \deqn{CD_W = \left(\frac{1}{NT}\sum_{i,t}w_i^2 e_{it}^2\right)^{-1}
 #'     \sqrt{\frac{2}{TN(N-1)}}
 #'     \sum_t\sum_{i<j}w_i e_{it}w_j e_{jt}.}
-#'     The first factor is the inverse pooled residual variance. One set of
-#'     random weights is drawn per call; use \code{seed} for reproducibility.
+#'     The first factor is the inverse pooled residual variance. With
+#'     \code{reps = G}, draw \eqn{G} independent sets of unit weights and combine
+#'     the statistics as in equation (33) of Juodis and Reese:
+#'     \deqn{\overline{CD}_W = \frac{1}{\sqrt{G}}\sum_{g=1}^G CD_W^{(g)}.}
+#'     The default \code{reps = 1} preserves the single-draw statistic. Use
+#'     \code{seed} for reproducibility. The authors suggest a modest number of
+#'     draws (for example, 30), since large \eqn{G} can amplify lower-order terms.
 #'   }
 #'   \item{CDw+ (Juodis and Reese, 2022; Fan, Liao, and Yao, 2015)}{
 #'     The power-enhanced statistic is
@@ -63,6 +68,8 @@
 #'     Here \eqn{\rho_{ij}} is the ordinary residual correlation, without
 #'     multiplication by \eqn{\sqrt{T}}. The nonnegative screening term is
 #'     asymptotically zero under the conditions of the null hypothesis.
+#'     With \code{reps > 1}, replace \eqn{CD_W} by \eqn{\overline{CD}_W} and add
+#'     the screening term once.
 #'   }
 #'   \item{CD* (Pesaran and Xie, 2021)}{
 #'     CD is computed on residuals after removing \code{n_pc} principal components
@@ -145,6 +152,11 @@ cd_test <- function(object, ...) {
 #'   \code{"CDstar"}, or \code{"all"} (default: \code{"CD"}).
 #' @param n_pc Number of principal components for CD* (default 4).
 #' @param seed Integer seed for weight draws. Seeded calls restore the caller's RNG state; NULL uses the current RNG stream.
+#' @param reps Positive integer number of independent weight draws for CDw and
+#'   CDw+ (default 1). The draws are summed and divided by \code{sqrt(reps)}.
+#'   CD and CD* are unaffected. Weighted test results record the number of draws
+#'   in their \code{reps} field. For data inputs, \code{seed} is applied separately
+#'   to each variable's test, making seeded results independent of selection order.
 #' @param min_overlap Minimum number of overlapping time periods required for a unit
 #'   pair to be included in CD/CDw/CDw+ (default 2).
 #' @param na.action How to handle missing data: \code{"drop.incomplete.times"}
@@ -158,6 +170,7 @@ cd_test.default <- function(object,
                             seed = NULL,
                             min_overlap = 2L,
                             na.action = c("pairwise", "drop.incomplete.times"),
+                            reps = 1L,
                             ...) {
   type <- match.arg(type)
   na.action <- match.arg(na.action)
@@ -172,6 +185,8 @@ cd_test.default <- function(object,
 
   min_overlap <- .csdm_integer(min_overlap, "min_overlap")
   if (min_overlap < 2L) stop("'min_overlap' must be at least two.")
+  reps <- .csdm_integer(reps, "reps")
+  if (reps < 1L) stop("'reps' must be at least one.", call. = FALSE)
   if (any(is.infinite(object))) stop("Residuals may contain NA, but not infinite values.")
   if (!is.null(seed)) {
     seed <- .csdm_integer(seed, "seed")
@@ -235,15 +250,18 @@ cd_test.default <- function(object,
   if (type %in% c("CDw", "CDw+", "all")) {
     if (anyNA(E)) stop("CDw/CDw+ currently require a balanced sample; use explicit drop.incomplete.times or classical CD.")
     if (!is.null(seed)) set.seed(seed)
-    w <- sample(c(-1, 1), N, replace = TRUE)
     centered <- sweep(data_tn, 2L, colMeans(data_tn))
     variance <- mean(centered^2)
-    weighted <- sweep(centered, 2L, w, "*")
-    pair_sum <- sum(rowSums(weighted)^2 - rowSums(weighted^2)) / 2
-    statistic <- sqrt(2 / (Tt * N * (N - 1))) * pair_sum / variance
+    draws <- vapply(seq_len(reps), function(g) {
+      w <- sample(c(-1, 1), N, replace = TRUE)
+      weighted <- sweep(centered, 2L, w, "*")
+      pair_sum <- sum(rowSums(weighted)^2 - rowSums(weighted^2)) / 2
+      sqrt(2 / (Tt * N * (N - 1))) * pair_sum / variance
+    }, numeric(1))
+    statistic <- sum(draws) / sqrt(reps)
     out$CDw <- list(statistic = statistic,
       p.value = 2 * stats::pnorm(abs(statistic), lower.tail = FALSE),
-      N = N, T = Tt, pairs_used = choose(N, 2))
+      N = N, T = Tt, pairs_used = choose(N, 2), reps = reps)
     if (type %in% c("CDw+", "all")) {
       correlation <- stats::cor(centered)
       rho <- abs(correlation[upper.tri(correlation)])
@@ -252,7 +270,7 @@ cd_test.default <- function(object,
       statistic <- statistic + enhancement
       out$CDw_plus <- list(statistic = statistic,
         p.value = 2 * stats::pnorm(abs(statistic), lower.tail = FALSE),
-        N = N, T = Tt, pairs_used = choose(N, 2),
+        N = N, T = Tt, pairs_used = choose(N, 2), reps = reps,
         threshold = threshold, enhancement = enhancement)
     }
   }
@@ -305,12 +323,13 @@ cd_test.csdm_fit <- function(object,
                               seed = NULL,
                               min_overlap = 2L,
                               na.action = c("pairwise", "drop.incomplete.times"),
+                              reps = 1L,
                               ...) {
   type <- match.arg(type)
   na.action <- match.arg(na.action)
   E <- .csdm_get_residuals(object, type = "auto", strict = TRUE)
   cd_test.default(E, type = type, n_pc = n_pc, seed = seed,
-                  min_overlap = min_overlap, na.action = na.action, ...)
+                  min_overlap = min_overlap, na.action = na.action, reps = reps, ...)
 }
 
 #' @rdname cd_test

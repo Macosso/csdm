@@ -19,6 +19,7 @@ cd_test(object, ...)
   seed = NULL,
   min_overlap = 2L,
   na.action = c("pairwise", "drop.incomplete.times"),
+  reps = 1L,
   ...
 )
 
@@ -29,6 +30,7 @@ cd_test(object, ...)
   seed = NULL,
   min_overlap = 2L,
   na.action = c("pairwise", "drop.incomplete.times"),
+  reps = 1L,
   ...
 )
 
@@ -43,7 +45,8 @@ cd_test(object, ...)
   n_pc = 4L,
   seed = NULL,
   min_overlap = 2L,
-  na.action = c("pairwise", "drop.incomplete.times")
+  na.action = c("pairwise", "drop.incomplete.times"),
+  reps = 1L
 )
 
 \method{cd_test}{pdata.frame}(
@@ -55,7 +58,8 @@ cd_test(object, ...)
   n_pc = 4L,
   seed = NULL,
   min_overlap = 2L,
-  na.action = c("pairwise", "drop.incomplete.times")
+  na.action = c("pairwise", "drop.incomplete.times"),
+  reps = 1L
 )
 
 \method{print}{cd_test_list}(x, digits = 3, ...)
@@ -81,6 +85,12 @@ pair to be included in CD/CDw/CDw+ (default 2).}
 \item{na.action}{How to handle missing data: \code{"drop.incomplete.times"}
 removes time periods with any missing observations to create a balanced panel for CD*;
 \code{"pairwise"} (default) uses pairwise correlations for CD; unbalanced CDw/CDw+ requests error and CD* warns.}
+
+\item{reps}{Positive integer number of independent weight draws for CDw and
+CDw+ (default 1). The draws are summed and divided by \code{sqrt(reps)}.
+CD and CD* are unaffected. Weighted test results record the number of draws
+in their \code{reps} field. For data inputs, \code{seed} is applied separately
+to each variable's test, making seeded results independent of selection order.}
 
 \item{x}{An object of class \code{cd_test} or \code{cd_test_list}.}
 
@@ -139,8 +149,13 @@ unit. For a balanced residual panel, the statistic is
 \deqn{CD_W = \left(\frac{1}{NT}\sum_{i,t}w_i^2 e_{it}^2\right)^{-1}
     \sqrt{\frac{2}{TN(N-1)}}
     \sum_t\sum_{i<j}w_i e_{it}w_j e_{jt}.}
-The first factor is the inverse pooled residual variance. One set of
-random weights is drawn per call; use \code{seed} for reproducibility.
+The first factor is the inverse pooled residual variance. With
+\code{reps = G}, draw \eqn{G} independent sets of unit weights and combine
+the statistics as in equation (33) of Juodis and Reese:
+\deqn{\overline{CD}_W = \frac{1}{\sqrt{G}}\sum_{g=1}^G CD_W^{(g)}.}
+The default \code{reps = 1} preserves the single-draw statistic. Use
+\code{seed} for reproducibility. The authors suggest a modest number of
+draws (for example, 30), since large \eqn{G} can amplify lower-order terms.
 }
 \item{CDw+ (Juodis and Reese, 2022; Fan, Liao, and Yao, 2015)}{
 The power-enhanced statistic is
@@ -149,6 +164,8 @@ The power-enhanced statistic is
 Here \eqn{\rho_{ij}} is the ordinary residual correlation, without
 multiplication by \eqn{\sqrt{T}}. The nonnegative screening term is
 asymptotically zero under the conditions of the null hypothesis.
+With \code{reps > 1}, replace \eqn{CD_W} by \eqn{\overline{CD}_W} and add
+the screening term once.
 }
 \item{CD* (Pesaran and Xie, 2021)}{
 CD is computed on residuals after removing \code{n_pc} principal components
