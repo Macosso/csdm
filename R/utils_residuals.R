@@ -172,8 +172,9 @@ get_residuals <- function(object,
 #' @details
 #' This helper is retained temporarily for compatibility. Row scaling changes
 #' the weighted covariance underlying CDw, while cross-sectional time demeaning
-#' can mechanically induce dependence. Neither transformation is applied by
-#' `cd_test()`.
+#' can mechanically induce dependence. CDw does not standardize unit variances
+#' or demean across units. CD* uses within-unit standardization before PCA,
+#' as described in [cd_test()].
 #'
 #' ## Transformation steps
 #'
@@ -185,9 +186,9 @@ get_residuals <- function(object,
 #'
 #' ## Why this preprocessing matters
 #'
-#' CD-type tests are sensitive to scale heterogeneity and sparse columns in
-#' unbalanced panels. This helper creates a better-conditioned input matrix while
-#' preserving as much usable information as possible.
+#' These transformations change the diagnostic input. Their suitability depends
+#' on the selected test and its assumptions; preprocessing does not establish
+#' the validity of the test's reference distribution.
 #'
 #' @examples
 #' data(PWT_60_07, package = "csdm")

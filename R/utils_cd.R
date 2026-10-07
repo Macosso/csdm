@@ -1,53 +1,115 @@
 # utils_cd.R - Cross-sectional dependence tests for panel models
 
-#' Cross-sectional dependence (CD) tests for panel residuals
+#' Cross-sectional dependence (CD) tests for panel data and residuals
 #'
 #' Computes Pesaran CD, CDw, CDw+, and CD* tests for cross-sectional dependence
-#' in panel residuals. The implementation supports residual matrices or fitted
-#' \code{csdm_fit} objects and provides consistent handling of unbalanced panels.
+#' in panel variables or residuals. The implementation supports data frames,
+#' indexed panel data frames, numeric matrices, and fitted \code{csdm_fit} objects.
 #'
-#' @param object A \code{csdm_fit} model object or a numeric matrix of residuals (N x T).
-#' @param ... Additional arguments passed to methods.
+#' @param object A \code{data.frame}, \code{pdata.frame}, \code{csdm_fit} model,
+#'   or numeric matrix with units in rows and time periods in columns (N x T).
+#' @param ... For data frames, explicitly selected numeric columns as bare names,
+#'   quoted names, or character vectors of names. Selections must be unnamed.
+#'   For matrices and fitted models, additional arguments passed to methods.
 #'
 #' @return An object of class \code{cd_test} with fields \code{tests}, \code{type},
 #'   \code{N}, \code{T}, \code{na.action}, \code{excluded_units},
 #'   \code{excluded_times}, \code{kept_times}, and \code{call}. The \code{tests}
 #'   list contains one or more test results, each with \code{statistic} and
 #'   \code{p.value}.
+#'   Data-frame methods return a \code{cd_test_list}: a named list containing one
+#'   \code{cd_test} result per selected variable, including when only one variable
+#'   is selected. Each result also records \code{variable}, \code{units}, and
+#'   \code{excluded_unit_ids}. The list has \code{call}, \code{id}, and \code{time}
+#'   attributes and prints a combined table with each variable's sample dimensions.
+#'   For fitted models, CD* additionally records \code{input = "partial_residuals"}
+#'   and its own sample exclusions in \code{tests$CDstar}. With \code{type = "all"},
+#'   top-level sample fields describe the full residual panel; the CD* sample
+#'   dimensions are recorded in \code{tests$CDstar$N} and \code{tests$CDstar$T}.
 #'
 #' @details
+#' ## Selecting panel variables
+#'
+#' For a plain data frame, supply distinct unit and time column names through
+#' \code{id} and \code{time}. For a \code{pdata.frame}, the stored indexes are
+#' used, even when the index columns have been removed from the data. Select at
+#' least one numeric non-index column explicitly. Each variable is tested
+#' separately using its own available sample and the same missing-data policy.
+#' No regression is fitted. CDw demeans the observations within each unit, as it
+#' does for matrix inputs. Test controls and panel indexes follow \code{...} in
+#' the data-frame methods and must be named.
+#'
 #' ## Notation
 #'
-#' Let \eqn{E} be the residual matrix with \eqn{N} cross-sectional units and \eqn{T}
-#' time periods. For each unit pair \eqn{(i,j)}, let \eqn{T_{ij}} be the number of
-#' overlapping time periods and \eqn{\rho_{ij}} the pairwise correlation.
+#' Let \eqn{E} contain the selected observations or residuals, with \eqn{N}
+#' cross-sectional units and \eqn{T} time periods. For each unit pair
+#' \eqn{(i,j)}, let \eqn{T_{ij}} be the number of
+#' overlapping time periods and \eqn{\widehat\rho_{ij}} the correlation computed
+#' after demeaning both series over that pair's overlapping observations.
 #'
 #' ## Test statistics
 #'
 #' \describe{
 #'   \item{CD (Pesaran, 2015)}{
-#'     \deqn{CD = \sqrt{\frac{2}{N(N-1)}} \sum_{i<j} \sqrt{T_{ij}} \, \rho_{ij}}
+#'     \deqn{CD = \sqrt{\frac{2}{N(N-1)}} \sum_{i<j} \sqrt{T_{ij}} \, \widehat\rho_{ij}}
+#'     The sum includes pairs with at least \code{min_overlap} observations and
+#'     a finite correlation; \eqn{N} remains the retained number of units.
 #'   }
 #'   \item{CDw (Juodis and Reese, 2022)}{
 #'     Independent Rademacher weights \eqn{w_i \in \{-1,1\}} are applied by
-#'     unit. For a balanced residual panel, the statistic is
-#'     \deqn{CD_W = \left(\frac{1}{NT}\sum_{i,t}w_i^2 e_{it}^2\right)^{-1}
+#'     unit, independently of the data. Write \eqn{u_{it}=e_{it}-\bar e_i} for
+#'     observations demeaned within unit and define the pooled variance
+#'     \deqn{\widehat s_W^2=\frac{1}{NT}\sum_{i=1}^N\sum_{t=1}^T w_i^2 u_{it}^2.}
+#'     For a balanced panel, equation (30) of Juodis and Reese is implemented as
+#'     \deqn{CD_W = (\widehat s_W^2)^{-1}
 #'     \sqrt{\frac{2}{TN(N-1)}}
-#'     \sum_t\sum_{i<j}w_i e_{it}w_j e_{jt}.}
-#'     The first factor is the inverse pooled residual variance. One set of
-#'     random weights is drawn per call; use \code{seed} for reproducibility.
+#'     \sum_{t=1}^T\sum_{i=2}^N\sum_{j=1}^{i-1}w_i u_{it}w_j u_{jt}.}
+#'     Since \eqn{w_i^2=1}, the pooled variance is \eqn{\operatorname{mean}(u_{it}^2)}.
+#'     This is a weighted covariance statistic, with pooled rather than
+#'     pair-specific scale normalization. The paper's estimated residuals have
+#'     zero unit means when unit intercepts are included. With
+#'     \code{reps = G}, draw \eqn{G} independent sets of unit weights and combine
+#'     the statistics as in equation (33) of Juodis and Reese:
+#'     \deqn{\overline{CD}_W = \frac{1}{\sqrt{G}}\sum_{g=1}^G CD_W^{(g)}.}
+#'     The default \code{reps = 1} preserves the single-draw statistic. Use
+#'     \code{seed} for reproducibility. The authors suggest a modest number of
+#'     draws (for example, 30), since large \eqn{G} can amplify lower-order terms.
 #'   }
 #'   \item{CDw+ (Juodis and Reese, 2022; Fan, Liao, and Yao, 2015)}{
-#'     The power-enhanced statistic is
-#'     \deqn{CD_{W+} = CD_W + \sum_{i<j}|\rho_{ij}|
-#'     1\left\{|\rho_{ij}| > 2\sqrt{\log(N)/T}\right\}.}
-#'     Here \eqn{\rho_{ij}} is the ordinary residual correlation, without
+#'     Equation (32) of Juodis and Reese applies the power-enhancement principle
+#'     of Fan, Liao, and Yao. Its statistic is
+#'     \deqn{CD_{W+} = CD_W + \sum_{i<j}|\widehat\rho_{ij}|
+#'     1\left\{|\widehat\rho_{ij}| > 2\sqrt{\log(N)/T}\right\}.}
+#'     Here \eqn{\widehat\rho_{ij}} is the ordinary residual correlation, without
 #'     multiplication by \eqn{\sqrt{T}}. The nonnegative screening term is
 #'     asymptotically zero under the conditions of the null hypothesis.
+#'     With \code{reps > 1}, replace \eqn{CD_W} by \eqn{\overline{CD}_W} and add
+#'     the screening term once.
 #'   }
-#'   \item{CD* (Pesaran and Xie, 2021)}{
-#'     CD is computed on residuals after removing \code{n_pc} principal components
-#'     from \eqn{E}. This provides a bias-corrected test under multifactor errors.
+#'   \item{CD* (Pesaran-Xie correction; standardized-PCA variant)}{
+#'     Each unit is demeaned and divided by its sample standard deviation before
+#'     extracting \code{n_pc} principal components. Write \eqn{A} for this
+#'     \eqn{T\times N} standardized matrix. The estimated loading matrix
+#'     \eqn{\widehat\Gamma} is normalized so that
+#'     \eqn{\widehat\Gamma'\widehat\Gamma/N=I}, and the factors are
+#'     \eqn{\widehat F=A\widehat\Gamma/N}. For the factor-filtered residuals
+#'     \eqn{r_{it}} of \eqn{A-\widehat F\widehat\Gamma'}, define
+#'     \deqn{\widehat\sigma_i=\sqrt{T^{-1}\sum_t r_{it}^2},\quad
+#'     \widehat\varphi=N^{-1}\sum_i\widehat\gamma_i/\widehat\sigma_i,\quad
+#'     \widehat a_i=1-\widehat\sigma_i\widehat\varphi'\widehat\gamma_i.}
+#'     The implemented bias correction is
+#'     \deqn{\widehat\theta=1-N^{-1}\sum_i\widehat a_i^2,\qquad
+#'     CD^*=\frac{CD(r)+\sqrt{T/2}\,\widehat\theta}{1-\widehat\theta}.}
+#'     This uses the Pesaran-Xie correction algebra, but their PCA procedure
+#'     operates on unstandardized observations. Standardizing before PCA can
+#'     change the estimated factor space and is an implementation variant.
+#'     Setting \code{n_pc = 0} returns classical CD without factor removal.
+#'     For fitted models, the PCA input is
+#'     \eqn{\widehat v_{it}=y_{it}-x_{it}'\widehat\beta_i}, where \eqn{x_{it}}
+#'     includes all economic and deterministic design columns, including any
+#'     intercept, trend, and constructed lags. The fitted CSA contribution is
+#'     retained, following the input construction in Pesaran-Xie's regression
+#'     procedure. CD, CDw, and CDw+ use the full regression residuals instead.
 #'   }
 #' }
 #'
@@ -55,6 +117,16 @@
 #' denominators can produce severe size distortions, including proportional
 #' loading/error-scale designs after standardization. Numerical rank checks
 #' do not establish the validity of the asymptotic approximation.
+#'
+#' All p-values use the two-sided standard-normal approximation
+#' \eqn{2\Phi(-|\mathrm{statistic}|)}. The implemented tests do not estimate a
+#' serial-correlation correction. Stationarity, time-series dependence, factor
+#' strength, and relative panel dimensions must satisfy the relevant theory;
+#' accepting a numeric variable does not establish these conditions. For CD,
+#' omitting pairs or using very short overlaps can also affect calibration.
+#' Classical CD can be biased on CCE residuals because common time parameters
+#' have been estimated. CDw addresses this problem under Juodis-Reese's
+#' assumptions, including \eqn{\sqrt{T}/N\to0}.
 #'
 #' ## Missing data and balance
 #'
@@ -82,6 +154,8 @@
 #'
 #' \insertRef{PesaranXie2021}{csdm}
 #'
+#' \insertRef{PesaranXie2026}{csdm}
+#'
 #' @examples
 #' # Simulate independent and dependent panels
 #' set.seed(1)
@@ -94,6 +168,12 @@
 #'
 #' # Specific test with parameters
 #' cd_test(E_indep, type = "CDstar", n_pc = 2)
+#'
+#' # Test raw panel variables separately
+#' panel <- expand.grid(id = 1:10, year = 1:10)
+#' panel$x <- rnorm(nrow(panel))
+#' panel$y <- rnorm(nrow(panel))
+#' cd_test(panel, x, "y", id = "id", time = "year")
 #'
 #' # From a fitted csdm model
 #' data(PWT_60_07, package = "csdm")
@@ -120,8 +200,14 @@ cd_test <- function(object, ...) {
 #'   \code{"CDstar"}, or \code{"all"} (default: \code{"CD"}).
 #' @param n_pc Number of principal components for CD* (default 4).
 #' @param seed Integer seed for weight draws. Seeded calls restore the caller's RNG state; NULL uses the current RNG stream.
-#' @param min_overlap Minimum number of overlapping time periods required for a unit
-#'   pair to be included in CD/CDw/CDw+ (default 2).
+#' @param reps Positive integer number of independent weight draws for CDw and
+#'   CDw+ (default 1). The draws are summed and divided by \code{sqrt(reps)}.
+#'   CD and CD* are unaffected. Weighted test results record the number of draws
+#'   in their \code{reps} field. For data inputs, \code{seed} is applied separately
+#'   to each variable's test, making seeded results independent of selection order.
+#' @param min_overlap Minimum number of finite observations for retaining a unit
+#'   before time filtering (all tests), and minimum overlapping time periods
+#'   for including a pair in classical CD (default 2).
 #' @param na.action How to handle missing data: \code{"drop.incomplete.times"}
 #'   removes time periods with any missing observations to create a balanced panel for CD*;
 #'   \code{"pairwise"} (default) uses pairwise correlations for CD; unbalanced CDw/CDw+ requests error and CD* warns.
@@ -133,7 +219,22 @@ cd_test.default <- function(object,
                             seed = NULL,
                             min_overlap = 2L,
                             na.action = c("pairwise", "drop.incomplete.times"),
+                            reps = 1L,
                             ...) {
+  result <- .cd_test_matrix(object, type = type, n_pc = n_pc, seed = seed,
+                            min_overlap = min_overlap, na.action = na.action,
+                            reps = reps, ...)
+  result$call <- match.call()
+  result
+}
+
+# The fitted-model method supplies a different panel to CD*, so it can request
+# the other tests without first removing factors from the full CCE residuals.
+.cd_test_matrix <- function(object,
+                            type = c("CD", "CDw", "CDw+", "CDstar", "all"),
+                            n_pc = 4L, seed = NULL, min_overlap = 2L,
+                            na.action = c("pairwise", "drop.incomplete.times"),
+                            reps = 1L, .compute_star = TRUE, ...) {
   type <- match.arg(type)
   na.action <- match.arg(na.action)
 
@@ -147,7 +248,9 @@ cd_test.default <- function(object,
 
   min_overlap <- .csdm_integer(min_overlap, "min_overlap")
   if (min_overlap < 2L) stop("'min_overlap' must be at least two.")
-  if (any(is.infinite(object))) stop("Residuals may contain NA, but not infinite values.")
+  reps <- .csdm_integer(reps, "reps")
+  if (reps < 1L) stop("'reps' must be at least one.", call. = FALSE)
+  if (any(is.infinite(object))) stop("Input values may contain NA, but not infinite values.")
   if (!is.null(seed)) {
     seed <- .csdm_integer(seed, "seed")
     had_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
@@ -165,9 +268,11 @@ cd_test.default <- function(object,
   excluded_units <- which(!usable)
   E <- object[usable, , drop = FALSE]
 
-  # Periods with no estimated residuals are not part of the residual sample.
+  # Periods with no finite values are not part of the diagnostic sample.
+  time_labels <- if (is.null(colnames(E))) seq_len(ncol(E)) else colnames(E)
   empty_times <- colSums(is.finite(E)) == 0L
-  excluded_times <- if (is.null(colnames(E))) which(empty_times) else colnames(E)[empty_times]
+  excluded_times <- time_labels[empty_times]
+  kept_time_indices <- which(!empty_times)
   if (any(empty_times)) E <- E[, !empty_times, drop = FALSE]
   if (ncol(E) < 2L) stop("At least two time periods with residual observations are required.")
 
@@ -179,6 +284,9 @@ cd_test.default <- function(object,
     if (sum(complete_times) < 2) {
       stop("cd_test: After dropping incomplete time periods, fewer than 2 periods remain.")
     }
+    excluded <- empty_times
+    excluded[kept_time_indices[!complete_times]] <- TRUE
+    excluded_times <- time_labels[excluded]
     E <- E[, complete_times, drop = FALSE]
     if (n_dropped > 0) {
       message(sprintf("cd_test: Dropped %d incomplete time period%s (%.1f%%). Balanced panel: %d units x %d periods.",
@@ -210,15 +318,18 @@ cd_test.default <- function(object,
   if (type %in% c("CDw", "CDw+", "all")) {
     if (anyNA(E)) stop("CDw/CDw+ currently require a balanced sample; use explicit drop.incomplete.times or classical CD.")
     if (!is.null(seed)) set.seed(seed)
-    w <- sample(c(-1, 1), N, replace = TRUE)
     centered <- sweep(data_tn, 2L, colMeans(data_tn))
     variance <- mean(centered^2)
-    weighted <- sweep(centered, 2L, w, "*")
-    pair_sum <- sum(rowSums(weighted)^2 - rowSums(weighted^2)) / 2
-    statistic <- sqrt(2 / (Tt * N * (N - 1))) * pair_sum / variance
+    draws <- vapply(seq_len(reps), function(g) {
+      w <- sample(c(-1, 1), N, replace = TRUE)
+      weighted <- sweep(centered, 2L, w, "*")
+      pair_sum <- sum(rowSums(weighted)^2 - rowSums(weighted^2)) / 2
+      sqrt(2 / (Tt * N * (N - 1))) * pair_sum / variance
+    }, numeric(1))
+    statistic <- sum(draws) / sqrt(reps)
     out$CDw <- list(statistic = statistic,
       p.value = 2 * stats::pnorm(abs(statistic), lower.tail = FALSE),
-      N = N, T = Tt, pairs_used = choose(N, 2))
+      N = N, T = Tt, pairs_used = choose(N, 2), reps = reps)
     if (type %in% c("CDw+", "all")) {
       correlation <- stats::cor(centered)
       rho <- abs(correlation[upper.tri(correlation)])
@@ -227,13 +338,13 @@ cd_test.default <- function(object,
       statistic <- statistic + enhancement
       out$CDw_plus <- list(statistic = statistic,
         p.value = 2 * stats::pnorm(abs(statistic), lower.tail = FALSE),
-        N = N, T = Tt, pairs_used = choose(N, 2),
+        N = N, T = Tt, pairs_used = choose(N, 2), reps = reps,
         threshold = threshold, enhancement = enhancement)
     }
   }
 
   # 4. CD* (bias-corrected with PCA factor removal)
-  if (type %in% c("CDstar", "all")) {
+  if (.compute_star && type %in% c("CDstar", "all")) {
     # CD* requires balanced panel
     if (anyNA(E)) {
       warning("cd_test: CD* requires a balanced panel; returning NA due to missing values.")
@@ -280,16 +391,70 @@ cd_test.csdm_fit <- function(object,
                               seed = NULL,
                               min_overlap = 2L,
                               na.action = c("pairwise", "drop.incomplete.times"),
+                              reps = 1L,
                               ...) {
   type <- match.arg(type)
   na.action <- match.arg(na.action)
   E <- .csdm_get_residuals(object, type = "auto", strict = TRUE)
-  cd_test.default(E, type = type, n_pc = n_pc, seed = seed,
-                  min_overlap = min_overlap, na.action = na.action, ...)
+  if (type %in% c("CDstar", "all")) {
+    V <- .cdstar_fit_input(object, E)
+    star <- cd_test.default(V, type = "CDstar", n_pc = n_pc, seed = seed,
+                            min_overlap = min_overlap, na.action = na.action,
+                            reps = reps, ...)
+    star$tests$CDstar$input <- "partial_residuals"
+    # CD* can retain different units from tests on the full residuals.
+    star$tests$CDstar$excluded_units <- star$excluded_units
+    star$tests$CDstar$excluded_times <- star$excluded_times
+    star$tests$CDstar$kept_times <- star$kept_times
+    if (type == "CDstar") {
+      star$call <- match.call()
+      return(star)
+    }
+  }
+  result <- .cd_test_matrix(E, type = type, n_pc = n_pc, seed = seed,
+                            min_overlap = min_overlap, na.action = na.action,
+                            reps = reps, .compute_star = FALSE, ...)
+  if (type == "all") {
+    result$tests$CDstar <- star$tests$CDstar
+    result$type <- names(result$tests)
+  }
+  result$call <- match.call()
+  result
+}
+
+# Pesaran-Xie start PCA from y minus the economic/deterministic component,
+# retaining the common-factor component rather than using full CCE residuals.
+.cdstar_fit_input <- function(object, E) {
+  X <- object$model_matrix
+  y <- if (!is.null(object$model_frame)) stats::model.response(object$model_frame)
+  rows <- object$sample$row[object$sample$used]
+  if (!is.matrix(X) || !is.numeric(y) || nrow(X) != length(rows) ||
+      length(y) != length(rows) || !is.matrix(object$coef_i)) {
+    stop("CD* requires stored economic design and unit coefficients; refit the model.")
+  }
+  keys <- object$data[rows, c(object$id, object$time), drop = FALSE]
+  ids <- as.character(keys[[object$id]])
+  partial <- numeric(length(rows))
+  for (uid in unique(ids)) {
+    selected <- which(ids == uid)
+    beta <- object$coef_i[uid, colnames(X)]
+    partial[selected] <- y[selected] - as.numeric(X[selected, , drop = FALSE] %*% beta)
+  }
+  V <- E
+  V[] <- NA_real_
+  times <- keys[[object$time]]
+  if (isTRUE(object$meta$pdata) && is.factor(times)) {
+    times <- suppressWarnings(as.numeric(as.character(times)))
+  }
+  cells <- cbind(match(ids, rownames(V)),
+                 match(as.character(times), colnames(V)))
+  if (anyNA(cells)) stop("Stored CD* sample indexes are inconsistent; refit the model.")
+  V[cells] <- partial
+  V
 }
 
 #' @rdname cd_test
-#' @param x An object of class \code{cd_test}.
+#' @param x An object of class \code{cd_test} or \code{cd_test_list}.
 #' @param digits Number of digits to print (default 3).
 #' @export
 #' @method print cd_test
@@ -300,7 +465,10 @@ print.cd_test <- function(x, digits = 3, ...) {
   }
 
   cat("Cross-sectional dependence tests\n")
-  if (!is.null(x$N) && !is.null(x$T)) {
+  different_samples <- any(vapply(x$tests, function(test) {
+    !is.null(test$N) && !is.null(test$T) && (test$N != x$N || test$T != x$T)
+  }, logical(1)))
+  if (!different_samples && !is.null(x$N) && !is.null(x$T)) {
     cat(sprintf("N = %d, T = %d\n", x$N, x$T))
   }
   cat("\n")
@@ -332,6 +500,10 @@ print.cd_test <- function(x, digits = 3, ...) {
       row.names = display_names,
       stringsAsFactors = FALSE
     )
+    if (different_samples) {
+      out$N <- vapply(tests, get_num, key = "N", FUN.VALUE = numeric(1))
+      out$T <- vapply(tests, get_num, key = "T", FUN.VALUE = numeric(1))
+    }
   } else {
     key <- type_map[[as.character(x$type[1])]]
     if (is.null(key) || is.null(tests[[key]])) {

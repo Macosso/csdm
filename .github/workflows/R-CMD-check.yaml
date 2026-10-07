@@ -15,6 +15,10 @@ jobs:
     env:
       R_KEEP_PKG_SOURCE: yes
       R_PROFILE_USER: /dev/null
+      # pak workers read the project profile; CI uses the action's library.
+      RENV_CONFIG_AUTOLOADER_ENABLED: "false"
+      # Allow slower Windows workers up to 60 seconds to start (milliseconds).
+      PKG_SUBPROCESS_TIMEOUT: "60000"
     steps:
       - uses: actions/checkout@v4
       - uses: r-lib/actions/setup-pandoc@v2
